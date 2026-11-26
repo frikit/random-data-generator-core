@@ -1,0 +1,1742 @@
+/*
+ * Copyright (c) 2026 krandom contributors
+ *
+ * Licensed under the MIT License. See LICENSE in the project root for license information.
+ */
+package io.github.frikit.krandom.generator.object;
+
+import io.github.frikit.krandom.generator.EmailDomainPolicy;
+import io.github.frikit.krandom.generator.GenerationRecipe;
+import io.github.frikit.krandom.generator.GeneratorConfig;
+import io.github.frikit.krandom.generator.Vocabulary;
+import io.github.frikit.krandom.generator.failure.GenerationFailureCategory;
+import io.github.frikit.krandom.generator.failure.GenerationFailureContext;
+import io.github.frikit.krandom.generator.failure.GenerationFailureListener;
+import io.github.frikit.krandom.generator.failure.GenerationOperation;
+import io.github.frikit.krandom.generator.location.AddressInfo;
+import io.github.frikit.krandom.generator.location.AddressInfoGenerator;
+import io.github.frikit.krandom.generator.location.CountryGenerator;
+import io.github.frikit.krandom.generator.network.NetworkSafetyPolicy;
+import io.github.frikit.krandom.generator.object.exception.ObjectGenerationException;
+import io.github.frikit.krandom.generator.report.GenerationDecision;
+import java.lang.reflect.Field;
+import java.lang.reflect.RecordComponent;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.math.RoundingMode;
+import java.net.URI;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.Year;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.Temporal;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Comparator;
+import java.util.GregorianCalendar;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.jspecify.annotations.Nullable;
+
+/**
+ * Applies lightweight sibling-field coherence after structural value generation.
+ */
+final class SemanticCoherenceAdjuster {
+
+    private static final Pattern MONEY_FRAGMENT = Pattern.compile("[-+]?\\d+(?:\\.\\d+)?");
+    /** The domains RFC 2606 reserves, which cannot reach a real mailbox. */
+    private static final Pattern RESERVED_DOMAIN = Pattern.compile(
+            "(?:[a-z0-9_-]+\\.)*example\\.(?:com|net|org)|(?:[a-z0-9_-]+\\.)+(?:test|example|invalid|localhost)");
+    /**
+     * The most characters a domain label may hold (RFC 1035), which {@code IDN.toASCII} and Hibernate
+     * Validator's {@code @Email} check.
+     */
+    private static final int MAX_DOMAIN_LABEL_LENGTH = 63;
+
+    /** The fields this pass derives a value for that it cannot number apart from one already used. */
+    private static final Set<String> UNNUMBERED_KEYS =
+            Set.of("createdat", "updatedat", "birthdate", "age", "price", "amount", "balance", "active", "status");
+
+    private static final long SECONDS_PER_DAY = Duration.ofDays(1).toSeconds();
+    /** The rule of the UTC-offset contract, as in {@code ZoneOffsetGenerator}. */
+    private static final int OFFSET_MIN_SECONDS = -12 * 60 * 60;
+
+    private static final int OFFSET_MAX_SECONDS = 14 * 60 * 60;
+    private static final int OFFSET_STEP_SECONDS = 15 * 60;
+
+    /** The first and last years that a {@code long} of milliseconds, as a {@code Date} holds, reaches in full. */
+    private static final long MIN_MILLIS_YEAR =
+            Instant.ofEpochMilli(Long.MIN_VALUE).atOffset(ZoneOffset.UTC).getYear() + 1L;
+
+    private static final long MAX_MILLIS_YEAR =
+            Instant.ofEpochMilli(Long.MAX_VALUE).atOffset(ZoneOffset.UTC).getYear() - 1L;
+
+    private final ObjectGeneratorConfig config;
+    private final UniqueFieldTracker uniqueFieldTracker;
+    private final SemanticFieldRegistry semanticRegistry;
+    private final @Nullable Long generationSeed;
+    private final int depth;
+    private final String objectPath;
+    private final @Nullable GenerationReporter reporter;
+    private @Nullable AddressInfo addressInfo;
+    private boolean addressInfoResolved;
+    /** The fields of the instance being aligned that kept a value the class set. */
+    private Set<Field> keptFields = Set.of();
+
+    SemanticCoherenceAdjuster(ObjectGeneratorConfig config, UniqueFieldTracker uniqueFieldTracker) {
+        this(config, uniqueFieldTracker, null);
+    }
+
+    SemanticCoherenceAdjuster(
+            ObjectGeneratorConfig config, UniqueFieldTracker uniqueFieldTracker, @Nullable Long generationSeed) {
+        this(config, uniqueFieldTracker, generationSeed, 0, "$root");
+    }
+
+    SemanticCoherenceAdjuster(
+            ObjectGeneratorConfig config,
+            UniqueFieldTracker uniqueFieldTracker,
+            @Nullable Long generationSeed,
+            int depth,
+            String objectPath) {
+        this.config = Objects.requireNonNull(config, "config must not be null");
+        this.uniqueFieldTracker = Objects.requireNonNull(uniqueFieldTracker, "uniqueFieldTracker must not be null");
+        this.semanticRegistry = config.getSemanticRegistry();
+        this.generationSeed = generationSeed;
+        this.depth = depth;
+        this.objectPath = Objects.requireNonNull(objectPath, "objectPath must not be null");
+        this.reporter = GenerationReporter.of(config, false);
+    }
+
+    void adjustInstance(Class<?> ownerType, Object instance, List<Field> fields, boolean allowOverwriteExisting) {
+        adjustInstance(ownerType, instance, fields, allowOverwriteExisting, Set.of());
+    }
+
+    /**
+     * Aligns the fields of an instance. A field in {@code keptFields} holds a value the class set, which
+     * generation kept, and the pass writes it only where it is {@code null} or blank, as it writes every field
+     * when {@code allowOverwriteExisting} is {@code false}.
+     */
+    void adjustInstance(
+            Class<?> ownerType,
+            Object instance,
+            List<Field> fields,
+            boolean allowOverwriteExisting,
+            Set<Field> keptFields) {
+        Objects.requireNonNull(ownerType, "ownerType must not be null");
+        Objects.requireNonNull(instance, "instance must not be null");
+        this.keptFields = Set.copyOf(keptFields);
+        if (config.getSemanticMode() == ObjectGenerationSemanticMode.STRUCTURAL_ONLY) {
+            return;
+        }
+
+        List<Slot> slots = new ArrayList<>();
+        for (Field field : fields) {
+            if (config.shouldExclude(field)) {
+                continue;
+            }
+            field.setAccessible(true);
+            slots.add(reported(new ReflectionSlot(
+                    ownerType,
+                    field,
+                    instance,
+                    config.isIgnoreErrors(),
+                    depth,
+                    config.getGeneratorConfig().getGenerationFailureListener())));
+        }
+        apply(slots, allowOverwriteExisting);
+    }
+
+    void adjustRecordArguments(
+            Class<?> ownerType, RecordComponent[] components, Field[] backingFields, @Nullable Object[] args) {
+        Objects.requireNonNull(ownerType, "ownerType must not be null");
+        Objects.requireNonNull(components, "components must not be null");
+        Objects.requireNonNull(backingFields, "backingFields must not be null");
+        Objects.requireNonNull(args, "args must not be null");
+        if (config.getSemanticMode() == ObjectGenerationSemanticMode.STRUCTURAL_ONLY) {
+            return;
+        }
+
+        List<Slot> slots = new ArrayList<>(components.length);
+        for (int i = 0; i < components.length; i++) {
+            Field backingField = backingFields[i];
+            if (config.shouldExclude(backingField)) {
+                continue;
+            }
+            slots.add(reported(new RecordSlot(ownerType, components[i], backingField, args, i)));
+        }
+        apply(slots, true);
+    }
+
+    private void apply(List<Slot> slots, boolean allowOverwriteExisting) {
+        if (slots.isEmpty()) {
+            return;
+        }
+
+        Map<String, Slot> slotsBySemanticKey = new LinkedHashMap<>();
+        for (Slot slot : slots) {
+            String semanticKey = semanticRegistry.semanticKeyForFieldName(slot.fieldName());
+            if (semanticKey != null) {
+                slotsBySemanticKey.putIfAbsent(semanticKey, slot);
+            }
+        }
+        if (slotsBySemanticKey.isEmpty()) {
+            return;
+        }
+
+        harmonizeAddressCluster(slotsBySemanticKey, allowOverwriteExisting);
+        String domain = harmonizeDomain(slotsBySemanticKey, allowOverwriteExisting);
+        harmonizeFullName(slotsBySemanticKey, allowOverwriteExisting);
+        harmonizeEmail(slotsBySemanticKey, domain, allowOverwriteExisting);
+        harmonizeCompanyEmail(slotsBySemanticKey, domain, allowOverwriteExisting);
+        harmonizeUrl(slotsBySemanticKey, allowOverwriteExisting);
+        harmonizeCompanyUrl(slotsBySemanticKey, domain, allowOverwriteExisting);
+        harmonizeTimestamps(slotsBySemanticKey, allowOverwriteExisting);
+        harmonizeAgeAndBirthDate(slotsBySemanticKey, allowOverwriteExisting);
+        harmonizeMonetaryFields(slotsBySemanticKey, allowOverwriteExisting);
+        harmonizeActiveStatus(slotsBySemanticKey, allowOverwriteExisting);
+    }
+
+    private void harmonizeAddressCluster(Map<String, Slot> slotsBySemanticKey, boolean allowOverwriteExisting) {
+        boolean hasAddressSignals = stringValue(slotsBySemanticKey.get("streetaddress")) != null;
+        hasAddressSignals |= stringValue(slotsBySemanticKey.get("city")) != null;
+        hasAddressSignals |= stringValue(slotsBySemanticKey.get("state")) != null;
+        hasAddressSignals |= stringValue(slotsBySemanticKey.get("postalcode")) != null;
+        if (!hasAddressSignals) {
+            return;
+        }
+
+        AddressInfo coherentAddress = coherentAddressInfo();
+        if (coherentAddress == null) {
+            return;
+        }
+
+        assignAddressField(
+                slotsBySemanticKey.get("streetaddress"),
+                "streetaddress",
+                coherentAddress.street(),
+                allowOverwriteExisting);
+        assignAddressField(slotsBySemanticKey.get("city"), "city", coherentAddress.city(), allowOverwriteExisting);
+        assignAddressField(slotsBySemanticKey.get("state"), "state", coherentAddress.state(), allowOverwriteExisting);
+        assignAddressField(
+                slotsBySemanticKey.get("postalcode"), "postalcode", coherentAddress.zip(), allowOverwriteExisting);
+        assignAddressField(
+                slotsBySemanticKey.get("country"), "country", coherentAddress.country(), allowOverwriteExisting);
+    }
+
+    private void assignAddressField(
+            @Nullable Slot slot, String semanticKey, String value, boolean allowOverwriteExisting) {
+        if (slot == null || slot.rawType() != String.class || !canAssign(slot, allowOverwriteExisting)) {
+            return;
+        }
+        String normalized = stringValue(value);
+        if (normalized == null) {
+            return;
+        }
+        assignDerived(slot, semanticKey, normalized);
+    }
+
+    /**
+     * Writes a derived string to the slot, numbered where its field must be unique, where the slot's own
+     * constraints allow it. Where they do not, the slot keeps its value, which met them when it was generated,
+     * as a slot the pass cannot assign does. The string is checked before it is numbered, so that a rejected
+     * one takes no unique value, and again after, as a number can lengthen it.
+     *
+     * @return whether the slot took the string
+     */
+    private boolean assignDerived(Slot slot, String semanticKey, String candidate) {
+        if (!keepsConstraints(slot, candidate)) {
+            return false;
+        }
+        Object assigned = applyUniqueness(slot, semanticKey, candidate);
+        if (!keepsConstraints(slot, assigned)) {
+            // Only a numbered value fails here, as the candidate passed above, and its unique field reserved it.
+            // No object holds it, so the pass gives it back rather than let rejected numbers use up the attempts.
+            uniqueFieldTracker.release(
+                    UniqueFieldTracker.fieldKey(slot.annotatedElement().getDeclaringClass(), slot.fieldName()),
+                    assigned);
+            return false;
+        }
+        slot.setValue(assigned);
+        return true;
+    }
+
+    /** True when the pass can assign the slot and the slot's own constraints allow this value. */
+    private boolean canTake(Slot slot, boolean allowOverwriteExisting, Object value) {
+        return canAssign(slot, allowOverwriteExisting) && keepsConstraints(slot, value);
+    }
+
+    private @Nullable AddressInfo coherentAddressInfo() {
+        if (addressInfoResolved) {
+            return addressInfo;
+        }
+        addressInfoResolved = true;
+        if (localeCurrentCountry() == null) {
+            return null;
+        }
+        GeneratorConfig addressConfig = config.getGeneratorConfig();
+        if (generationSeed != null) {
+            addressConfig =
+                    addressConfig.toBuilder().seed(generationSeed.longValue()).build();
+        }
+        addressInfo = new AddressInfoGenerator(addressConfig).generate();
+        return addressInfo;
+    }
+
+    private @Nullable String harmonizeDomain(Map<String, Slot> slotsBySemanticKey, boolean allowOverwriteExisting) {
+        Slot domainSlot = slotsBySemanticKey.get("domain");
+        if (domainSlot != null) {
+            String declaredDomain =
+                    sharedDomain(normalizeDomain(stringValue(domainSlot.getValue())), slotsBySemanticKey);
+            if (declaredDomain != null) {
+                if (canAssign(domainSlot, allowOverwriteExisting)
+                        && assignDerived(domainSlot, "domain", declaredDomain)) {
+                    return normalizeDomain(stringValue(domainSlot.getValue()));
+                }
+                return declaredDomain;
+            }
+        }
+
+        String resolvedDomain = normalizeDomain(emailDomain(stringValue(slotsBySemanticKey.get("email"))));
+        if (resolvedDomain == null) {
+            resolvedDomain = sharedDomain(
+                    normalizeDomain(urlHost(stringValue(slotsBySemanticKey.get("url")))), slotsBySemanticKey);
+        }
+        if (resolvedDomain == null) {
+            resolvedDomain = normalizeDomain(
+                    domainFromCompany(stringValue(slotsBySemanticKey.get("companyname")), slotsBySemanticKey));
+        }
+        if (resolvedDomain == null) {
+            resolvedDomain = normalizeDomain(emailDomain(stringValue(slotsBySemanticKey.get("companyemail"))));
+        }
+
+        String safeDomain = networkSafeDomain(resolvedDomain, slotsBySemanticKey);
+        if (safeDomain != null
+                && domainSlot != null
+                && canAssign(domainSlot, allowOverwriteExisting)
+                && assignDerived(domainSlot, "domain", safeDomain)) {
+            resolvedDomain = normalizeDomain(stringValue(domainSlot.getValue()));
+        }
+        return resolvedDomain;
+    }
+
+    private void harmonizeFullName(Map<String, Slot> slotsBySemanticKey, boolean allowOverwriteExisting) {
+        Slot firstNameSlot = slotsBySemanticKey.get("firstname");
+        Slot lastNameSlot = slotsBySemanticKey.get("lastname");
+        Slot fullNameSlot = slotsBySemanticKey.get("fullname");
+        if (firstNameSlot == null || lastNameSlot == null || fullNameSlot == null) {
+            return;
+        }
+
+        String firstName = normalizedHumanName(stringValue(firstNameSlot));
+        String lastName = normalizedHumanName(stringValue(lastNameSlot));
+        if (firstName == null || lastName == null || !canAssign(fullNameSlot, allowOverwriteExisting)) {
+            return;
+        }
+
+        assignDerived(fullNameSlot, "fullname", firstName + " " + lastName);
+    }
+
+    private void harmonizeEmail(
+            Map<String, Slot> slotsBySemanticKey, @Nullable String resolvedDomain, boolean allowOverwriteExisting) {
+        Slot emailSlot = slotsBySemanticKey.get("email");
+        if (emailSlot == null || !canAssign(emailSlot, allowOverwriteExisting)) {
+            return;
+        }
+
+        String localPart = emailLocalPart(slotsBySemanticKey);
+        if (localPart == null) {
+            return;
+        }
+
+        String domain = resolvedDomain;
+        if (domain == null) {
+            domain = normalizeDomain(emailDomain(stringValue(emailSlot)));
+        }
+        if (domain == null) {
+            domain = emailSafeDomain(
+                    normalizeDomain(urlHost(stringValue(slotsBySemanticKey.get("url")))), slotsBySemanticKey);
+        }
+        if (domain == null) {
+            domain = "example.com";
+        }
+
+        assignDerived(emailSlot, "email", localPart + "@" + domain);
+    }
+
+    private void harmonizeCompanyEmail(
+            Map<String, Slot> slotsBySemanticKey, @Nullable String resolvedDomain, boolean allowOverwriteExisting) {
+        Slot companyEmailSlot = slotsBySemanticKey.get("companyemail");
+        if (companyEmailSlot == null || !canAssign(companyEmailSlot, allowOverwriteExisting)) {
+            return;
+        }
+
+        String domain = resolvedDomain;
+        if (domain == null) {
+            domain = normalizeDomain(emailDomain(stringValue(companyEmailSlot)));
+        }
+        if (domain == null) {
+            domain = emailSafeDomain(
+                    normalizeDomain(urlHost(stringValue(slotsBySemanticKey.get("companyurl")))), slotsBySemanticKey);
+        }
+        if (domain == null) {
+            domain = normalizeDomain(
+                    domainFromCompany(stringValue(slotsBySemanticKey.get("companyname")), slotsBySemanticKey));
+        }
+        if (domain == null) {
+            return;
+        }
+
+        assignDerived(companyEmailSlot, "companyemail", "hello@" + domain);
+    }
+
+    /** Keeps a domain out of a fixture's shared domain when an email field would inherit it unsafely. */
+    private @Nullable String sharedDomain(@Nullable String domain, Map<String, Slot> slotsBySemanticKey) {
+        return hasEmailField(slotsBySemanticKey) ? emailSafeDomain(domain, slotsBySemanticKey) : domain;
+    }
+
+    private static boolean hasEmailField(Map<String, Slot> slotsBySemanticKey) {
+        return slotsBySemanticKey.containsKey("email") || slotsBySemanticKey.containsKey("companyemail");
+    }
+
+    /**
+     * Returns the domain if a generated email may use it. Under the test-safe policy it must be
+     * reserved or come from an override of a sibling field, because a domain the caller supplies is
+     * used verbatim.
+     */
+    private @Nullable String emailSafeDomain(@Nullable String domain, Map<String, Slot> slotsBySemanticKey) {
+        return usesReservedEmailDomains() ? reservedOrSupplied(domain, slotsBySemanticKey) : domain;
+    }
+
+    /** Returns the domain if a generated domain or URL may use it, under the same rule for the network policy. */
+    private @Nullable String networkSafeDomain(@Nullable String domain, Map<String, Slot> slotsBySemanticKey) {
+        return usesReservedNetworkNames() ? reservedOrSupplied(domain, slotsBySemanticKey) : domain;
+    }
+
+    private @Nullable String reservedOrSupplied(@Nullable String domain, Map<String, Slot> slotsBySemanticKey) {
+        return domain == null
+                        || RESERVED_DOMAIN.matcher(domain).matches()
+                        || isSuppliedDomain(domain, slotsBySemanticKey)
+                ? domain
+                : null;
+    }
+
+    private boolean usesReservedEmailDomains() {
+        return config.getGeneratorConfig().getEmailDomainPolicy() == EmailDomainPolicy.TEST_SAFE_RESERVED_DOMAINS;
+    }
+
+    private boolean usesReservedNetworkNames() {
+        return config.getGeneratorConfig().getNetworkSafetyPolicy() == NetworkSafetyPolicy.TEST_SAFE_RESERVED;
+    }
+
+    private boolean isSuppliedDomain(String domain, Map<String, Slot> slotsBySemanticKey) {
+        return domain.equals(normalizeDomain(suppliedValue(slotsBySemanticKey.get("domain"))))
+                || domain.equals(normalizeDomain(urlHost(suppliedValue(slotsBySemanticKey.get("url")))))
+                || domain.equals(normalizeDomain(urlHost(suppliedValue(slotsBySemanticKey.get("companyurl")))));
+    }
+
+    private @Nullable String suppliedValue(@Nullable Slot slot) {
+        // Not type overrides: one on String protects every email too, leaving nothing to authorize, and
+        // one on a generic field's erasure does not apply to the value generation resolved for it.
+        return slot != null && hasMemberOverride(slot) ? stringValue(slot) : null;
+    }
+
+    private void harmonizeUrl(Map<String, Slot> slotsBySemanticKey, boolean allowOverwriteExisting) {
+        Slot urlSlot = slotsBySemanticKey.get("url");
+        if (urlSlot == null || !canAssign(urlSlot, allowOverwriteExisting)) {
+            return;
+        }
+
+        String domain =
+                networkSafeDomain(normalizeDomain(stringValue(slotsBySemanticKey.get("domain"))), slotsBySemanticKey);
+        if (domain == null) {
+            domain = networkSafeDomain(
+                    normalizeDomain(emailDomain(stringValue(slotsBySemanticKey.get("email")))), slotsBySemanticKey);
+        }
+        if (domain == null) {
+            return;
+        }
+
+        assignDerived(urlSlot, "url", "https://www." + domain);
+    }
+
+    private void harmonizeCompanyUrl(
+            Map<String, Slot> slotsBySemanticKey, @Nullable String resolvedDomain, boolean allowOverwriteExisting) {
+        Slot companyUrlSlot = slotsBySemanticKey.get("companyurl");
+        if (companyUrlSlot == null || !canAssign(companyUrlSlot, allowOverwriteExisting)) {
+            return;
+        }
+
+        String domain = networkSafeDomain(resolvedDomain, slotsBySemanticKey);
+        if (domain == null) {
+            domain = normalizeDomain(urlHost(stringValue(companyUrlSlot)));
+        }
+        if (domain == null) {
+            domain = networkSafeDomain(
+                    normalizeDomain(emailDomain(stringValue(slotsBySemanticKey.get("companyemail")))),
+                    slotsBySemanticKey);
+        }
+        if (domain == null) {
+            domain = normalizeDomain(
+                    domainFromCompany(stringValue(slotsBySemanticKey.get("companyname")), slotsBySemanticKey));
+        }
+        if (domain == null) {
+            return;
+        }
+
+        assignDerived(companyUrlSlot, "companyurl", "https://www." + domain);
+    }
+
+    private void harmonizeTimestamps(Map<String, Slot> slotsBySemanticKey, boolean allowOverwriteExisting) {
+        Slot createdAtSlot = slotsBySemanticKey.get("createdat");
+        Slot updatedAtSlot = slotsBySemanticKey.get("updatedat");
+        if (createdAtSlot == null || updatedAtSlot == null) {
+            return;
+        }
+
+        Instant createdAt = toInstant(createdAtSlot.getValue());
+        Instant updatedAt = toInstant(updatedAtSlot.getValue());
+        if (createdAt == null || updatedAt == null || !createdAt.isAfter(updatedAt)) {
+            return;
+        }
+
+        if (canAssign(updatedAtSlot, allowOverwriteExisting)) {
+            Object aligned = alignedValue(createdAt, updatedAtSlot.rawType());
+            // updatedAt moves, unless that breaks its own constraints, or leaves the range where createdAt can
+            // move to it inside the range. A sibling that cannot move leaves updatedAt no such choice.
+            if (keepsConstraints(updatedAtSlot, aligned)
+                    && (!isOutsideDateRange(aligned)
+                            || !movesInsideDateRange(createdAtSlot, updatedAt, allowOverwriteExisting))) {
+                assignConverted(updatedAtSlot, aligned);
+                return;
+            }
+        }
+        // createdAt moves to an updatedAt that cannot move, unless that breaks its own constraints too. Then
+        // both keep their values, out of order, as two overrides do.
+        if (canAssign(createdAtSlot, allowOverwriteExisting)) {
+            Object aligned = alignedValue(updatedAt, createdAtSlot.rawType());
+            if (keepsConstraints(createdAtSlot, aligned)) {
+                assignConverted(createdAtSlot, aligned);
+            }
+        }
+    }
+
+    private boolean movesInsideDateRange(Slot slot, Instant instant, boolean allowOverwriteExisting) {
+        if (!canAssign(slot, allowOverwriteExisting)) {
+            return false;
+        }
+        Object aligned = alignedValue(instant, slot.rawType());
+        return aligned != null && !isOutsideDateRange(aligned) && keepsConstraints(slot, aligned);
+    }
+
+    /**
+     * True when the pass may write this value to the slot because the slot's own Bean Validation constraints
+     * allow it, read against the configured clock. In RELAXED mode a constrained slot is protected and never
+     * written. In STRICT mode semantics win, but a value that would break a constraint cannot move: this keeps
+     * every value the pass derives, a date, an age, a string, an amount or a status, within them. {@code null}
+     * is a type the pass cannot write, which it leaves as it is.
+     */
+    private boolean keepsConstraints(Slot slot, @Nullable Object value) {
+        return value == null
+                || BeanValidationSupport.accepts(
+                        slot.annotatedElement(),
+                        slot.rawType(),
+                        value,
+                        config.getGeneratorConfig().getClock());
+    }
+
+    /**
+     * An instant in this type, reading UTC. Where that date is outside the configured range, a type that
+     * holds an offset reads the nearest one to UTC that gives a date in the range, if it can hold one,
+     * because the local date is what the range bounds for an offset or a zone.
+     */
+    private @Nullable Object alignedValue(Instant instant, Class<?> rawType) {
+        Object utc = fromInstant(instant, rawType);
+        if (!isOutsideDateRange(utc)) {
+            return utc;
+        }
+        ZoneOffset offset = offsetIntoDateRange(instant, rawType);
+        return offset != null ? fromInstant(instant, rawType, offset) : utc;
+    }
+
+    /**
+     * The offset nearest UTC, in the steps of the UTC-offset contract, at which an instant outside the
+     * configured range reads a date in it. An {@code OffsetDateTime} keeps to the bounds of the contract
+     * too, and {@code null} means that this type has no such offset.
+     */
+    private @Nullable ZoneOffset offsetIntoDateRange(Instant instant, Class<?> rawType) {
+        long second = instant.getEpochSecond();
+        long toStart = Objects.requireNonNull(config.getDateMin()).toEpochDay() * SECONDS_PER_DAY - second;
+        long toEnd = (Objects.requireNonNull(config.getDateMax()).toEpochDay() + 1) * SECONDS_PER_DAY - 1 - second;
+        long seconds = toStart > 0
+                ? ceilDiv(toStart, OFFSET_STEP_SECONDS) * OFFSET_STEP_SECONDS
+                : Math.floorDiv(toEnd, OFFSET_STEP_SECONDS) * OFFSET_STEP_SECONDS;
+        boolean withinContract = rawType == OffsetDateTime.class;
+        int min = withinContract ? OFFSET_MIN_SECONDS : ZoneOffset.MIN.getTotalSeconds();
+        int max = withinContract ? OFFSET_MAX_SECONDS : ZoneOffset.MAX.getTotalSeconds();
+        return seconds >= min && seconds <= max ? ZoneOffset.ofTotalSeconds((int) seconds) : null;
+    }
+
+    /**
+     * The smallest integer at least {@code dividend / divisor}, as Java 18's {@code Math.ceilDiv(long, int)}
+     * computes it: {@code Long.MIN_VALUE} divided by {@code -1} overflows to {@code Long.MIN_VALUE}, and a
+     * zero divisor throws {@link ArithmeticException}.
+     */
+    static long ceilDiv(long dividend, int divisor) {
+        long quotient = dividend / divisor;
+        // Division truncates toward zero: with operands of the same sign and a remainder, round up.
+        return (dividend ^ divisor) >= 0 && quotient * divisor != dividend ? quotient + 1 : quotient;
+    }
+
+    /**
+     * True when a temporal value reads a date outside the configured range. An offset or a zone reads its
+     * local date, and every other type the UTC date, as the generators draw them. This compares epoch days
+     * because an override can hold an {@link Instant} that no date can.
+     */
+    private boolean isOutsideDateRange(@Nullable Object value) {
+        LocalDate min = config.getDateMin();
+        Instant instant = toInstant(value);
+        if (min == null || instant == null) {
+            return false;
+        }
+        long epochDay = epochDayOf(instant, value);
+        return epochDay < min.toEpochDay()
+                || epochDay > Objects.requireNonNull(config.getDateMax()).toEpochDay();
+    }
+
+    /** The epoch day this instant of a value reads: in the value's own offset or zone, if it has one, else UTC. */
+    private static long epochDayOf(Instant instant, @Nullable Object value) {
+        return Math.floorDiv(instant.getEpochSecond() + offsetSecondsOf(value), SECONDS_PER_DAY);
+    }
+
+    private static int offsetSecondsOf(@Nullable Object value) {
+        if (value instanceof OffsetDateTime offsetDateTime) {
+            return offsetDateTime.getOffset().getTotalSeconds();
+        }
+        if (value instanceof ZonedDateTime zonedDateTime) {
+            return zonedDateTime.getOffset().getTotalSeconds();
+        }
+        if (value instanceof Calendar calendar) {
+            return calendar.getTimeZone().getOffset(calendar.getTimeInMillis()) / 1000;
+        }
+        return 0;
+    }
+
+    private void harmonizeAgeAndBirthDate(Map<String, Slot> slotsBySemanticKey, boolean allowOverwriteExisting) {
+        Slot birthDateSlot = slotsBySemanticKey.get("birthdate");
+        Slot ageSlot = slotsBySemanticKey.get("age");
+        if (birthDateSlot == null || ageSlot == null) {
+            return;
+        }
+
+        LocalDate birthDate = toLocalDate(birthDateSlot.getValue());
+        Integer age = toInteger(ageSlot.getValue());
+        if (birthDate != null) {
+            // An age the pass cannot write, as an override or a kept initializer holds it, leads instead.
+            if (age != null && !canAssign(ageSlot, allowOverwriteExisting)) {
+                followAge(birthDateSlot, age, allowOverwriteExisting);
+                return;
+            }
+            int derivedAge = ageFromBirthDate(birthDate);
+            if (age != null && age == derivedAge) {
+                return;
+            }
+            if (canAssign(ageSlot, allowOverwriteExisting)) {
+                Object derived = fromAge(derivedAge, ageSlot.rawType());
+                if (keepsConstraints(ageSlot, derived)) {
+                    assignConverted(ageSlot, derived);
+                } else if (age != null) {
+                    // An age its constraints keep from the derived one cannot move, so birthDate follows it.
+                    followAge(birthDateSlot, age, allowOverwriteExisting);
+                }
+            }
+            return;
+        }
+
+        if (age != null) {
+            followAge(birthDateSlot, age, allowOverwriteExisting);
+        }
+    }
+
+    /** Moves birthDate to the date that gives this age, where it can move and its constraints allow it. */
+    private void followAge(Slot birthDateSlot, int age, boolean allowOverwriteExisting) {
+        if (canAssign(birthDateSlot, allowOverwriteExisting)) {
+            Object derived = birthDateFor(age, birthDateSlot.rawType());
+            if (keepsConstraints(birthDateSlot, derived)) {
+                assignConverted(birthDateSlot, derived);
+            }
+        }
+    }
+
+    /**
+     * The birth date this age gives, in this type, or {@code null} where the type cannot hold it. The year is
+     * checked before the conversion, because {@code java.sql.Date.valueOf} and, on JDK 21, {@code Timestamp.from}
+     * wrap a value round rather than fail. A {@code java.sql.Date} is then checked to read back as the date it
+     * was given: {@code valueOf} moves a day that a zone, or the change from the Julian calendar in 1582,
+     * skipped.
+     */
+    private @Nullable Object birthDateFor(int age, Class<?> rawType) {
+        LocalDate today = today();
+        long year = (long) today.getYear() - age;
+        if (year < firstYearHeldBy(rawType) || year > lastYearHeldBy(rawType)) {
+            return null;
+        }
+        LocalDate date = today.minusYears(age);
+        // 29 February becomes the 28th in a year without one. A year back, that still gives the age, but a year
+        // ahead, it is a day short of a negative age's whole years, so the birth date is 1 March instead.
+        if (ChronoUnit.YEARS.between(date, today) != age) {
+            date = date.plusDays(1);
+        }
+        Object birthDate = fromLocalDate(date, rawType);
+        boolean moved = birthDate instanceof java.sql.Date sqlDate
+                && !sqlDate.toLocalDate().equals(date);
+        return moved ? null : birthDate;
+    }
+
+    /**
+     * The first year whose every date a type holds. A {@code java.time} type holds the years of a
+     * {@code LocalDate}. A {@code java.sql.Date} holds the years of the common era, from 1: {@code valueOf} drops
+     * the era of an earlier one, so that year 0 reads back as year 1. A {@code Calendar} or another {@code Date}
+     * counts milliseconds in a {@code long}, which reach about 292 million years back, and holds the years it
+     * reaches in full, whatever its zone.
+     */
+    private static long firstYearHeldBy(Class<?> rawType) {
+        if (Temporal.class.isAssignableFrom(rawType)) {
+            return Year.MIN_VALUE;
+        }
+        return rawType == java.sql.Date.class ? 1 : MIN_MILLIS_YEAR;
+    }
+
+    /** The last year whose every date a type holds, as {@link #firstYearHeldBy} reads the first. */
+    private static long lastYearHeldBy(Class<?> rawType) {
+        return Temporal.class.isAssignableFrom(rawType) ? Year.MAX_VALUE : MAX_MILLIS_YEAR;
+    }
+
+    private void harmonizeActiveStatus(Map<String, Slot> slotsBySemanticKey, boolean allowOverwriteExisting) {
+        Slot activeSlot = slotsBySemanticKey.get("active");
+        Slot statusSlot = slotsBySemanticKey.get("status");
+        if (activeSlot == null || statusSlot == null) {
+            return;
+        }
+
+        Boolean active = toBoolean(activeSlot.getValue());
+        Boolean statusActive = activeFromStatus(statusSlot.getValue());
+        if (active != null) {
+            if (statusActive != null && statusActive == active) {
+                return;
+            }
+            Object statusValue = statusValueFor(active, statusSlot.rawType());
+            if (statusValue != null && canTake(statusSlot, allowOverwriteExisting, statusValue)) {
+                statusSlot.setValue(statusValue);
+                return;
+            }
+            if (statusActive != null && canTake(activeSlot, allowOverwriteExisting, statusActive)) {
+                activeSlot.setValue(statusActive);
+            }
+            return;
+        }
+
+        if (statusActive != null && canTake(activeSlot, allowOverwriteExisting, statusActive)) {
+            activeSlot.setValue(statusActive);
+        }
+    }
+
+    private void harmonizeMonetaryFields(Map<String, Slot> slotsBySemanticKey, boolean allowOverwriteExisting) {
+        Slot priceSlot = slotsBySemanticKey.get("price");
+        Slot amountSlot = slotsBySemanticKey.get("amount");
+        Slot balanceSlot = slotsBySemanticKey.get("balance");
+        boolean hasAnyMoneySlot = priceSlot != null | amountSlot != null | balanceSlot != null;
+        if (!hasAnyMoneySlot) {
+            return;
+        }
+
+        String currencyCode = currencyCode(slotsBySemanticKey.get("currency"));
+        BigDecimal price = moneyValue(priceSlot);
+        BigDecimal amount = moneyValue(amountSlot);
+        BigDecimal balance = moneyValue(balanceSlot);
+
+        // A value that follows a sibling down is rounded down, and one that follows a sibling up is rounded up, to
+        // what its field holds, so that rounding cannot turn the order round.
+        boolean backfillPrice = price == null
+                & canTakeMoney(priceSlot, allowOverwriteExisting, amount, currencyCode, RoundingMode.FLOOR);
+        if (backfillPrice) {
+            price = assignMoney(priceSlot, amount, currencyCode, RoundingMode.FLOOR);
+        }
+        boolean backfillAmount = amount == null
+                & canTakeMoney(amountSlot, allowOverwriteExisting, price, currencyCode, RoundingMode.CEILING);
+        if (backfillAmount) {
+            amount = assignMoney(amountSlot, price, currencyCode, RoundingMode.CEILING);
+        }
+        boolean backfillBalance = balance == null
+                & canTakeMoney(balanceSlot, allowOverwriteExisting, amount, currencyCode, RoundingMode.CEILING);
+        if (backfillBalance) {
+            balance = assignMoney(balanceSlot, amount, currencyCode, RoundingMode.CEILING);
+        }
+
+        // Where one side of an order cannot take the other's amount, the other follows it, as for dates.
+        boolean amountBelowPrice = isLessThan(amount, price);
+        if (amountBelowPrice) {
+            if (canTakeMoney(amountSlot, allowOverwriteExisting, price, currencyCode, RoundingMode.CEILING)) {
+                amount = assignMoney(amountSlot, price, currencyCode, RoundingMode.CEILING);
+            } else if (canTakeMoney(priceSlot, allowOverwriteExisting, amount, currencyCode, RoundingMode.FLOOR)) {
+                price = assignMoney(priceSlot, amount, currencyCode, RoundingMode.FLOOR);
+            }
+        }
+
+        boolean balanceBelowAmount = isLessThan(balance, amount);
+        if (balanceBelowAmount) {
+            if (canTakeMoney(balanceSlot, allowOverwriteExisting, amount, currencyCode, RoundingMode.CEILING)) {
+                balance = assignMoney(balanceSlot, amount, currencyCode, RoundingMode.CEILING);
+            } else if (canTakeMoney(amountSlot, allowOverwriteExisting, balance, currencyCode, RoundingMode.FLOOR)) {
+                amount = assignMoney(amountSlot, balance, currencyCode, RoundingMode.FLOOR);
+                // The amount came down to the balance, so a price above it follows it down too.
+                if (isLessThan(amount, price)
+                        && canTakeMoney(priceSlot, allowOverwriteExisting, amount, currencyCode, RoundingMode.FLOOR)) {
+                    price = assignMoney(priceSlot, amount, currencyCode, RoundingMode.FLOOR);
+                }
+            }
+        }
+
+        // A money string takes the currency code with its own amount, every digit of it kept.
+        boolean formatPriceString = shouldFormatMoneyString(price, priceSlot, allowOverwriteExisting, currencyCode);
+        if (formatPriceString) {
+            assignMoney(priceSlot, price, currencyCode, RoundingMode.UNNECESSARY);
+        }
+        boolean formatAmountString = shouldFormatMoneyString(amount, amountSlot, allowOverwriteExisting, currencyCode);
+        if (formatAmountString) {
+            assignMoney(amountSlot, amount, currencyCode, RoundingMode.UNNECESSARY);
+        }
+        boolean formatBalanceString =
+                shouldFormatMoneyString(balance, balanceSlot, allowOverwriteExisting, currencyCode);
+        if (formatBalanceString) {
+            assignMoney(balanceSlot, balance, currencyCode, RoundingMode.UNNECESSARY);
+        }
+    }
+
+    /**
+     * True when the slot can take this amount, rounded as given: the pass can assign it, its type can hold it, and
+     * its own constraints allow it as the type holds it, a string with the currency code. No amount is nothing to
+     * take.
+     */
+    private boolean canTakeMoney(
+            @Nullable Slot slot,
+            boolean allowOverwriteExisting,
+            @Nullable BigDecimal value,
+            @Nullable String currencyCode,
+            RoundingMode rounding) {
+        if (value == null || slot == null || !canAssign(slot, allowOverwriteExisting)) {
+            return false;
+        }
+        Object held = moneyValueFor(value, slot.rawType(), currencyCode, rounding);
+        return held != null && keepsConstraints(slot, held);
+    }
+
+    private boolean canAssign(Slot slot, boolean allowOverwriteExisting) {
+        if (isProtected(slot)) {
+            return false;
+        }
+        // A value the class set, which generation kept, is written only where it is null or blank.
+        if (allowOverwriteExisting && !keptFields.contains(slot.annotatedElement())) {
+            return true;
+        }
+        Object currentValue = slot.getValue();
+        if (currentValue == null) {
+            return true;
+        }
+        if (slot.rawType() == String.class) {
+            return stringValue(currentValue) == null;
+        }
+        return false;
+    }
+
+    private boolean isProtected(Slot slot) {
+        Field field = slot.annotatedElement();
+        // An inherited field is also protected by an override registered for the generated type,
+        // although field overrides are resolved under the declaring class.
+        if (hasFieldOverride(slot.ownerType(), slot.fieldName())
+                || hasMemberOverride(slot)
+                || hasTypeOverride(slot)
+                || keepsUniqueValue(slot)) {
+            return true;
+        }
+
+        // RELAXED lets the declared annotations, @Randomizer, @Fake and @FakeRange, and bean validation
+        // constraints take precedence over semantics, as they do when a value is generated. STRICT lets
+        // semantics win over the annotations, and over a constraint where the derived value meets it.
+        if (config.getSemanticMode() == ObjectGenerationSemanticMode.RELAXED) {
+            boolean kept = field.isAnnotationPresent(Randomizer.class)
+                    || field.isAnnotationPresent(Fake.class)
+                    || field.isAnnotationPresent(FakeRange.class)
+                    || BeanValidationSupport.constraintGeneratorFor(field, slot.rawType()) != null;
+            if (kept && slot instanceof ReportingSlot reporting) {
+                reporting.kept();
+            }
+            return kept;
+        }
+        return false;
+    }
+
+    /**
+     * A derived value that could repeat must not replace the value generation tracked for a requested
+     * name, so that field keeps it and the sibling adapts where it can.
+     */
+    private boolean keepsUniqueValue(Slot slot) {
+        // A slot only reaches this pass through its semantic key.
+        String semanticKey = Objects.requireNonNull(
+                semanticRegistry.semanticKeyForFieldName(slot.fieldName()), "semanticKey must not be null");
+        return UNNUMBERED_KEYS.contains(semanticKey) && config.isRequestedUniqueField(slot.fieldName());
+    }
+
+    /** True when an override of this field, not a generator or a constraint, produced its value. */
+    private boolean hasMemberOverride(Slot slot) {
+        Field field = slot.annotatedElement();
+        return hasFieldOverride(field.getDeclaringClass(), slot.fieldName())
+                || config.getContextualFieldPredicateOverride(field).isPresent()
+                || config.getFieldPredicateOverride(field).isPresent();
+    }
+
+    private boolean hasTypeOverride(Slot slot) {
+        return config.getContextualTypeOverride(slot.rawType()).isPresent()
+                || config.getTypeOverride(slot.rawType()).isPresent();
+    }
+
+    private boolean hasFieldOverride(Class<?> ownerType, String fieldName) {
+        return config.getContextualFieldOverride(ownerType, fieldName).isPresent()
+                || config.getFieldOverride(ownerType, fieldName).isPresent();
+    }
+
+    @Nullable Object applyUniqueness(Slot slot, String semanticKey, @Nullable String candidate) {
+        // Generation tracked a value it gave the field, and a value the class set itself is not checked.
+        if (candidate == null || !isUniqueField(slot.fieldName(), semanticKey) || candidate.equals(slot.getValue())) {
+            return candidate;
+        }
+
+        AtomicInteger attempt = new AtomicInteger();
+        String fieldKey = UniqueFieldTracker.fieldKey(slot.annotatedElement().getDeclaringClass(), slot.fieldName());
+        try {
+            return uniqueFieldTracker.nextUnique(
+                    fieldKey,
+                    objectPath + "." + slot.fieldName(),
+                    () -> uniquify(semanticKey, candidate, attempt.getAndIncrement()),
+                    config.getUniquenessMaxAttempts());
+        } catch (UniqueFieldTracker.ExhaustedException exhausted) {
+            return handleExhaustedUniqueField(slot, exhausted);
+        }
+    }
+
+    /**
+     * The numbered values of a derived field ran out. Lenient generation leaves the member {@code null}
+     * rather than keep its generated value, which may be a domain no generated email can take.
+     */
+    private @Nullable Object handleExhaustedUniqueField(Slot slot, UniqueFieldTracker.ExhaustedException cause) {
+        String path = objectPath + "." + slot.fieldName();
+        String declaredType = slot.annotatedElement().getGenericType().getTypeName();
+        GenerationFailureContext context = new GenerationFailureContext(
+                GenerationFailureCategory.UNSUPPORTED_TYPE,
+                GenerationOperation.ALIGN_SEMANTICS,
+                path,
+                slot.ownerType(),
+                declaredType,
+                depth,
+                -1);
+        GeneratorConfig generatorConfig = config.getGeneratorConfig();
+        return new ObjectGenerationFailurePolicy(
+                        config.isIgnoreErrors(),
+                        generatorConfig.getGenerationFailureListener(),
+                        () -> config.generationRecipe().map(GenerationRecipe::serializeForDiagnostics))
+                .handle(
+                        new ObjectGenerationException(
+                                "Could not generate a unique value at '" + path + "' (declared type " + declaredType
+                                        + ", depth " + depth + ")",
+                                context,
+                                cause),
+                        null);
+    }
+
+    private String uniquify(String semanticKey, String candidate, int attempt) {
+        if ("domain".equals(semanticKey)) {
+            return uniquifyDomain(candidate, attempt);
+        }
+        if (usesReservedNetworkNames() && ("url".equals(semanticKey) || "companyurl".equals(semanticKey))) {
+            return uniquifyUrl(candidate, attempt);
+        }
+        return uniquifyString(candidate, attempt);
+    }
+
+    /** Numbers a subdomain, so that a reserved domain stays reserved: {@code n1.acme.test}. */
+    static String uniquifyDomain(String domain, int attempt) {
+        return attempt == 0 ? domain : "n" + attempt + "." + domain;
+    }
+
+    /** Numbers a subdomain, as a number at the end would change the top-level domain: {@code https://n1.www.acme.test}. */
+    static String uniquifyUrl(String url, int attempt) {
+        return attempt == 0 ? url : url.replaceFirst("://", "://n" + attempt + ".");
+    }
+
+    boolean isUniqueField(String fieldName, String semanticKey) {
+        String normalizedFieldName = FieldGeneratorResolver.normalizeSemanticFieldName(fieldName);
+        Set<String> uniqueFieldNames = config.getUniqueFieldNames();
+        if (uniqueFieldNames.contains(normalizedFieldName) || uniqueFieldNames.contains(semanticKey)) {
+            return true;
+        }
+        for (String alias : semanticRegistry.semanticAliasesFor(semanticKey)) {
+            if (uniqueFieldNames.contains(alias)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    static String uniquifyString(String candidate, int attempt) {
+        if (attempt == 0) {
+            return candidate;
+        }
+        int atIndex = candidate.indexOf('@');
+        if (atIndex > 0) {
+            return candidate.substring(0, atIndex) + attempt + candidate.substring(atIndex);
+        }
+        return candidate + attempt;
+    }
+
+    static @Nullable String emailLocalPart(Map<String, Slot> slotsBySemanticKey) {
+        String firstName = normalizedHumanName(stringValue(slotsBySemanticKey.get("firstname")));
+        String lastName = normalizedHumanName(stringValue(slotsBySemanticKey.get("lastname")));
+        if (firstName != null && lastName != null) {
+            String left = slugFragment(firstName);
+            String right = slugFragment(lastName);
+            if (left != null && right != null) {
+                return left + "." + right;
+            }
+        }
+
+        String fullName = normalizedHumanName(stringValue(slotsBySemanticKey.get("fullname")));
+        if (fullName == null) {
+            return null;
+        }
+
+        String[] parts = fullName.split("\\s+");
+        if (parts.length < 2) {
+            String fullNameSlug = slugFragment(fullName);
+            if (fullNameSlug != null) {
+                return fullNameSlug;
+            }
+        } else {
+            String left = slugFragment(parts[0]);
+            String right = slugFragment(parts[parts.length - 1]);
+            if (left != null && right != null) {
+                return left + "." + right;
+            }
+        }
+        return stringValue(slotsBySemanticKey.get("companyname")) != null ? "hello" : null;
+    }
+
+    /**
+     * The domain of a company: the ASCII letters and digits of its name, at most the first 63, as a label,
+     * under {@code .test} where a reserved name is required and {@code .com} otherwise.
+     */
+    private @Nullable String domainFromCompany(@Nullable String companyName, Map<String, Slot> slotsBySemanticKey) {
+        String slug = slugFragment(companyName);
+        if (slug == null) {
+            return null;
+        }
+        boolean reserved =
+                usesReservedNetworkNames() || (usesReservedEmailDomains() && hasEmailField(slotsBySemanticKey));
+        String label = slug.substring(0, Math.min(slug.length(), MAX_DOMAIN_LABEL_LENGTH));
+        return label + (reserved ? ".test" : ".com");
+    }
+
+    private static @Nullable String normalizedHumanName(@Nullable String value) {
+        String trimmed = stringValue(value);
+        return trimmed == null ? null : trimmed.trim();
+    }
+
+    static @Nullable String slugFragment(@Nullable String value) {
+        String trimmed = stringValue(value);
+        if (trimmed == null) {
+            return null;
+        }
+        StringBuilder slug = new StringBuilder(trimmed.length());
+        for (int i = 0; i < trimmed.length(); i++) {
+            char ch = trimmed.charAt(i);
+            if (ch <= 127 && Character.isLetterOrDigit(ch)) {
+                slug.append(Character.toLowerCase(ch));
+            }
+        }
+        return slug.isEmpty() ? null : slug.toString();
+    }
+
+    static @Nullable String normalizeDomain(@Nullable String candidate) {
+        String trimmed = stringValue(candidate);
+        if (trimmed == null) {
+            return null;
+        }
+        String normalized = trimmed.toLowerCase(Locale.ROOT);
+        if (normalized.startsWith("www.")) {
+            normalized = normalized.substring(4);
+        }
+        return normalized.isBlank() ? null : normalized;
+    }
+
+    static @Nullable String emailDomain(@Nullable String email) {
+        String trimmed = stringValue(email);
+        if (trimmed == null) {
+            return null;
+        }
+        int atIndex = trimmed.indexOf('@');
+        return atIndex >= 0 && atIndex + 1 < trimmed.length() ? trimmed.substring(atIndex + 1) : null;
+    }
+
+    static @Nullable String urlHost(@Nullable String url) {
+        String trimmed = stringValue(url);
+        if (trimmed == null) {
+            return null;
+        }
+        try {
+            String host = URI.create(trimmed).getHost();
+            return host != null ? host : null;
+        } catch (RuntimeException ignored) {
+            return null;
+        }
+    }
+
+    private static @Nullable String stringValue(@Nullable Object value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.toString().trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private static @Nullable String stringValue(@Nullable Slot slot) {
+        return slot == null ? null : stringValue(slot.getValue());
+    }
+
+    static @Nullable Instant toInstant(@Nullable Object value) {
+        if (value instanceof Instant instant) {
+            return instant;
+        }
+        if (value instanceof LocalDate localDate) {
+            return localDate.atStartOfDay().toInstant(ZoneOffset.UTC);
+        }
+        if (value instanceof LocalDateTime localDateTime) {
+            return localDateTime.toInstant(ZoneOffset.UTC);
+        }
+        if (value instanceof OffsetDateTime offsetDateTime) {
+            return offsetDateTime.toInstant();
+        }
+        if (value instanceof ZonedDateTime zonedDateTime) {
+            return zonedDateTime.toInstant();
+        }
+        if (value instanceof Calendar calendar) {
+            return calendar.toInstant();
+        }
+        // java.sql.Date and java.sql.Time throw UnsupportedOperationException from toInstant().
+        if (value instanceof java.sql.Date sqlDate) {
+            return sqlDate.toLocalDate().atStartOfDay().toInstant(ZoneOffset.UTC);
+        }
+        if (value instanceof java.sql.Time) {
+            return null;
+        }
+        if (value instanceof java.util.Date date) {
+            return date.toInstant();
+        }
+        return null;
+    }
+
+    /**
+     * The date a value reads: the local date of an {@code OffsetDateTime}, a {@code ZonedDateTime} or a
+     * {@code Calendar}, in its own offset or zone, and the UTC date of every other type, as the generators draw
+     * them and the configured range bounds them.
+     */
+    static @Nullable LocalDate toLocalDate(@Nullable Object value) {
+        if (value instanceof LocalDate localDate) {
+            return localDate;
+        }
+        Instant instant = toInstant(value);
+        return instant != null ? LocalDate.ofEpochDay(epochDayOf(instant, value)) : null;
+    }
+
+    static @Nullable BigDecimal moneyValue(@Nullable Slot slot) {
+        return slot == null ? null : moneyValue(slot.getValue());
+    }
+
+    /**
+     * The amount a value holds, as a magnitude: exactly for a {@code BigDecimal}, an integer or a money string, and
+     * as it prints for a {@code float} or a {@code double}, so that {@code 0.1f} reads as 0.1 rather than as the
+     * binary fraction above it. A value that is not a finite number holds no amount.
+     */
+    static @Nullable BigDecimal moneyValue(@Nullable Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof BigDecimal decimal) {
+            return decimal.abs();
+        }
+        if (value instanceof BigInteger integer) {
+            return new BigDecimal(integer).abs();
+        }
+        if (value instanceof Byte | value instanceof Short | value instanceof Integer | value instanceof Long) {
+            return BigDecimal.valueOf(((Number) value).longValue()).abs();
+        }
+        if (value instanceof Float number) {
+            return Float.isFinite(number) ? new BigDecimal(Float.toString(number)).abs() : null;
+        }
+        if (value instanceof Double number) {
+            return Double.isFinite(number) ? BigDecimal.valueOf(number).abs() : null;
+        }
+        if (value instanceof String stringValue) {
+            Matcher matcher = MONEY_FRAGMENT.matcher(stringValue);
+            if (!matcher.find()) {
+                return null;
+            }
+            return new BigDecimal(matcher.group()).abs();
+        }
+        return null;
+    }
+
+    static @Nullable Integer toInteger(@Nullable Object value) {
+        if (value instanceof Integer integer) {
+            return integer;
+        }
+        if (value instanceof Long longValue && longValue >= Integer.MIN_VALUE && longValue <= Integer.MAX_VALUE) {
+            return longValue.intValue();
+        }
+        if (value instanceof Short shortValue) {
+            return shortValue.intValue();
+        }
+        if (value instanceof Byte byteValue) {
+            return byteValue.intValue();
+        }
+        if (value instanceof Double || value instanceof Float) {
+            // Whole years, like the ages fromAge writes; NaN and out-of-range values have none.
+            double number = ((Number) value).doubleValue();
+            return number >= Integer.MIN_VALUE && number <= Integer.MAX_VALUE ? (int) number : null;
+        }
+        if (value instanceof String stringValue) {
+            try {
+                return Integer.valueOf(stringValue.trim());
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    private @Nullable String localeCurrentCountry() {
+        Locale locale = config.getGeneratorConfig().getLocale();
+        boolean localeHasNoCountry = locale.getCountry().isBlank();
+        boolean localeRegistered =
+                config.getGeneratorConfig().getRegistryContext().isRegistered(Vocabulary.COUNTRY, locale);
+        if (localeHasNoCountry | !localeRegistered) {
+            return null;
+        }
+        return new CountryGenerator(config.getGeneratorConfig()).currentCountry();
+    }
+
+    static @Nullable String currencyCode(@Nullable Slot slot) {
+        return slot == null ? null : currencyCode(slot.getValue());
+    }
+
+    static @Nullable String currencyCode(@Nullable Object value) {
+        if (value instanceof io.github.frikit.krandom.generator.finance.Currency currency) {
+            return currency.getCode();
+        }
+        if (value instanceof java.util.Currency currency) {
+            return currency.getCurrencyCode();
+        }
+        if (!(value instanceof String stringValue)) {
+            return null;
+        }
+        String normalized = stringValue(stringValue);
+        if (normalized == null) {
+            return null;
+        }
+        normalized = normalized.toUpperCase(Locale.ROOT);
+        io.github.frikit.krandom.generator.finance.Currency libraryCurrency =
+                io.github.frikit.krandom.generator.finance.Currency.fromCode(normalized);
+        if (libraryCurrency != null) {
+            return libraryCurrency.getCode();
+        }
+        try {
+            return java.util.Currency.getInstance(normalized).getCurrencyCode();
+        } catch (IllegalArgumentException ignored) {
+            return null;
+        }
+    }
+
+    /**
+     * The value a field of this type holds for an amount: its magnitude rounded as given, to whole units for an
+     * integer type and to cents for any other, a string with the currency code. {@code UNNECESSARY} keeps every digit
+     * past the cents, for a field that takes its own amount again. A type that cannot hold the amount, an integer it
+     * overflows or a {@code float} or a {@code double} it makes infinite, holds nothing, nor does one that is no
+     * money type.
+     */
+    static @Nullable Object moneyValueFor(
+            BigDecimal value, Class<?> rawType, @Nullable String currencyCode, RoundingMode rounding) {
+        BigDecimal magnitude = value.abs();
+        try {
+            if (rawType == BigInteger.class) {
+                return magnitude.setScale(0, rounding).toBigInteger();
+            }
+            if (rawType == byte.class | rawType == Byte.class) {
+                return magnitude.setScale(0, rounding).byteValueExact();
+            }
+            if (rawType == short.class | rawType == Short.class) {
+                return magnitude.setScale(0, rounding).shortValueExact();
+            }
+            if (rawType == int.class | rawType == Integer.class) {
+                return magnitude.setScale(0, rounding).intValueExact();
+            }
+            if (rawType == long.class | rawType == Long.class) {
+                return magnitude.setScale(0, rounding).longValueExact();
+            }
+        } catch (ArithmeticException beyondType) {
+            // Past the type's range, or cents that whole units hold only by rounding, which UNNECESSARY refuses.
+            return null;
+        }
+        int scale = rounding == RoundingMode.UNNECESSARY ? Math.max(2, magnitude.scale()) : 2;
+        BigDecimal cents = magnitude.setScale(scale, rounding);
+        if (rawType == BigDecimal.class) {
+            return cents;
+        }
+        if (rawType == float.class | rawType == Float.class) {
+            return floatMoney(cents, rounding);
+        }
+        if (rawType == double.class | rawType == Double.class) {
+            return doubleMoney(cents, rounding);
+        }
+        if (rawType == String.class) {
+            return currencyCode != null ? currencyCode + " " + cents.toPlainString() : cents.toPlainString();
+        }
+        return null;
+    }
+
+    /**
+     * The {@code float} nearest an amount, stepped to the next one down or up where the nearest prints on the wrong
+     * side of the amount, so that an amount rounded down still reads at or below it, and one rounded up at or above.
+     * An amount too large for a {@code float} has none.
+     */
+    private static @Nullable Float floatMoney(BigDecimal amount, RoundingMode rounding) {
+        float held = amount.floatValue();
+        if (Float.isFinite(held)) {
+            int side = new BigDecimal(Float.toString(held)).compareTo(amount);
+            if (rounding == RoundingMode.FLOOR && side > 0) {
+                held = Math.nextDown(held);
+            } else if (rounding == RoundingMode.CEILING && side < 0) {
+                held = Math.nextUp(held);
+            }
+        }
+        return Float.isFinite(held) ? held : null;
+    }
+
+    /** The {@code double} for an amount, as {@link #floatMoney} gives the {@code float}. */
+    private static @Nullable Double doubleMoney(BigDecimal amount, RoundingMode rounding) {
+        double held = amount.doubleValue();
+        if (Double.isFinite(held)) {
+            int side = BigDecimal.valueOf(held).compareTo(amount);
+            if (rounding == RoundingMode.FLOOR && side > 0) {
+                held = Math.nextDown(held);
+            } else if (rounding == RoundingMode.CEILING && side < 0) {
+                held = Math.nextUp(held);
+            }
+        }
+        return Double.isFinite(held) ? held : null;
+    }
+
+    /**
+     * Writes an amount, rounded as given, into the slot as its type holds it, and returns the amount the slot then
+     * holds. Without a slot, an amount or a type that holds it, nothing is written and the amount is returned.
+     */
+    static @Nullable BigDecimal assignMoney(
+            @Nullable Slot slot, @Nullable BigDecimal value, @Nullable String currencyCode, RoundingMode rounding) {
+        if (slot == null || value == null) {
+            return value;
+        }
+        Object held = moneyValueFor(value, slot.rawType(), currencyCode, rounding);
+        if (held == null) {
+            return value;
+        }
+        slot.setValue(held);
+        return moneyValue(held);
+    }
+
+    static @Nullable Boolean toBoolean(@Nullable Object value) {
+        return value instanceof Boolean bool ? bool : null;
+    }
+
+    boolean shouldFormatMoneyString(
+            @Nullable BigDecimal value,
+            @Nullable Slot slot,
+            boolean allowOverwriteExisting,
+            @Nullable String currencyCode) {
+        if (slot == null || slot.rawType() != String.class) {
+            return false;
+        }
+        return canTakeMoney(slot, allowOverwriteExisting, value, currencyCode, RoundingMode.UNNECESSARY);
+    }
+
+    static boolean isLessThan(@Nullable BigDecimal left, @Nullable BigDecimal right) {
+        if (left == null || right == null) {
+            return false;
+        }
+        return left.compareTo(right) < 0;
+    }
+
+    private int ageFromBirthDate(LocalDate birthDate) {
+        return Math.toIntExact(ChronoUnit.YEARS.between(birthDate, today()));
+    }
+
+    private LocalDate today() {
+        Clock clock = config.getGeneratorConfig().getClock();
+        return LocalDate.now(clock);
+    }
+
+    static @Nullable Object fromAge(int age, Class<?> rawType) {
+        if (rawType == int.class || rawType == Integer.class) {
+            return age;
+        }
+        if (rawType == long.class || rawType == Long.class) {
+            return (long) age;
+        }
+        // A narrow field keeps its generated value rather than wrapping an age it cannot hold.
+        if (rawType == short.class || rawType == Short.class) {
+            return age >= Short.MIN_VALUE && age <= Short.MAX_VALUE ? Short.valueOf((short) age) : null;
+        }
+        if (rawType == byte.class || rawType == Byte.class) {
+            return age >= Byte.MIN_VALUE && age <= Byte.MAX_VALUE ? Byte.valueOf((byte) age) : null;
+        }
+        if (rawType == float.class || rawType == Float.class) {
+            return (float) age;
+        }
+        if (rawType == double.class || rawType == Double.class) {
+            return (double) age;
+        }
+        if (rawType == String.class) {
+            return Integer.toString(age);
+        }
+        // The coherence pass cannot represent this age type; the generated value is kept.
+        return null;
+    }
+
+    private static @Nullable Object fromLocalDate(LocalDate localDate, Class<?> rawType) {
+        return fromInstant(localDate.atStartOfDay().toInstant(ZoneOffset.UTC), rawType);
+    }
+
+    static @Nullable Boolean activeFromStatus(@Nullable Object statusValue) {
+        if (statusValue == null) {
+            return null;
+        }
+        String normalized = FieldGeneratorResolver.normalizeSemanticFieldName(statusValue.toString());
+        if (Set.of("active", "enabled", "open").contains(normalized)) {
+            return Boolean.TRUE;
+        }
+        if (Set.of("inactive", "disabled", "closed", "suspended", "archived", "deleted")
+                .contains(normalized)) {
+            return Boolean.FALSE;
+        }
+        return null;
+    }
+
+    static @Nullable Object statusValueFor(boolean active, Class<?> rawType) {
+        if (rawType == String.class) {
+            return active ? "ACTIVE" : "INACTIVE";
+        }
+        if (!rawType.isEnum()) {
+            return null;
+        }
+        Object[] constants = rawType.getEnumConstants();
+        List<Object> matches = new ArrayList<>();
+        for (Object constant : constants) {
+            Boolean constantActive = activeFromStatus(constant);
+            if (constantActive != null && constantActive == active) {
+                matches.add(constant);
+            }
+        }
+        if (matches.isEmpty()) {
+            return null;
+        }
+        matches.sort(
+                Comparator.comparing(value -> FieldGeneratorResolver.normalizeSemanticFieldName(value.toString())));
+        return matches.get(0);
+    }
+
+    static @Nullable Object fromInstant(Instant instant, Class<?> rawType) {
+        return fromInstant(instant, rawType, ZoneOffset.UTC);
+    }
+
+    private static @Nullable Object fromInstant(Instant instant, Class<?> rawType, ZoneOffset offset) {
+        if (rawType == Instant.class) {
+            return instant;
+        }
+        if (rawType == LocalDate.class) {
+            return instant.atOffset(ZoneOffset.UTC).toLocalDate();
+        }
+        if (rawType == LocalDateTime.class) {
+            return LocalDateTime.ofInstant(instant, ZoneOffset.UTC);
+        }
+        if (rawType == OffsetDateTime.class) {
+            return instant.atOffset(offset);
+        }
+        if (rawType == ZonedDateTime.class) {
+            return instant.atZone(offset);
+        }
+        if (rawType == Calendar.class || rawType == GregorianCalendar.class) {
+            return FieldGeneratorResolver.calendarOf(instant.atZone(offset));
+        }
+        if (rawType == java.util.Date.class) {
+            return java.util.Date.from(instant);
+        }
+        if (rawType == java.sql.Date.class) {
+            return java.sql.Date.valueOf(instant.atOffset(ZoneOffset.UTC).toLocalDate());
+        }
+        if (rawType == java.sql.Timestamp.class) {
+            return java.sql.Timestamp.from(instant);
+        }
+        // The coherence pass cannot represent this timestamp type; the generated value is kept.
+        return null;
+    }
+
+    private static void assignConverted(Slot slot, @Nullable Object converted) {
+        if (converted != null) {
+            slot.setValue(converted);
+        }
+    }
+
+    interface Slot {
+
+        Class<?> ownerType();
+
+        String fieldName();
+
+        Class<?> rawType();
+
+        Field annotatedElement();
+
+        @Nullable Object getValue();
+
+        void setValue(@Nullable Object value);
+    }
+
+    static final class ReflectionSlot implements Slot {
+
+        private final Class<?> ownerType;
+        private final Field field;
+        private final Object instance;
+        private final ObjectGenerationFailurePolicy failurePolicy;
+        private final int depth;
+
+        ReflectionSlot(Class<?> ownerType, Field field, Object instance, boolean ignoreErrors) {
+            this(ownerType, field, instance, ignoreErrors, 0);
+        }
+
+        ReflectionSlot(Class<?> ownerType, Field field, Object instance, boolean ignoreErrors, int depth) {
+            this(ownerType, field, instance, ignoreErrors, depth, diagnostic -> {});
+        }
+
+        ReflectionSlot(
+                Class<?> ownerType,
+                Field field,
+                Object instance,
+                boolean ignoreErrors,
+                int depth,
+                GenerationFailureListener listener) {
+            this.ownerType = ownerType;
+            this.field = field;
+            this.instance = instance;
+            this.failurePolicy = new ObjectGenerationFailurePolicy(ignoreErrors, listener);
+            this.depth = depth;
+        }
+
+        @Override
+        public Class<?> ownerType() {
+            return ownerType;
+        }
+
+        @Override
+        public String fieldName() {
+            return field.getName();
+        }
+
+        @Override
+        public Class<?> rawType() {
+            return field.getType();
+        }
+
+        @Override
+        public Field annotatedElement() {
+            return field;
+        }
+
+        @Override
+        public @Nullable Object getValue() {
+            try {
+                return field.get(instance);
+            } catch (IllegalAccessException e) {
+                GenerationFailureContext context =
+                        failureContext(GenerationFailureCategory.REFLECTION, GenerationOperation.READ);
+                return failurePolicy.handle(
+                        new ObjectGenerationException(
+                                "Could not read semantic field at '" + context.path() + "' (declared type "
+                                        + context.declaredType() + ", depth " + depth + ")",
+                                context,
+                                e),
+                        null);
+            }
+        }
+
+        @Override
+        public void setValue(@Nullable Object value) {
+            try {
+                field.set(instance, value);
+            } catch (IllegalAccessException | IllegalArgumentException e) {
+                GenerationFailureContext context =
+                        failureContext(GenerationFailureCategory.ASSIGNMENT, GenerationOperation.ALIGN_SEMANTICS);
+                failurePolicy.handle(
+                        new ObjectGenerationException(
+                                "Could not align semantic field at '" + context.path() + "' (declared type "
+                                        + context.declaredType() + ", depth " + depth + ")",
+                                context,
+                                e),
+                        null);
+            }
+        }
+
+        private GenerationFailureContext failureContext(
+                GenerationFailureCategory category, GenerationOperation operation) {
+            return new GenerationFailureContext(
+                    category,
+                    operation,
+                    ownerType.getSimpleName() + "." + field.getName(),
+                    ownerType,
+                    field.getGenericType().getTypeName(),
+                    depth,
+                    -1);
+        }
+    }
+
+    /** The slot itself, or, with a report listener, the slot reporting what the pass does to it. */
+    private Slot reported(Slot slot) {
+        GenerationReporter active = reporter;
+        return active == null ? slot : new ReportingSlot(slot, active, objectPath + "." + slot.fieldName());
+    }
+
+    /**
+     * Reports a member that the pass changes, or that {@code RELAXED} mode keeps, once. It compares the old
+     * and new values to see a change and never passes either to the report.
+     */
+    static final class ReportingSlot implements Slot {
+
+        private final Slot slot;
+        private final GenerationReporter reporter;
+        private final String path;
+        private boolean keptReported;
+
+        ReportingSlot(Slot slot, GenerationReporter reporter, String path) {
+            this.slot = slot;
+            this.reporter = reporter;
+            this.path = path;
+        }
+
+        @Override
+        public Class<?> ownerType() {
+            return slot.ownerType();
+        }
+
+        @Override
+        public String fieldName() {
+            return slot.fieldName();
+        }
+
+        @Override
+        public Class<?> rawType() {
+            return slot.rawType();
+        }
+
+        @Override
+        public Field annotatedElement() {
+            return slot.annotatedElement();
+        }
+
+        @Override
+        public @Nullable Object getValue() {
+            return slot.getValue();
+        }
+
+        @Override
+        public void setValue(@Nullable Object value) {
+            Object before = slot.getValue();
+            slot.setValue(value);
+            // Only a value that changed is a move; a set that failed and was passed over leaves it.
+            if (!Objects.equals(before, slot.getValue())) {
+                reporter.coherence(path, GenerationDecision.COHERENCE_MOVE);
+            }
+        }
+
+        void kept() {
+            if (!keptReported) {
+                keptReported = true;
+                reporter.coherence(path, GenerationDecision.CONSTRAINT_KEPT);
+            }
+        }
+    }
+
+    private static final class RecordSlot implements Slot {
+
+        private final Class<?> ownerType;
+        private final RecordComponent component;
+        private final Field backingField;
+        private final @Nullable Object[] args;
+        private final int index;
+
+        private RecordSlot(
+                Class<?> ownerType, RecordComponent component, Field backingField, @Nullable Object[] args, int index) {
+            this.ownerType = ownerType;
+            this.component = component;
+            this.backingField = backingField;
+            this.args = args;
+            this.index = index;
+        }
+
+        @Override
+        public Class<?> ownerType() {
+            return ownerType;
+        }
+
+        @Override
+        public String fieldName() {
+            return component.getName();
+        }
+
+        @Override
+        public Class<?> rawType() {
+            return component.getType();
+        }
+
+        @Override
+        public Field annotatedElement() {
+            return backingField;
+        }
+
+        @Override
+        public @Nullable Object getValue() {
+            return args[index];
+        }
+
+        @Override
+        public void setValue(@Nullable Object value) {
+            args[index] = value;
+        }
+    }
+}

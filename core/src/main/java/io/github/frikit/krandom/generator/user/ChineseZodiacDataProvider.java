@@ -1,0 +1,34 @@
+/*
+ * Copyright (c) 2026 krandom contributors
+ *
+ * Licensed under the MIT License. See LICENSE in the project root for license information.
+ */
+package io.github.frikit.krandom.generator.user;
+
+import io.github.frikit.krandom.generator.LocaleDataProvider;
+import java.util.List;
+import java.util.Locale;
+
+/**
+ * Contract for a locale-specific set of Chinese zodiac animal names.
+ *
+ * <p>{@link #getAnimals()} must return exactly 12 names in the cycle order used by
+ * {@code animals.get(year mod 12)}, starting with Monkey: {@code [Monkey, Rooster, Dog, Pig, Rat, Ox,
+ * Tiger, Rabbit, Dragon, Snake, Horse, Goat]}. Register an instance with
+ * {@link io.github.frikit.krandom.generator.DataRegistryContext.Builder#register(io.github.frikit.krandom.generator.Vocabulary, io.github.frikit.krandom.generator.LocaleDataProvider)}
+ * to override validated vocabulary for one configuration. {@link ChineseZodiacDataRegistry} holds
+ * the built-in animal names served by
+ * {@link io.github.frikit.krandom.generator.DataRegistryContext#globalDefault()}.
+ */
+public interface ChineseZodiacDataProvider extends LocaleDataProvider {
+
+    /**
+     * The locale this provider supplies animal names for.
+     */
+    Locale getLocale();
+
+    /**
+     * The 12 localized animal names in cycle order (Monkey first).
+     */
+    List<String> getAnimals();
+}

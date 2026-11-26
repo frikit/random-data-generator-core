@@ -1,0 +1,59 @@
+[versions]
+kotlin = "2.4.21"
+jacoco = "0.8.16"
+spotless = "8.11.0"
+palantir-java-format = "2.103.0"
+ktlint = "1.8.0"
+commons-validator = "1.11.0"
+slf4j = "2.0.20"
+logback = "1.6.8"
+junit-jupiter = "6.1.3"
+junit-platform = "6.1.3"
+objenesis = "3.6"
+jakarta-validation = "3.1.1"
+jspecify = "1.0.1"
+hibernate-validator = "9.1.6.Final"
+cyclonedx = "3.6.1"
+nmcp = "1.6.2"
+pitest = "1.19.0"
+pitest-core = "1.30.2"
+pitest-junit5-plugin = "1.2.3"
+errorprone = "2.53.0"
+errorprone-plugin = "5.2.0"
+nullaway = "0.14.4"
+japicmp = "0.27.0"
+
+[libraries]
+# Tools resolved by the JaCoCo and PIT Gradle plugins (core/build.gradle.kts reads the versions);
+# declared as libraries so Dependabot can see and update them.
+jacoco-agent = { module = "org.jacoco:org.jacoco.agent", version.ref = "jacoco" }
+pitest-command-line = { module = "org.pitest:pitest-command-line", version.ref = "pitest-core" }
+pitest-junit5-plugin = { module = "org.pitest:pitest-junit5-plugin", version.ref = "pitest-junit5-plugin" }
+# Nullness verification for core main sources (core/build.gradle.kts): Error Prone runs NullAway only.
+errorprone-core = { module = "com.google.errorprone:error_prone_core", version.ref = "errorprone" }
+nullaway = { module = "com.uber.nullaway:nullaway", version.ref = "nullaway" }
+# Public API compatibility checker (build.gradle.kts, checkApiCompatibility); the build resolves its
+# jar-with-dependencies classifier.
+japicmp = { module = "com.github.siom79.japicmp:japicmp", version.ref = "japicmp" }
+# Formatters resolved by Spotless (build.gradle.kts reads the versions); declared so Dependabot updates them.
+palantir-java-format = { module = "com.palantir.javaformat:palantir-java-format", version.ref = "palantir-java-format" }
+ktlint-cli = { module = "com.pinterest.ktlint:ktlint-cli", version.ref = "ktlint" }
+commons-validator = { module = "commons-validator:commons-validator", version.ref = "commons-validator" }
+slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
+logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
+junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit-jupiter" }
+junit-jupiter-params = { module = "org.junit.jupiter:junit-jupiter-params", version.ref = "junit-jupiter" }
+junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "junit-jupiter" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junit-platform" }
+objenesis = { module = "org.objenesis:objenesis", version.ref = "objenesis" }
+jakarta-validation-api = { module = "jakarta.validation:jakarta.validation-api", version.ref = "jakarta-validation" }
+jspecify = { module = "org.jspecify:jspecify", version.ref = "jspecify" }
+hibernate-validator = { module = "org.hibernate.validator:hibernate-validator", version.ref = "hibernate-validator" }
+
+[plugins]
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
+cyclonedx = { id = "org.cyclonedx.bom", version.ref = "cyclonedx" }
+nmcp-aggregation = { id = "com.gradleup.nmcp.aggregation", version.ref = "nmcp" }
+pitest = { id = "info.solidsoft.pitest", version.ref = "pitest" }
+errorprone = { id = "net.ltgt.errorprone", version.ref = "errorprone-plugin" }

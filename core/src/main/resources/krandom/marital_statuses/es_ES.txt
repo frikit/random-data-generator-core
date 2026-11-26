@@ -1,0 +1,10 @@
+# Marital status values, one per line.
+Soltero/a
+Casado/a
+Divorciado/a
+Viudo/a
+Separado/a
+Pareja de hecho
+Matrimonio anulado
+Pareja de hecho disuelta
+Pareja de hecho supérstite

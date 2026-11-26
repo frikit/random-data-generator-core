@@ -1,0 +1,28 @@
+Pis
+Apartament
+Planta
+Porta
+Escala
+Baixos
+Entresòl
+Principal
+Sobreàtic
+Àtic
+Soterrani
+Bloc
+Edifici
+Portal
+Escala A
+Escala B
+Despatx
+Oficina
+Local
+Habitació
+Unitat
+Mòdul
+Nau
+Entrada
+Vestíbul
+Esc
+Pta
+Pl

@@ -1,0 +1,10 @@
+# Marital status values, one per line.
+Svobodný/á
+Ženatý/vdaná
+Rozvedený/á
+Vdovec/vdova
+Odloučený/á
+Registrované partnerství
+Neplatné manželství
+Zrušené registrované partnerství
+Pozůstalý/á partner/ka

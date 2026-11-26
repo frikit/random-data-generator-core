@@ -1,0 +1,10 @@
+# Marital status values, one per line.
+Célibataire
+Marié(e)
+Divorcé(e)
+Veuf ou veuve
+Séparé(e)
+Pacsé(e)
+Mariage annulé
+PACS dissous
+Partenaire de PACS survivant(e)

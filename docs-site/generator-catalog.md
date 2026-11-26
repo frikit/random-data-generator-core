@@ -1,0 +1,137 @@
+---
+layout: page
+title: Generator Catalog
+permalink: /generator-catalog/
+---
+
+# Generator Catalog (Java)
+
+The main entry point is `io.github.frikit.krandom.generator.Generators`. Most
+locale-aware factories accept a `Locale` or `GeneratorConfig`; use a shared
+`GeneratorConfig` when a fixture needs common locale, seed, clock, safety, or
+registry settings. Factories with a `long` overload provide a locally seeded
+generator where shown by the API.
+
+## Base, numeric, and algorithms
+
+- `ofConstant`, `ofBoolean`, `ofNullableBoolean`, `ofChar`, `ofString`, `ofDigit`,
+  `ofNumber`, `ofNumberWithFormat`, `ofRegex`, `ofPyDecimal`
+- `ofByte`, `ofShort`, `ofInt`, `ofNaturalNumber`, `ofLong`, `ofFloat`, `ofDouble`,
+  `ofAtomicInteger`, `ofAtomicLong`, `ofBigDecimal`, `ofBigInteger`
+- `ofNormal`, `ofPrime`, `ofFibonacci`, `ofLuhn`, `ofCoin`, `ofDice`
+
+## Network and internet
+
+- `ofIPv4`, `ofIPv6`, `ofIP`, `ofPort`, `ofMacAddress`
+- `ofDomain`, `ofHostname`, `ofUrl` (text URL), `ofUri` (text URI), `ofUriObject`
+  (`URI` object), `ofUrlObject` (`URL` object), `ofSlug`, `ofUserAgent`. Plain names generate
+  text; the `…Object` names generate the corresponding JDK object.
+- `ofHttpMethod`, `ofHttpStatusCode`, `ofHttpFixture`
+
+Addresses and names are reserved fixture destinations by default; see the
+[network contract]({{ '/guides/data-validity-and-safety/' | relative_url }}#network-contract).
+
+## Date, time, and locale
+
+- `ofLocalDate`, `ofLocalTime`, `ofLocalDateTime`, `ofInstant`, `ofZonedDateTime`,
+  `ofOffsetDateTime`, `ofOffsetTime`
+- `ofDuration`, `ofPeriod`, `ofYear`, `ofYearMonth`, `ofMonthDay`, `ofZoneId`,
+  `ofZoneOffset`, `ofTimezone` (text), `ofTimeZoneObject` (`TimeZone` object), `ofCalendar`
+- `ofUtilDate`, `ofSqlDate`, `ofSqlTime`, `ofSqlTimestamp`, `ofLocale`
+
+Drawn UTC offsets run from `-12:00` to `+14:00` in 15-minute steps; see the
+[UTC-offset contract]({{ '/guides/data-validity-and-safety/' | relative_url }}#utc-offset-contract).
+`ofInstant` draws a UTC day and a time within it, to the millisecond; see the
+[Instant contract]({{ '/guides/data-validity-and-safety/' | relative_url }}#instant-contract).
+
+## People, location, and profiles
+
+- `ofFullName`, `ofMiddleName`, `ofEmail`, `ofUsername`, `ofPassword`,
+  `ofAvatarUrl`, `ofContactInfo`, `ofSimpleProfile`, `ofProfile`
+- `ofStreetAddress`, `ofAddressInfo`, `ofAddressType` (residential, commercial, …),
+  `ofAddressPurpose` (home, billing, shipping, …), `ofCity`, `ofState`, `ofPostalCode`,
+  `ofCountry` (names; ISO 3166-1 alpha-2, alpha-3 and numeric codes; and the calling code,
+  continent and time zone of each of the 249 ISO 3166-1 countries), `ofPhoneNumber`,
+  `ofGeohash`
+- `ofCompanyEmail`, `ofCompanyInfo`, `ofJobInfo`, `ofPersonInfo`, `ofSocialHandle`,
+  `ofSocialProfile`
+- `ofUniversity` for configuration-scoped verified local data packs; kRandom ships no university
+  data, so it needs a [local data pack]({{ '/guides/local-data-packs/' | relative_url }})
+- `ofProfession`, `ofIndustry`, `ofJobField`, `ofJobType`, `ofSeniority`,
+  `ofPosition`, `ofEducationalAttainment`, `ofMaritalStatus`, `ofBloodType`,
+  `ofPronoun`, `ofNationality`
+- `ofZodiac`, `ofChineseZodiac`, `ofNatoPhonetic`, `ofHobby`,
+  `ofProgrammingLanguage`, `ofMbti`
+
+`ofAddressInfo` and a street address generator's `generateFullAddress()` take the city, region, and
+postal code from one place where the locale's country has postal places; see
+[coherent addresses]({{ '/guides/locale-aware-data/' | relative_url }}#coherent-addresses).
+
+## Company, commerce, vehicle, and domain data
+
+- `ofCompanyName`, `ofCompanyUrl`, `ofCompanyBuzzword`, `ofCompanyCatchPhrase`
+- `ofCommerce`, `ofProductInfo`, `ofOrderInfo`, `ofShipmentInfo`
+- `ofVin`, `ofVehicle`, `ofWeather`, `ofMeasurement`, `ofFinancialTerm`,
+  `ofRestaurantType`
+- `ofAws`, `ofAzure`, `ofComputer`, `ofColor`
+
+## Finance, identity, and identifiers
+
+- Safe-by-default finance: `ofCurrency`, `ofCurrencyPair`, `ofMoney`,
+  `ofCreditCard`, `ofCreditCardInfo`, `ofCardExpiration`, `ofInvoiceInfo`,
+  `ofPaymentInfo`
+- Banking (explicit policy required before generation): `ofBic`, `ofBban`,
+  `ofIban`, `ofAbaRouting`, `ofBankAccount`, `ofBankInfo`; `ofBankCountry`,
+  `ofBankName`, and `ofBankType` provide descriptive bank data
+- Other fail-closed generators (explicit policy required): `ofIsin`, `ofCusip`,
+  `ofEin`, `ofCnpj`, `ofCpf`, `ofCryptoAddress`, `ofNationalId`, `ofPassport`,
+  `ofDrivingLicense`
+- General identifiers: `ofUuid` (the canonical UUID factory; no redundant `ofUUID` alias),
+  `ofHash`, `ofIdentifierMask`, `ofEan`, `ofUpc`,
+  `ofIsbn`
+
+`PaymentCardSafetyPolicy.TEST_SAFE_NON_ROUTABLE` is the default for cards.
+Banking, securities, business-tax, crypto-address, national-ID, and identity-document output is
+disabled by default. Select the corresponding `GeneratorConfig` safety policy only for isolated
+fixtures; see [Finance and Identity]({{ '/guides/finance-and-identity/' | relative_url }}) and
+[Data Validity and Safety]({{ '/guides/data-validity-and-safety/' | relative_url }}).
+
+## Files, text, templates, and system data
+
+- `ofFileExtension`, `ofFileName`, `ofDirPath`, `ofFilePath`, `ofMimeType`,
+  `ofSemver`, `ofVersion`, `ofPlatformId`, `ofDatabase`, `ofExceptionPayload`
+- `ofLoremIpsum`, `ofWord`, `ofSyllable`, `ofSentence`, `ofParagraph`, `ofText`
+- `ofTemplate`, `ofProviderTemplate`, `ofDataFakerExpression`
+
+## Objects, schemas, and providers
+
+- `ofObject` generates a type; `ofObjectFaker` adds targeted rules and exclusions through strings,
+  Java method references, or nested `PropertyPath` values. `ObjectModel` captures immutable,
+  composable fixture definitions, and strict mode rejects unused explicit rules.
+- `ofField` resolves provider keys; `ofSchema` generates batches and exports them.
+- `ofProviderHub` exposes named provider lookup and aliases.
+
+## Selection, reuse, and concurrency helpers
+
+- `pick`, `pickSet`, `shuffle`, `weighted`, `unique`, `repeat`, `sequence`, `pool`
+- `threadLocal` supplies one generator instance per calling thread.
+- `ofConstant`, `unique`, `repeat`, `sequence` and `threadLocal` return the `null` that their value or
+  source gives, so their type argument may be nullable: `Generators.repeat(Generators.ofNullableBoolean(), 3)`
+  is a `RepeatGenerator<@Nullable Boolean>`, which NullAway and Kotlin, as `RepeatGenerator<Boolean?>`,
+  accept.
+- From 4.0.0, `pick` and `Krandom.pick(List)` take a list that holds `null` and may return the `null`:
+  `Generators.pick(Arrays.asList("a", null))` is a `PickGenerator<@Nullable String>`. In Kotlin,
+  `krandom.pick(listOf("a", null))` then returns an element rather than the list itself.
+
+## Domain namespaces
+
+For discoverability, the same families are grouped under `person`, `finance`, `location`,
+`network`, `text`, `commerce`, `identifier`, and `datetime`. Each namespace accepts an optional
+`GeneratorConfig`.
+
+## Type-based lookup
+
+`forType(Class<T>)` supplies built-ins for primitive/wrapper scalars, `String`, `Number`, big
+numbers, atomics, UUID, `Locale`, `URI`/`URL`, legacy date/time types, and common `java.time`
+types. It throws `IllegalArgumentException` for unsupported classes; use an explicit generator or
+an object override for those types.

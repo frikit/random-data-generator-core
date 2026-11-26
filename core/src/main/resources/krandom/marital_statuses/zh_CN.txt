@@ -1,0 +1,10 @@
+# Marital status values, one per line.
+未婚
+已婚
+离异
+丧偶
+分居
+同居伴侣
+婚姻无效
+同居关系解除
+同居伴侣已故

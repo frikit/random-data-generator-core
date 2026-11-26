@@ -1,0 +1,392 @@
+---
+layout: page
+title: Schema and Provider Hub
+permalink: /guides/schema-and-provider-hub/
+---
+
+# Schema and Provider Hub
+
+## Schema DSL (`Field` + `Schema`)
+
+```java
+Field f = Generators.ofField(Locale.US);
+
+Map<String, SchemaValueProvider> fields = new LinkedHashMap<>();
+fields.put("name", f.bind("person.full_name"));
+fields.put("email", f.bind("person.email"));
+fields.put("tags", f.list(f.bind("text.word"), 2, 4));
+fields.put("address", f.nested(Map.of(
+        "city", f.bind("address.city"),
+        "country", f.bind("address.country")
+)));
+
+Schema schema = Generators.ofSchema(Locale.US, fields);
+List<Map<String, @Nullable Object>> batch = schema.nextRecords(10);
+
+String jsonl = schema.toJsonLines(10);
+String json = schema.toJson(10);
+String csv = schema.toCsv(10);
+String xml = schema.toXml(10);
+String sql = schema.toSqlInserts("public.orders", 10);
+String yaml = schema.toYaml(10);
+String toml = schema.toToml(10);
+```
+
+A record maps each column, in the order of the fields, to its value, and a value is `null` where its
+provider returns `null`: a property of type `null` always does, and one with OpenAPI's `nullable` does
+half of the time. So `nextRecord()` and `nextRecords(count)`, new in 3.1.0, type a record as
+`Map<String, @Nullable Object>` (JSpecify's `@Nullable`), which NullAway and Kotlin read. `generate()`,
+`generateBatch(count)`, and `loop(count)` return the same records as `Map<String, Object>`, which claims
+values that are never `null`; they are deprecated in 3.1.0, and on 3.0.x they are the ones to call. From
+4.0.0, `generateBatch(count)` and `loop(count)` are removed: call `nextRecords(count)`. In 3.x, a
+`Schema` is a `Generator<Map<String, Object>>`, so the methods it inherits, such as `stream()`, keep that
+type; where you need a `Generator` of correctly typed records, use `schema::nextRecord`. From 4.0.0, a
+`Schema` is a `Generator<Map<String, @Nullable Object>>`, which Kotlin reads as
+`Generator<Map<String, Any?>>`: `generate()`, the `Generator` method, is no longer deprecated and returns
+the record that `nextRecord()` returns, and `stream()` and the other inherited methods give the same
+type. Every one of these methods draws the schema's next records from one sequence.
+
+With a portable seeded configuration, one that has a `GenerationRecipe`, every value draws from its own
+stream, named by its record index and column, so adding a column leaves the values of the others as they
+were, and a recipe replays each column. A `Field` reference, a reference that `registerProvider(...)`
+adds, and the `#` and `?` of a template then take each value from a generator seeded from that stream.
+Since 3.2.0, the common built-in references, such as names, email addresses, street addresses, cities,
+dates, money and sentences, reuse one generator for each column and thread and reseed it for each value,
+with the same values as a new generator, so they cost little more than one shared generator. Other
+references make a generator for each value, which takes longer, as does every reference of a `Field` whose
+configuration installs modules or has its own `DataRegistryContext`. A `Field` whose configuration uses a
+caller-owned, factory-made, or secure random source keeps that source, and other schemas draw from one
+generator for each reference, in sequence.
+
+`Field.bind(...)` covers both scalar tokens and composite provider payloads. Composite records are
+kept as nested JSON objects in JSONL, JSON, YAML, TOML, and JSON Schema, and as JSON cell/literal
+values in CSV, XML, and SQL exports:
+
+```java
+Field field = Generators.ofField(Locale.US);
+
+Map<String, SchemaValueProvider> fields = new LinkedHashMap<>();
+fields.put("order", field.bind("commerce.order_info"));
+fields.put("company", field.bind("company.info"));
+fields.put("payment", field.bind("finance.payment_info"));
+
+Schema schema = Generators.ofSchema(Locale.US, fields);
+
+String jsonl = schema.toJsonLines(1);
+String json = schema.toJson(1);
+String csv = schema.toCsv(1);
+String xml = schema.toXml(1);
+String sql = schema.toSqlInserts("public.orders", 1);
+String yaml = schema.toYaml(1);
+String toml = schema.toToml(1);
+Map<String, Object> jsonSchema = schema.toJsonSchema();
+```
+
+`Schema.toJsonSchema()` is metadata-driven and does not call providers. This means exporting a
+JSON Schema will not advance seeded generator sequences. Built-in `Field.bind(...)`, `Field.list(...)`,
+`Field.nested(...)`, constants, and templates carry JSON Schema metadata automatically. For custom
+lambda providers, the default JSON Schema fragment is unconstrained (`{}`) unless you attach metadata:
+
+```java
+SchemaValueProvider typedAmount = SchemaValueProvider.withSample(
+        ctx -> 1000 + ctx.recordIndex(),
+        1000
+);
+
+SchemaValueProvider typedPayload = SchemaValueProvider.withJsonSchema(
+        ctx -> Map.of("status", "READY"),
+        Map.of(
+                "type", "object",
+                "additionalProperties", false,
+                "properties", Map.of("status", Map.of("type", "string")),
+                "required", List.of("status")
+        )
+);
+```
+
+### JSON Schema import subset
+
+`SchemaParser.fromJsonSchema(...)` implements a deliberately small JSON Schema/OpenAPI subset. It
+is a fixture-schema importer, not a general JSON Schema validator or reference resolver:
+
+| Construct | Supported behavior |
+| --- | --- |
+| Root | An object with a non-empty `properties` map of schema objects is required. Every record holds each of those properties, as a column, so a root `required` name or property dependency that names another property, or a `minProperties` or `maxProperties` that those properties do not meet, is rejected at `$`. A root `const` or `enum` names whole records: a record that the columns generate and the root names is kept, and any other is replaced by one of the named records that hold exactly the columns and meet the other constraints, so a root that names none is rejected at `$`. `toJsonSchema()` then gives each column an `enum` of the values that those records give it, while `getFields()` keeps each column's own provider and metadata. |
+| Types | `string`, `integer`, `number`, `boolean`, `array`, `object`, and `null`; a type list may contain exactly one concrete type plus `null`. |
+| Scalars | `const`, a non-empty `enum`, numeric bounds, `multipleOf`, string length bounds, and a `pattern` in the [syntax `RegexGenerator` supports]({{ '/guides/data-validity-and-safety/' | relative_url }}#regular-expression-contract). |
+| Strings | Every format Draft 2020-12 defines receives dedicated generation: `date`, and `date-time` and `time` as RFC 3339, with seconds and an offset; `duration` as RFC 3339 days, hours, minutes, and seconds; `email` and `idn-email`; `hostname` and `idn-hostname`; `ipv4` and `ipv6`; `uri`, `uri-reference`, `iri`, `iri-reference`, and `uri-template`, all from one URL generator, as a URI with no quote or brace is each of the others; `uuid`; `json-pointer` and `relative-json-pointer`; and `regex`, as letters, which match themselves. So do OpenAPI's `byte`, as base64; `date-time-local` and `time-local`, which the [OpenAPI Format Registry](https://spec.openapis.org/registry/format/) describes as RFC 3339 date-time and time without the timezone component, written with the seconds; and the `url` alias. OpenAPI's `binary` and `password` allow any string, and no standard validator checks any other format, so they deliberately use the semantic-name or bounded-string fallback. A schema with no `type` generates a string under the same rules, unless its property name chooses a semantic value of another type, which keeps that type: `datetimeTimestamp` gives an integer Unix timestamp and `companyInfo` a company object. The schema's keywords for that type apply to such a value, so a value that misses `maximum` or `maxProperties` is replaced by one drawn from them, as if the schema declared the type, and keywords that leave the type no value are rejected with the schema path. |
+| Structures | `items` as one schema or as a list of schemas, `additionalItems` beside a list, `minItems`/`maxItems`, and `uniqueItems` for arrays; nested `properties`, `required`, `additionalProperties`, `minProperties`/`maxProperties`, and property `dependencies` for objects. An array without `items` produces strings, and `true` and `false` work as schemas that allow any value or none. |
+| OpenAPI controls | OpenAPI 3.0 `nullable`, plus the `$schema` that `toJsonSchema()` emits, which is accepted as a document control rather than a generation constraint. |
+
+Constraints apply together, and a keyword constrains only values of its own JSON type:
+
+- A `const` must meet the other constraints, and an `enum` keeps only the values that do, so `enum`
+  `[a, bbbb]` with `maxLength` 1 generates `a`. `format` is not checked on these values, because it is
+  an annotation in Draft 2020-12. A `pattern` is checked with `java.util.regex` and searches the
+  string, as in JSON Schema.
+- Values compare as JSON values, so a `const` of `{"id": 1}` matches the `enum` member `{"id": 1.0}`.
+  A number compares by its value at any depth, whatever Java type holds it, an array item by item in
+  order, an object member by member under the name it is written with, so the key `1` is the member
+  `"1"`, and a value written as a string, such as a `LocalDate`, by the text the writer gives it, so a
+  `LocalTime` of 09:05 is the string `"09:05:00"` and is measured as such. `NaN` and the infinities
+  are not JSON numbers, and an object with two keys written under one name, such as `1` and `"1"`, is
+  not a JSON object, so a `const` or `enum` that holds either, at any depth, is rejected with the schema
+  path.
+- Numeric bounds intersect, so `minimum` 100 with `exclusiveMinimum` 0 starts at 100. OpenAPI 3.0's
+  boolean `exclusiveMinimum` and `exclusiveMaximum` work as flags on the inclusive bound. An `integer`
+  rounds a fractional bound inward and stays within the range of a `long`. OpenAPI's `int32` and `int64`
+  formats name integers, so a `number` with either is generated as an `integer`, and `int32` keeps it
+  within an `int`, so bounds that hold no `int` are rejected with the schema path. Its `float` and
+  `double` formats keep a `number` within their range, applied after the default range, so a `float`
+  without bounds still stays within one million either side of 0.
+- `multipleOf` must be a number above 0, and generates exact multiples within the bounds, as decimals,
+  with no binary rounding: `multipleOf` 0.01 gives values such as `12.34`. An `integer` stays an
+  `Integer` or `Long` and takes the multiples that are whole, so `multipleOf` 2.5 gives multiples of 5. A
+  `number` is a `BigDecimal`. Bounds that hold no multiple, such as `minimum` 1 and `maximum` 4 with
+  `multipleOf` 5, are rejected with the schema path, and a `const` or `enum` keeps only multiples. A
+  missing bound defaults from the declared one, as for any number, and where that default range holds
+  no multiple, the open side reaches the nearest one: `minimum` 0.1 with `multipleOf` 1000000000 gives
+  1000000000. An `integer` multiple must fit a `long`.
+- `uniqueItems: true` gives arrays whose items are distinct JSON values, so `1` and `1.0` count as one.
+  While parsing, a search with a fixed seed looks for `maxItems` distinct items, drawing up to 100 for
+  each. Items that cannot reach `minItems`, such as an `enum` of two values with `minItems` 3, are
+  rejected with the schema path, and where the search finds fewer than `maxItems`, an array holds at
+  most that many. Each array then draws up to 100 items for each item it holds, keeps the distinct ones
+  found if they run out, and fails with the schema path below `minItems`.
+- A list of `items` is the tuple form of the drafts up to 2019-09: each position follows its own schema,
+  and `additionalItems` is the schema of the items after them. The parser reads both forms whatever
+  `$schema` says, and rejects `prefixItems`, the Draft 2020-12 replacement. An array holds the whole tuple
+  unless `minItems` or `maxItems` moves its size, so `minItems` 0 allows shorter arrays and `maxItems` 4
+  allows two items after a tuple of two. Without `additionalItems`, the items after the tuple are
+  strings, as for an array without `items`. `additionalItems: false` ends an array with the tuple, and a
+  `false` entry ends it before that position, so a `minItems` past either is rejected with the schema
+  path, and `items: false` allows only the empty array. `additionalItems` beside a single `items` schema
+  is ignored, as those drafts say. With `uniqueItems`, each item is drawn for the position it fills, so
+  an array ends early at a position that has no new value, and fails below `minItems`.
+- A nested object holds every property it declares unless its other keywords ask otherwise.
+  `maxProperties` leaves out optional properties, chosen at random, until the object fits, and
+  `minProperties` adds as few additional properties as it needs, named `property1`, `property2`, and so
+  on, past every name the schema uses, with values from the `additionalProperties` schema, or strings
+  without one. A `required` property that is not in `properties` is generated the same way, and its
+  name chooses a realistic value where it can, so `required: ["email"]` gives an email address. Where
+  `additionalProperties` is `false`, none of these can be added, so the schema is rejected with its
+  path. A property schema `true` generates what `{}` does, a string or the semantic value that the
+  property's name chooses, and `false` leaves the property out, so a `required` property whose schema is
+  `false`, or is no schema at all, is rejected.
+- A property dependency, such as `"dependencies": {"card": ["billing"]}`, brings the properties it
+  names, through every link, beside the property that needs them, so `required` brings them too. A
+  property whose dependencies cannot be generated is left out, and rejected if it is required.
+  `maxProperties` leaves out a property only after every property that depends on it, and properties
+  that depend on each other only together; where `additionalProperties` is `false`, `minProperties` and
+  `maxProperties` must then leave a range as wide as each such group. A schema dependency, which asks an
+  object to meet a second schema, needs schema composition, so it is rejected with its path, such as
+  `$.properties.order.dependencies.card`. `dependencies` is the form of the drafts up to 7, read
+  whatever `$schema` says; `dependentRequired` and `dependentSchemas`, the Draft 2019-09 forms, are
+  rejected.
+- A `pattern` or `format` value is drawn again until it fits `minLength` and `maxLength`, up to 10,000
+  times each. Length is counted in characters, not UTF-16 units.
+- `minLength`, `maxLength`, `minItems`, `maxItems`, `minProperties`, and `maxProperties` must be whole
+  numbers of at least 0, and are read exactly, however large. A generated string, array, or object holds
+  at most 1,000,000 characters, items, or members, the limit `RegexGenerator` keeps for a string, so a
+  minimum above it is rejected while parsing, naming the keyword, its value, and the schema path, and a
+  maximum above it, even one beyond an `int` such as `maxLength` 3000000000, draws no more than it. The
+  configured `stringLength` and `collectionSize` are held to it too, and an object that would hold more
+  properties, declared or required, is rejected with its path, the root included. A `const` or `enum`
+  is measured against the counts as written.
+- A value generated from a `pattern` matches the whole pattern, which also satisfies the search. A
+  `pattern` that `RegexGenerator` cannot generate from, such as one with a lookahead, is rejected with
+  its schema path. A `const` or `enum` beside it is only checked against it, so it can use any Java
+  regex.
+
+A combination that leaves no value is rejected with its schema path, such as
+`$.properties.parent.properties.code` or `$.properties.pair.items[1]`. That includes a nested `items`,
+tuple entry, `additionalItems`, `additionalProperties`, or property schema, even where an empty array or
+an object without that property would be valid, because the importer resolves every schema it is
+given. Pattern and format lengths are judged by sampling 1,000 values while parsing, rather than by
+analysing the pattern. A combination that rarely fits can be rejected too, and one that passes parsing
+can still fail on a later record. A pattern's `*`, `+`, and `{n,}` repeat up to twice `minLength` when
+that is more than their usual 10 times, up to 10,000, so `^[a-z]+$` with `minLength` 20 generates 20 to
+40 characters.
+
+`$ref`, dynamic/recursive references, `allOf`, `anyOf`, `oneOf`, `not`, conditional schemas (`if`,
+`then`, `else`), `contains`, `prefixItems`, `patternProperties`, `propertyNames`, `dependentRequired`,
+`dependentSchemas`, schema dependencies, and the `unevaluated` keywords are unsupported. They fail
+during parsing with the nested schema path. Malformed `type`, `format`, `enum`, `items`, `required`,
+`additionalProperties`, and `dependencies` values, counts such as `maxLength`, and a malformed
+`additionalItems` beside a list of items, also fail during parsing with that path; they never silently
+become an unconstrained field. A Java map that recursively contains itself is rejected for the same
+reason: the importer has no document-ID or reference-resolution model.
+
+Schema export is metadata-driven and side-effect free. Built-in `Field` providers carry an exact
+fragment; a custom lambda with no metadata deliberately exports `{}` to mean **unknown**, not an
+invented type. A constant, a `withSample(...)` sample, and a payload template export the schema of their
+value, which every value they give meets: array items follow every item, so items of different types
+export `{}` and a `null` item makes the others' schema nullable, and a map member is named as the writers
+write its key, so the key `1` is the member `"1"`. A record member exports by its Java type: a `LocalDate` as `format: date`, an
+`OffsetTime` as `time`, an `OffsetDateTime`, `ZonedDateTime`, or `Instant` as `date-time`, and a
+`LocalDateTime` or `LocalTime` as `date-time-local` or `time-local`, as the `datetime.time` provider
+does too, because RFC 3339's `date-time` and `time` need an offset that those values do not have.
+Parsing such a schema back gives values each type holds, and every writer, from JSON to SQL, writes
+such a value in its format's RFC 3339 form, with the seconds always and a fraction only where it is not
+zero: `2024-01-05T09:05:00` for a `LocalDateTime` at 09:05, a `ZonedDateTime` with its offset and no
+`[Zone/Id]`, and an `Instant` with `Z`. A `java.util.Date` is written as the instant it holds, a
+`Calendar` at the offset its own time zone gives that instant, and a `java.sql.Date` or `Time` as its
+date or time of day, where a `java.sql.Date` keeps its era. A year outside 0000 to 9999, an offset with
+seconds or beyond 23:59, and a Julian day that ISO does not have, such as 29 February 1500, which RFC
+3339 cannot write, are refused. Attach
+`SchemaValueProvider.withJsonSchema(...)` or `withSample(...)` when a custom provider can make a
+narrower claim. `Schema`, `SchemaProjection`, and parser-created generators are
+stateful: use one instance per thread (or `Generators.threadLocal(...)`) and share only immutable
+configuration and completed provider registrations.
+
+Use the streaming writer methods when you want payload output without materializing the whole batch first:
+
+```java
+StringBuilder out = new StringBuilder();
+schema.writeJsonLines(out, 1000);
+schema.writeJson(out, 1000);
+schema.writeCsv(out, 1000);
+schema.writeXml(out, 1000);
+schema.writeSqlInserts(out, "public.orders", 1000);
+schema.writeYaml(out, 1000);
+schema.writeToml(out, 1000);
+```
+
+For stream-based output, `writeTo(OutputStream, OutputFormat, count)` writes UTF-8 and flushes its adapter writer without closing the caller-owned stream. The `Writer` overload also leaves ownership with the caller.
+
+`JSON` is an array document; `JSONL` stays one object per line. YAML renders an ordinary sequence
+and TOML renders an array of `records` tables. YAML quotes a field name that a parser would read as a
+boolean, null, number, or date, such as `true`, `null`, `123`, or `2024-01-05`, so every name reads back
+as the same string. TOML has no `null` value, so its writer rejects a null field instead of silently
+changing data.
+
+Every format writes text that UTF-8 can encode. An unpaired surrogate, half of a UTF-16 surrogate pair
+without its other half, is written as U+FFFD wherever it is, in a value, a key, a CSV header, or a table
+or column name, and a pair as the character it encodes. An escape such as `\ud800` would not keep it:
+TOML has no escape for a surrogate, and strict JSON parsers reject a lone one. `toJsonSchema()` writes
+each field name the same way, so its `properties` and `required` name the columns as the data does. Two
+field names that would be written as one, as they differ only in unpaired surrogates, such as `"a\ud800"`
+and `"a\udc00"`, are rejected with `IllegalArgumentException` when the schema or projection is built, as no
+document may hold a name twice. XML also writes U+FFFD
+for any other character that XML 1.0 cannot represent. YAML writes DEL, the C1 controls U+0080 to U+009F,
+U+2028, U+2029, U+FFFE, and U+FFFF as escapes such as `\u0085`, in names and values, as a YAML parser
+rejects them raw, or reads U+0085, U+2028, and U+2029 as line breaks, so every string reads back as written.
+
+### Projecting existing objects
+
+`SchemaProjection<T>` applies named extractors to objects you already have. It consumes an
+`Iterable` once and writes incrementally, so it does not require a duplicate map batch:
+
+```java
+record Order(String id, int quantity) {}
+
+Map<String, Function<Order, ?>> columns = new LinkedHashMap<>();
+columns.put("id", Order::id);
+columns.put("quantity", Order::quantity);
+
+SchemaProjection<Order> projection = SchemaProjection.of(columns);
+List<Order> orders = List.of(new Order("ORD-1", 2));
+String json = projection.toJson(orders);
+String yaml = projection.toYaml(orders);
+projection.writeTo(writer, OutputFormat.SQL, orders, "public.orders");
+```
+
+Projection supports the same JSONL, JSON, CSV, XML, SQL, YAML, and TOML formats as generated
+schemas. `Schema` is still the right API when values must be generated from `Field` providers;
+use `SchemaProjection` when the values already exist. `projection.projectRow(order)`, new in 3.1.0,
+returns one object's row as a `Map<String, @Nullable Object>`, whose value is `null` where its extractor
+returns `null`; the deprecated `project(order)` returns the same row as a `Map<String, Object>`, and on
+3.0.x it is the one to call. From 4.0.0, `project(order)` is removed: call `projectRow(order)`.
+
+`FieldLookup` is now an extensible token registry rather than a fixed table, and `Field` exposes the same registration flow:
+
+```java
+Field field = Generators.ofField(GeneratorConfig.builder().locale(Locale.US).seed(42L).build())
+        .register("custom.order_id", ctx -> "ORD-" + ctx.recordIndex())
+        .registerAlias("custom.order", "custom.order_id")
+        .registerProvider("text.word.provider",
+                WordGenerator::new,
+                WordGenerator.class,
+                WordGenerator::generateWord);
+
+SchemaValueProvider orderId = field.bind("custom.order");
+SchemaValueProvider extraWord = field.bind("text.word.provider");
+```
+
+The same token registry now powers declarative templates:
+
+```java
+Field field = Generators.ofField(Locale.US)
+        .register("custom.order_id", ctx -> 1000 + ctx.recordIndex())
+        .registerAlias("custom.order", "custom.order_id");
+
+SchemaValueProvider subject = field.template("Order {{custom.order}} for {{person.full_name}} (??-##)");
+
+SchemaValueProvider payload = field.template(Map.of(
+        "orderId", "{{custom.order}}",
+        "customer", "{{person.full_name}}",
+        "email", "{{person.email}}",
+        "reference", "ORD-##",
+        "tags", List.of("{{text.word}}", "{{text.word}}")
+));
+```
+
+String templates always render to strings. Payload templates recurse through maps, lists, and arrays; strings that contain only a single `{{token}}` resolve to the raw generated value, so numbers and nested objects stay typed inside the generated payload.
+
+## Provider hub
+
+`ProviderHub` is a generic registry with aliases, locale propagation, runtime extensibility, and a broader dotted taxonomy.
+
+```java
+ProviderHub hub = Generators.ofProviderHub(Locale.US);
+
+FullNameGenerator person = hub.get("person.full_name", FullNameGenerator.class);
+EmailGenerator email = hub.get("person.email", EmailGenerator.class);
+ContactInfoGenerator contacts = hub.get("person.contact_info", ContactInfoGenerator.class);
+ProductInfoGenerator products = hub.get("commerce.product_info", ProductInfoGenerator.class);
+OrderInfoGenerator orders = hub.get("commerce.order_info", OrderInfoGenerator.class);
+ShipmentInfoGenerator shipments = hub.get("commerce.shipment_info", ShipmentInfoGenerator.class);
+BankInfoGenerator banks = hub.get("finance.bank_info", BankInfoGenerator.class);
+InvoiceInfoGenerator invoices = hub.get("finance.invoice_info", InvoiceInfoGenerator.class);
+PaymentInfoGenerator payments = hub.get("finance.payment_info", PaymentInfoGenerator.class);
+CompanyInfoGenerator companies = hub.get("company.info", CompanyInfoGenerator.class);
+CityGenerator city = hub.get("address.city", CityGenerator.class);
+URLGenerator internet = hub.get("url", URLGenerator.class); // alias for internet.url
+TextFormatProvider format = hub.get("text.format", TextFormatProvider.class);
+
+hub.register("custom-product-code", cfg -> new IdentifierMaskGenerator(cfg));
+hub.registerAlias("sku", "custom-product-code");
+
+String sku = format.template("SKU-??-####");
+String coupon = format.lexify("promo-????");
+String token = format.asciify("***-***");
+String reference = format.regexify("[A-Z]{3}\\d{4}");
+String invoice = format.examplify("INV-2026-AB12");
+```
+
+The old coarse names like `person`, `address`, `internet`, `finance`, `datetime`, `text`, and `code` still work, but the preferred naming style is dotted and explicit:
+
+- `person.full_name`, `person.first_name`, `person.last_name`, `person.email`, `person.username`
+- `person.contact_info`, `person.person_info`, `person.job_info`
+- `company.name`, `company.email`, `company.url`, `company.buzzword`, `company.catch_phrase`, `company.industry`, `company.info`
+- `address.address_info`
+- `commerce.product_info`
+- `address.street_address`, `address.city`, `address.state`, `address.postal_code`, `address.country`, `address.phone_number`
+- `internet.url`, `internet.domain`, `internet.hostname`
+- `finance.money`, `finance.currency`, `finance.bank_info`, `finance.credit_card_info`
+- `datetime.date`, `datetime.time`
+- `text.word`, `text.sentence`, `text.paragraph`, `text.format`
+- `code.uuid`
+
+`ProviderHub` also exposes uniqueness helpers directly, so provider-based generation can stay on the same surface:
+
+```java
+UniqueGenerator<UUID> uniqueIds = hub.unique(new UUIDGenerator());
+UUID first = uniqueIds.generate();
+UUID second = uniqueIds.generate();
+```
+
+## Conflict policies
+
+- `ConflictPolicy.FAIL` (default): reject a name that is already registered, as a provider or as an alias.
+- `ConflictPolicy.REPLACE`: override an existing provider or alias.

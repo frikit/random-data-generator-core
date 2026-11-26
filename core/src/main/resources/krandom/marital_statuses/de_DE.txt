@@ -1,0 +1,10 @@
+# Marital status values, one per line.
+Ledig
+Verheiratet
+Geschieden
+Verwitwet
+Getrennt lebend
+Eingetragene Lebenspartnerschaft
+Ehe aufgehoben
+Aufgehobene Lebenspartnerschaft
+Durch Tod aufgelöste Lebenspartnerschaft

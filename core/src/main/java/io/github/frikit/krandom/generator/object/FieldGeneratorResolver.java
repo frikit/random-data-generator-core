@@ -1,0 +1,2938 @@
+/*
+ * Copyright (c) 2026 krandom contributors
+ *
+ * Licensed under the MIT License. See LICENSE in the project root for license information.
+ */
+package io.github.frikit.krandom.generator.object;
+
+import io.github.frikit.krandom.generator.ContextualGenerator;
+import io.github.frikit.krandom.generator.GenerationContext;
+import io.github.frikit.krandom.generator.GenerationRecipe;
+import io.github.frikit.krandom.generator.Generator;
+import io.github.frikit.krandom.generator.GeneratorConfig;
+import io.github.frikit.krandom.generator.Seedable;
+import io.github.frikit.krandom.generator.base.BigIntegerGenerator;
+import io.github.frikit.krandom.generator.base.CharGenerator;
+import io.github.frikit.krandom.generator.base.EnumGenerator;
+import io.github.frikit.krandom.generator.base.NumberGenerator;
+import io.github.frikit.krandom.generator.base.StringGenerator;
+import io.github.frikit.krandom.generator.datetime.DateGenerator;
+import io.github.frikit.krandom.generator.datetime.InstantGenerator;
+import io.github.frikit.krandom.generator.datetime.LegacyTimeZoneGenerator;
+import io.github.frikit.krandom.generator.datetime.LocalDateTimeGenerator;
+import io.github.frikit.krandom.generator.datetime.SqlDateGenerator;
+import io.github.frikit.krandom.generator.datetime.SqlTimeGenerator;
+import io.github.frikit.krandom.generator.datetime.SqlTimestampGenerator;
+import io.github.frikit.krandom.generator.datetime.TimeGenerator;
+import io.github.frikit.krandom.generator.datetime.UtilDateGenerator;
+import io.github.frikit.krandom.generator.datetime.ZoneOffsetGenerator;
+import io.github.frikit.krandom.generator.datetime.ZonedDateTimeGenerator;
+import io.github.frikit.krandom.generator.failure.GenerationFailureCategory;
+import io.github.frikit.krandom.generator.failure.GenerationFailureContext;
+import io.github.frikit.krandom.generator.failure.GenerationOperation;
+import io.github.frikit.krandom.generator.finance.CurrencyGenerator;
+import io.github.frikit.krandom.generator.identifier.UUIDGenerator;
+import io.github.frikit.krandom.generator.location.CoordinatesGenerator;
+import io.github.frikit.krandom.generator.network.URLGenerator;
+import io.github.frikit.krandom.generator.network.UriGenerator;
+import io.github.frikit.krandom.generator.object.exception.ObjectGenerationException;
+import io.github.frikit.krandom.generator.report.GenerationDecision;
+import io.github.frikit.krandom.generator.report.GenerationStep;
+import io.github.frikit.krandom.internal.Reseeding;
+import java.lang.reflect.AnnotatedArrayType;
+import java.lang.reflect.AnnotatedElement;
+import java.lang.reflect.AnnotatedParameterizedType;
+import java.lang.reflect.AnnotatedType;
+import java.lang.reflect.Array;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Parameter;
+import java.lang.reflect.RecordComponent;
+import java.lang.reflect.Type;
+import java.lang.reflect.TypeVariable;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.MonthDay;
+import java.time.OffsetDateTime;
+import java.time.OffsetTime;
+import java.time.Period;
+import java.time.Year;
+import java.time.YearMonth;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.GregorianCalendar;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.NavigableMap;
+import java.util.NavigableSet;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.PriorityQueue;
+import java.util.Queue;
+import java.util.Random;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.SortedSet;
+import java.util.Stack;
+import java.util.TimeZone;
+import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.UUID;
+import java.util.Vector;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import org.jspecify.annotations.Nullable;
+
+/**
+ * Internal resolver: maps a field's ({@link Type}, {@link Class}, name, owner) tuple
+ * to a generated value.
+ *
+ * <p>Resolution order (first match wins):
+ * <ol>
+ *   <li>Contextual field-level override from {@link ObjectGeneratorConfig}, by owner type and
+ *       field name, then by field predicate</li>
+ *   <li>Field-level override from {@link ObjectGeneratorConfig} ({@code "OwnerType.fieldName"}),
+ *       then by field predicate</li>
+ *   <li>Contextual type-level override from {@link ObjectGeneratorConfig}</li>
+ *   <li>Type-level override from {@link ObjectGeneratorConfig}</li>
+ *   <li>Declarative {@link Randomizer} annotation on the field/component</li>
+ *   <li>Bean Validation constraint annotation (e.g. {@code @Size}, {@code @Min}, {@code @Max})</li>
+ *   <li>Built-in generator for Java primitives / wrappers / {@code String} / JSR-310 types /
+ *       legacy {@code Date} and {@link Calendar} types / {@link UUID} / {@link BigDecimal} /
+ *       {@link BigInteger}</li>
+ *   <li>Enum: random constant</li>
+ *   <li>Array ({@code T[]}): auto-populated with the shared collection-size defaults
+ *       (default 1 to 10 elements)</li>
+ *   <li>{@code List<T>} or {@code Set<T>}: auto-populated with the shared collection-size defaults
+ *       and elements resolved from the declared generic element type</li>
+ *   <li>{@code Map<K,V>}: auto-populated with the shared collection-size defaults</li>
+ *   <li>{@code Optional<T>}: populated as {@code Optional.ofNullable(value)}, optionally
+ *       respecting the configured empty-rate</li>
+ *   <li>Depth guard: if {@code currentDepth >= maxDepth} return primitive zero / {@code null}, or
+ *       fail with field context when the member itself is required</li>
+ *   <li>Nested class or record: delegate to a child {@link ObjectGenerator} (cycle-safe via
+ *       {@link ObjectPool})</li>
+ *   <li>Unsupported type: fail with field context, or return primitive zero / {@code null}
+ *       in explicit lenient mode</li>
+ * </ol>
+ */
+final class FieldGeneratorResolver {
+
+    private static final String OBJECT_CHARACTER_POOL = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    private static final List<String> ZONE_IDS =
+            ZoneId.getAvailableZoneIds().stream().sorted().toList();
+    private static final long MILLIS_PER_DAY = Duration.ofDays(1).toMillis();
+
+    static final int DEFAULT_MIN_ELEMENT_COUNT = GeneratorConfig.defaults().getMinCollectionSize();
+    static final int DEFAULT_MAX_ELEMENT_COUNT = GeneratorConfig.defaults().getMaxCollectionSize();
+
+    /**
+     * Safe zero-values used when a primitive field cannot be assigned its resolved value
+     * (e.g. at max depth, or when {@code ignoreErrors=true}).
+     */
+    private static final Map<Class<?>, Object> PRIMITIVE_DEFAULTS = new HashMap<>();
+
+    private static final Map<Class<?>, Function<String, Object>> ARGUMENT_PARSERS = new HashMap<>();
+
+    static {
+        PRIMITIVE_DEFAULTS.put(byte.class, (byte) 0);
+        PRIMITIVE_DEFAULTS.put(short.class, (short) 0);
+        PRIMITIVE_DEFAULTS.put(int.class, 0);
+        PRIMITIVE_DEFAULTS.put(long.class, 0L);
+        PRIMITIVE_DEFAULTS.put(float.class, 0.0f);
+        PRIMITIVE_DEFAULTS.put(double.class, 0.0);
+        PRIMITIVE_DEFAULTS.put(char.class, '\0');
+        PRIMITIVE_DEFAULTS.put(boolean.class, false);
+    }
+
+    static {
+        ARGUMENT_PARSERS.put(String.class, s -> s);
+        ARGUMENT_PARSERS.put(int.class, Integer::parseInt);
+        ARGUMENT_PARSERS.put(Integer.class, Integer::valueOf);
+        ARGUMENT_PARSERS.put(long.class, Long::parseLong);
+        ARGUMENT_PARSERS.put(Long.class, Long::valueOf);
+        ARGUMENT_PARSERS.put(double.class, Double::parseDouble);
+        ARGUMENT_PARSERS.put(Double.class, Double::valueOf);
+        ARGUMENT_PARSERS.put(float.class, Float::parseFloat);
+        ARGUMENT_PARSERS.put(Float.class, Float::valueOf);
+        ARGUMENT_PARSERS.put(boolean.class, Boolean::parseBoolean);
+        ARGUMENT_PARSERS.put(Boolean.class, Boolean::valueOf);
+        ARGUMENT_PARSERS.put(short.class, Short::parseShort);
+        ARGUMENT_PARSERS.put(Short.class, Short::valueOf);
+        ARGUMENT_PARSERS.put(byte.class, Byte::parseByte);
+        ARGUMENT_PARSERS.put(Byte.class, Byte::valueOf);
+        ARGUMENT_PARSERS.put(char.class, FieldGeneratorResolver::parseChar);
+        ARGUMENT_PARSERS.put(Character.class, FieldGeneratorResolver::parseChar);
+        ARGUMENT_PARSERS.put(BigInteger.class, BigInteger::new);
+        ARGUMENT_PARSERS.put(BigDecimal.class, BigDecimal::new);
+        ARGUMENT_PARSERS.put(java.util.Date.class, FieldGeneratorResolver::parseUtilDate);
+        ARGUMENT_PARSERS.put(java.sql.Date.class, java.sql.Date::valueOf);
+        ARGUMENT_PARSERS.put(java.sql.Time.class, java.sql.Time::valueOf);
+        ARGUMENT_PARSERS.put(java.sql.Timestamp.class, java.sql.Timestamp::valueOf);
+        ARGUMENT_PARSERS.put(LocalDate.class, LocalDate::parse);
+        ARGUMENT_PARSERS.put(LocalTime.class, LocalTime::parse);
+        ARGUMENT_PARSERS.put(LocalDateTime.class, LocalDateTime::parse);
+    }
+
+    private final ObjectGeneratorConfig config;
+    private final GeneratorConfig generatorConfig;
+    private final ObjectPool pool;
+    private final UniqueFieldTracker uniqueFieldTracker;
+    private final @Nullable Long generationSeed;
+    private final boolean namedChildStreams;
+    private final Random sequenceRandom;
+    private final Map<Class<?>, Generator<?>> builtins;
+    private final SemanticStringGenerators semanticStringGenerators;
+    private final Map<String, Map<Class<?>, Generator<?>>> semanticTypedGenerators;
+    private final ObjectGenerationSemanticMode semanticMode;
+    private final SemanticFieldRegistry semanticRegistry;
+    private final Set<String> uniqueFieldNames;
+    private final ObjectGenerationFailurePolicy failurePolicy;
+    private final Map<TypeVariable<?>, Type> typeBindings;
+    private final String objectPath;
+    private final @Nullable GenerationReporter reporter;
+    private GenerationReporter.@Nullable Trace currentTrace;
+
+    FieldGeneratorResolver(
+            ObjectGeneratorConfig config,
+            ObjectPool pool,
+            UniqueFieldTracker uniqueFieldTracker,
+            @Nullable Long generationSeed,
+            Map<? extends TypeVariable<?>, ? extends Type> typeBindings,
+            String objectPath) {
+        this.config = config;
+        this.generatorConfig = config.getGeneratorConfig();
+        this.pool = pool;
+        this.uniqueFieldTracker = uniqueFieldTracker;
+        this.generationSeed = generationSeed;
+        this.namedChildStreams = ObjectFieldStreamPlanner.usesNamedChildStreams(
+                this.generatorConfig.getObjectFieldStreamPolicy(), generationSeed, config.hasPortableRecipe());
+        this.sequenceRandom = generationSeed != null ? new Random(generationSeed) : this.generatorConfig.createRandom();
+        this.builtins = buildBuiltins(config, this.generatorConfig, this.sequenceRandom);
+        this.semanticRegistry = config.getSemanticRegistry();
+        this.semanticMode = config.getSemanticMode();
+        if (semanticMode == ObjectGenerationSemanticMode.STRUCTURAL_ONLY) {
+            this.semanticStringGenerators = SemanticStringGenerators.NONE;
+            this.semanticTypedGenerators = Map.of();
+        } else {
+            this.semanticStringGenerators = buildSemanticStringGenerators(
+                    this.generatorConfig,
+                    this.sequenceRandom,
+                    this.semanticRegistry,
+                    independentSemanticSeed(generationSeed));
+            this.semanticTypedGenerators = buildSemanticTypedGenerators(
+                    this.config,
+                    this.generatorConfig,
+                    this.sequenceRandom,
+                    Objects.requireNonNull(this.builtins.get(ZoneOffset.class), "builtin ZoneOffset generator"));
+        }
+        this.uniqueFieldNames = config.getUniqueFieldNames();
+        ObjectGeneratorConfig recipeSource = config;
+        this.failurePolicy = new ObjectGenerationFailurePolicy(
+                config.isIgnoreErrors(),
+                generatorConfig.getGenerationFailureListener(),
+                () -> recipeSource.generationRecipe().map(GenerationRecipe::serializeForDiagnostics));
+        this.typeBindings = Map.copyOf(Objects.requireNonNull(typeBindings, "typeBindings must not be null"));
+        this.objectPath = Objects.requireNonNull(objectPath, "objectPath must not be null");
+        this.reporter = GenerationReporter.of(config, namedChildStreams);
+    }
+
+    private static Map<Class<?>, Generator<?>> buildBuiltins(
+            ObjectGeneratorConfig cfg, GeneratorConfig generatorConfig, Random seedSource) {
+        Map<Class<?>, Generator<?>> m = new HashMap<>();
+
+        Long byteSeed = nextDeterministicSeed(generatorConfig, seedSource);
+        Long shortSeed = nextDeterministicSeed(generatorConfig, seedSource);
+        Long intSeed = nextDeterministicSeed(generatorConfig, seedSource);
+        Long longSeed = nextDeterministicSeed(generatorConfig, seedSource);
+        Long floatSeed = nextDeterministicSeed(generatorConfig, seedSource);
+        Long doubleSeed = nextDeterministicSeed(generatorConfig, seedSource);
+        Long charSeed = nextDeterministicSeed(generatorConfig, seedSource);
+        Long booleanSeed = nextDeterministicSeed(generatorConfig, seedSource);
+
+        Generator<Byte> byteGenerator = byteGenerator(byteSeed, seedSource, Byte.MIN_VALUE, Byte.MAX_VALUE);
+        Generator<Short> shortGenerator = shortGenerator(shortSeed, seedSource, Short.MIN_VALUE, Short.MAX_VALUE);
+        Generator<Integer> intGenerator = intGenerator(intSeed, seedSource, Integer.MIN_VALUE, Integer.MAX_VALUE);
+        Generator<Long> longGenerator = longGenerator(longSeed, seedSource, Long.MIN_VALUE, Long.MAX_VALUE);
+        Generator<Float> floatGenerator = floatGenerator(floatSeed, seedSource, 0f, 1f, null);
+        Generator<Double> doubleGenerator = doubleGenerator(doubleSeed, seedSource, 0.0, 1.0, null);
+        Generator<Character> charGenerator = lazyGenerator(() -> charGenerator(charSeed, seedSource));
+        Generator<Boolean> booleanGenerator = booleanGenerator(booleanSeed, seedSource);
+        Long stringSeed = nextDeterministicSeed(generatorConfig, seedSource);
+        Generator<String> stringGenerator =
+                lazyGenerator(() -> buildStringGenerator(generatorConfig, stringSeed, seedSource));
+        Generator<BigDecimal> bigDecimalGenerator =
+                bigDecimalGenerator(nextDeterministicSeed(generatorConfig, seedSource), seedSource, "0", "1000000", 2);
+        Generator<BigInteger> bigIntegerGenerator =
+                bigIntegerGenerator(nextDeterministicSeed(generatorConfig, seedSource), seedSource, 0L, Long.MAX_VALUE);
+        Generator<Number> numberGenerator =
+                lazyGenerator(lazyDerived(generatorConfig, seedSource, NumberGenerator::new));
+        Generator<AtomicInteger> atomicIntegerGenerator = () -> new AtomicInteger(intGenerator.generate());
+        Generator<AtomicLong> atomicLongGenerator = () -> new AtomicLong(longGenerator.generate());
+
+        m.put(byte.class, byteGenerator);
+        m.put(Byte.class, byteGenerator);
+        m.put(short.class, shortGenerator);
+        m.put(Short.class, shortGenerator);
+        m.put(int.class, intGenerator);
+        m.put(Integer.class, intGenerator);
+        m.put(long.class, longGenerator);
+        m.put(Long.class, longGenerator);
+        m.put(float.class, floatGenerator);
+        m.put(Float.class, floatGenerator);
+        m.put(double.class, doubleGenerator);
+        m.put(Double.class, doubleGenerator);
+        m.put(char.class, charGenerator);
+        m.put(Character.class, charGenerator);
+        m.put(boolean.class, booleanGenerator);
+        m.put(Boolean.class, booleanGenerator);
+        m.put(String.class, stringGenerator);
+        m.put(Number.class, numberGenerator);
+        m.put(BigDecimal.class, bigDecimalGenerator);
+        m.put(BigInteger.class, bigIntegerGenerator);
+        m.put(AtomicInteger.class, atomicIntegerGenerator);
+        m.put(AtomicLong.class, atomicLongGenerator);
+
+        LocalDate lo = cfg.getDateMin() != null ? cfg.getDateMin() : LocalDate.of(1970, 1, 1);
+        LocalDate hi = cfg.getDateMax() != null ? cfg.getDateMax() : LocalDate.of(2100, 12, 31);
+        Generator<LocalDate> localDateGenerator = buildDateGenerator(generatorConfig, seedSource, lo, hi);
+        Generator<LocalTime> localTimeGenerator =
+                lazyGenerator(lazyDerived(generatorConfig, seedSource, TimeGenerator::new));
+        Generator<LocalDateTime> localDateTimeGenerator =
+                buildLocalDateTimeGenerator(generatorConfig, seedSource, lo, hi);
+        Generator<Instant> instantGenerator = buildInstantGenerator(generatorConfig, seedSource, lo, hi);
+        Generator<ZonedDateTime> zonedDateTimeGenerator =
+                buildZonedDateTimeGenerator(generatorConfig, seedSource, lo, hi);
+        Generator<ZoneOffset> offsetTimeOffsets =
+                lazyGenerator(lazyDerived(generatorConfig, seedSource, ZoneOffsetGenerator::new));
+        Generator<OffsetTime> offsetTimeGenerator =
+                () -> localTimeGenerator.generate().atOffset(offsetTimeOffsets.generate());
+        Random yearRandom = randomFor(generatorConfig, seedSource);
+        Generator<Year> yearGenerator = () -> Year.of(yearRandom.nextInt(lo.getYear(), hi.getYear() + 1));
+        Generator<YearMonth> yearMonthGenerator = () -> YearMonth.from(localDateGenerator.generate());
+        Generator<MonthDay> monthDayGenerator = () -> MonthDay.from(localDateGenerator.generate());
+        Random durationRandom = randomFor(generatorConfig, seedSource);
+        Generator<Duration> durationGenerator =
+                () -> Duration.ofSeconds(durationRandom.nextLong(0, 10L * 365 * 24 * 60 * 60 + 1));
+        Random periodRandom = randomFor(generatorConfig, seedSource);
+        Generator<Period> periodGenerator =
+                () -> Period.of(periodRandom.nextInt(0, 11), periodRandom.nextInt(0, 12), periodRandom.nextInt(0, 31));
+        Random zoneRandom = randomFor(generatorConfig, seedSource);
+        Generator<ZoneId> zoneIdGenerator = () -> ZoneId.of(ZONE_IDS.get(zoneRandom.nextInt(ZONE_IDS.size())));
+        Generator<ZoneOffset> zoneOffsetGenerator =
+                lazyGenerator(lazyDerived(generatorConfig, seedSource, ZoneOffsetGenerator::new));
+        // A zone's own offset can have seconds, so an offset date-time keeps only its local date-time.
+        Generator<OffsetDateTime> offsetDateTimeGenerator =
+                () -> zonedDateTimeGenerator.generate().toLocalDateTime().atOffset(zoneOffsetGenerator.generate());
+        // A calendar is a zoned date-time from the same generator, so it draws no seed of its own.
+        Generator<GregorianCalendar> calendarGenerator = () -> calendarOf(zonedDateTimeGenerator.generate());
+        Generator<java.util.Date> utilDateGenerator = buildUtilDateGenerator(generatorConfig, seedSource, lo, hi);
+        Generator<java.sql.Date> sqlDateGenerator = buildSqlDateGenerator(generatorConfig, seedSource, lo, hi);
+        Generator<java.sql.Time> sqlTimeGenerator =
+                lazyGenerator(lazyDerived(generatorConfig, seedSource, SqlTimeGenerator::new));
+        Generator<java.sql.Timestamp> sqlTimestampGenerator =
+                buildSqlTimestampGenerator(generatorConfig, seedSource, lo, hi);
+        Generator<UUID> uuidGenerator = lazyGenerator(lazyDerived(generatorConfig, seedSource, UUIDGenerator::new));
+        Generator<TimeZone> timeZoneGenerator =
+                lazyGenerator(lazyDerived(generatorConfig, seedSource, LegacyTimeZoneGenerator::new));
+        Supplier<UriGenerator> uriStringGenerator = lazyDerived(generatorConfig, seedSource, UriGenerator::new);
+        Supplier<URLGenerator> urlStringGenerator = lazyDerived(generatorConfig, seedSource, URLGenerator::new);
+        Generator<URI> uriGenerator = () -> URI.create(uriStringGenerator.get().generate());
+        Generator<java.net.URL> urlGenerator =
+                () -> toUrl(URI.create(urlStringGenerator.get().generate("https")));
+
+        m.put(LocalDate.class, localDateGenerator);
+        m.put(LocalTime.class, localTimeGenerator);
+        m.put(LocalDateTime.class, localDateTimeGenerator);
+        m.put(Instant.class, instantGenerator);
+        m.put(ZonedDateTime.class, zonedDateTimeGenerator);
+        m.put(OffsetDateTime.class, offsetDateTimeGenerator);
+        m.put(OffsetTime.class, offsetTimeGenerator);
+        m.put(Year.class, yearGenerator);
+        m.put(YearMonth.class, yearMonthGenerator);
+        m.put(MonthDay.class, monthDayGenerator);
+        m.put(Duration.class, durationGenerator);
+        m.put(Period.class, periodGenerator);
+        m.put(ZoneId.class, zoneIdGenerator);
+        m.put(ZoneOffset.class, zoneOffsetGenerator);
+        m.put(java.util.Date.class, utilDateGenerator);
+        m.put(java.sql.Date.class, sqlDateGenerator);
+        m.put(java.sql.Time.class, sqlTimeGenerator);
+        m.put(java.sql.Timestamp.class, sqlTimestampGenerator);
+        m.put(Calendar.class, calendarGenerator);
+        m.put(GregorianCalendar.class, calendarGenerator);
+        m.put(UUID.class, uuidGenerator);
+        m.put(TimeZone.class, timeZoneGenerator);
+        m.put(URI.class, uriGenerator);
+        m.put(java.net.URL.class, urlGenerator);
+        return Collections.unmodifiableMap(m);
+    }
+
+    /**
+     * A non-lenient Gregorian calendar holding this date-time in its zone, with ISO week rules, as
+     * {@link io.github.frikit.krandom.generator.datetime.CalendarGenerator} gives.
+     */
+    static GregorianCalendar calendarOf(ZonedDateTime value) {
+        GregorianCalendar calendar = GregorianCalendar.from(value);
+        calendar.setLenient(false);
+        return calendar;
+    }
+
+    private static java.net.URL toUrl(URI uri) {
+        try {
+            return uri.toURL();
+        } catch (MalformedURLException | IllegalArgumentException e) {
+            throw new ObjectGenerationException("Generated URI could not be converted to URL", e);
+        }
+    }
+
+    private static @Nullable Long nextDeterministicSeed(GeneratorConfig config, Random seedSource) {
+        return config.getSeed().isPresent() ? seedSource.nextLong() : null;
+    }
+
+    private static GeneratorConfig configWithSeed(GeneratorConfig config, @Nullable Long seed) {
+        return seed != null ? config.toBuilder().seed(seed).build() : config;
+    }
+
+    /**
+     * Draws the derived configuration's seed now, keeping the resolver's draw order unchanged, but
+     * builds the configuration and generator only on first use. A resolver is created for every
+     * object (and every member with named streams), and most of its generators are never used.
+     */
+    private static <G> Supplier<G> lazyDerived(
+            GeneratorConfig config, Random seedSource, Function<GeneratorConfig, G> factory) {
+        Long seed = nextDeterministicSeed(config, seedSource);
+        return lazy(() -> factory.apply(configWithSeed(config, seed)));
+    }
+
+    private static <T> Generator<T> lazyGenerator(Supplier<? extends Generator<T>> factory) {
+        Supplier<? extends Generator<T>> generator = lazy(factory);
+        return () -> generator.get().generate();
+    }
+
+    private static <G> Supplier<G> lazy(Supplier<G> factory) {
+        return new Supplier<>() {
+            private @Nullable G value;
+
+            @Override
+            public G get() {
+                if (value == null) {
+                    value = factory.get();
+                }
+                return value;
+            }
+        };
+    }
+
+    private static Random randomFor(GeneratorConfig config, Random seedSource) {
+        Long seed = nextDeterministicSeed(config, seedSource);
+        return seed != null ? new Random(seed) : seedSource;
+    }
+
+    private static CharGenerator buildCharGenerator(long seed) {
+        return CharGenerator.builder().uppercase().lowercase().seed(seed).build();
+    }
+
+    private static Generator<Character> charGenerator(@Nullable Long seed, Random source) {
+        if (seed != null) {
+            return buildCharGenerator(seed);
+        }
+        return () -> OBJECT_CHARACTER_POOL.charAt(source.nextInt(OBJECT_CHARACTER_POOL.length()));
+    }
+
+    /**
+     * Returns the random source of one scalar generator: a fresh {@link Random} started from the
+     * engine-derived seed when the configuration is seeded, otherwise the resolver's shared source.
+     *
+     * <p>A resolver is created for every object, so the scalar generators below draw from this
+     * source directly instead of building a seeded {@link GeneratorConfig} per generator. Each draws
+     * exactly what the corresponding base generator draws, so seeded output is unchanged.
+     */
+    private static Random streamFor(@Nullable Long seed, Random source) {
+        return seed != null ? new Random(seed) : source;
+    }
+
+    private static Generator<Boolean> booleanGenerator(@Nullable Long seed, Random source) {
+        if (seed == null) {
+            return source::nextBoolean;
+        }
+        Random random = new Random(seed);
+        // The even-odds draw of BooleanGenerator, which seeded objects have always used.
+        return () -> random.nextInt(100) < 50;
+    }
+
+    private static Generator<String> buildStringGenerator(GeneratorConfig config, @Nullable Long seed, Random source) {
+        if (seed == null) {
+            Generator<Character> characters = charGenerator(null, source);
+            return () -> {
+                int length = config.getMinStringLength() == config.getMaxStringLength()
+                        ? config.getMinStringLength()
+                        : (int) source.nextLong(config.getMinStringLength(), (long) config.getMaxStringLength() + 1L);
+                StringBuilder value = new StringBuilder(length);
+                for (int i = 0; i < length; i++) {
+                    value.append(characters.generate());
+                }
+                return value.toString();
+            };
+        }
+        StringGenerator.Builder builder = StringGenerator.builder()
+                .minLength(config.getMinStringLength())
+                .maxLength(config.getMaxStringLength())
+                .charGenerator(buildCharGenerator(seed));
+        return builder.seed(seed).build();
+    }
+
+    private static Generator<Byte> byteGenerator(@Nullable Long seed, Random source, byte min, byte maxExclusive) {
+        Random random = streamFor(seed, source);
+        return () -> (byte) random.nextInt(min, maxExclusive);
+    }
+
+    private static Generator<Short> shortGenerator(@Nullable Long seed, Random source, short min, short maxExclusive) {
+        Random random = streamFor(seed, source);
+        return () -> (short) random.nextInt(min, maxExclusive);
+    }
+
+    private static Generator<LocalDate> buildDateGenerator(
+            GeneratorConfig config, Random seedSource, LocalDate min, LocalDate max) {
+        if (min.equals(LocalDate.of(1970, 1, 1)) && max.equals(LocalDate.of(2100, 12, 31))) {
+            return lazyGenerator(lazyDerived(config, seedSource, DateGenerator::new));
+        }
+        Long seed = nextDeterministicSeed(config, seedSource);
+        if (seed != null) {
+            return lazyGenerator(() -> {
+                DateGenerator generator = new DateGenerator(min, max);
+                generator.reseed(seed);
+                return generator;
+            });
+        }
+        return () -> randomDate(seedSource, min, max);
+    }
+
+    private static Generator<LocalDateTime> buildLocalDateTimeGenerator(
+            GeneratorConfig config, Random seedSource, LocalDate min, LocalDate max) {
+        if (min.equals(LocalDate.of(1970, 1, 1)) && max.equals(LocalDate.of(2100, 12, 31))) {
+            return lazyGenerator(lazyDerived(config, seedSource, LocalDateTimeGenerator::new));
+        }
+        Long seed = nextDeterministicSeed(config, seedSource);
+        if (seed != null) {
+            return lazyGenerator(() -> {
+                LocalDateTimeGenerator generator = new LocalDateTimeGenerator(min, max);
+                generator.reseed(seed);
+                return generator;
+            });
+        }
+        return () -> randomLocalDateTime(seedSource, min, max);
+    }
+
+    private static Generator<Instant> buildInstantGenerator(
+            GeneratorConfig config, Random seedSource, LocalDate min, LocalDate max) {
+        if (min.equals(LocalDate.of(1970, 1, 1)) && max.equals(LocalDate.of(2100, 12, 31))) {
+            return lazyGenerator(lazyDerived(config, seedSource, InstantGenerator::new));
+        }
+        Long seed = nextDeterministicSeed(config, seedSource);
+        if (seed != null) {
+            return lazyGenerator(() -> {
+                InstantGenerator generator = new InstantGenerator(min, max);
+                generator.reseed(seed);
+                return generator;
+            });
+        }
+        return () -> randomInstant(seedSource, min, max);
+    }
+
+    private static Generator<ZonedDateTime> buildZonedDateTimeGenerator(
+            GeneratorConfig config, Random seedSource, LocalDate min, LocalDate max) {
+        if (min.equals(LocalDate.of(1970, 1, 1)) && max.equals(LocalDate.of(2100, 12, 31))) {
+            return lazyGenerator(lazyDerived(config, seedSource, ZonedDateTimeGenerator::new));
+        }
+        Long seed = nextDeterministicSeed(config, seedSource);
+        if (seed != null) {
+            return lazyGenerator(() -> {
+                ZonedDateTimeGenerator generator = new ZonedDateTimeGenerator(min, max);
+                generator.reseed(seed);
+                return generator;
+            });
+        }
+        return () -> {
+            LocalDateTime dateTime = randomLocalDateTime(seedSource, min, max);
+            ZonedDateTime zoned =
+                    ZonedDateTime.of(dateTime, ZoneId.of(ZONE_IDS.get(seedSource.nextInt(ZONE_IDS.size()))));
+            // As in ZonedDateTimeGenerator, a gap in the zone's rules must not move a value past the range.
+            return zoned.toLocalDate().isAfter(max) ? dateTime.atZone(ZoneOffset.UTC) : zoned;
+        };
+    }
+
+    private static Generator<java.util.Date> buildUtilDateGenerator(
+            GeneratorConfig config, Random seedSource, LocalDate min, LocalDate max) {
+        if (min.equals(LocalDate.of(1970, 1, 1)) && max.equals(LocalDate.of(2100, 12, 31))) {
+            return lazyGenerator(lazyDerived(config, seedSource, UtilDateGenerator::new));
+        }
+        Long seed = nextDeterministicSeed(config, seedSource);
+        if (seed != null) {
+            return lazyGenerator(() -> {
+                UtilDateGenerator generator = new UtilDateGenerator(min, max);
+                generator.reseed(seed);
+                return generator;
+            });
+        }
+        long minMillis = min.atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli();
+        long maxExclusiveMillis =
+                max.plusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli();
+        return () -> new java.util.Date(seedSource.nextLong(minMillis, maxExclusiveMillis));
+    }
+
+    private static Generator<java.sql.Date> buildSqlDateGenerator(
+            GeneratorConfig config, Random seedSource, LocalDate min, LocalDate max) {
+        if (min.equals(LocalDate.of(1970, 1, 1)) && max.equals(LocalDate.of(2100, 12, 31))) {
+            return lazyGenerator(lazyDerived(config, seedSource, SqlDateGenerator::new));
+        }
+        Long seed = nextDeterministicSeed(config, seedSource);
+        if (seed != null) {
+            return lazyGenerator(() -> {
+                // Fails as SqlDateGenerator would, as an unsatisfiable constraint of the member.
+                lastSqlDate(min, max);
+                SqlDateGenerator generator = new SqlDateGenerator(min, max);
+                generator.reseed(seed);
+                return generator;
+            });
+        }
+        return lazyGenerator(() -> {
+            LocalDate lastHeld = lastSqlDate(min, max);
+            return () -> sqlDateWithin(randomDate(seedSource, min, max), max, lastHeld);
+        });
+    }
+
+    /**
+     * The last day from {@code min} to {@code max} that a {@code java.sql.Date} holds in the default time zone,
+     * as {@link SqlDateGenerator} finds it. A range with no such day, such as one in the year 0, is a
+     * constraint that no {@code java.sql.Date} meets.
+     */
+    private static LocalDate lastSqlDate(LocalDate min, LocalDate max) {
+        // The day of the latest instant a java.sql.Date holds bounds the search, as the year 1 does below.
+        LocalDate latest = new java.sql.Date(Long.MAX_VALUE).toLocalDate();
+        for (LocalDate day = max.isAfter(latest) ? latest : max;
+                !day.isBefore(min) && day.getYear() > 0;
+                day = day.minusDays(1)) {
+            if (java.sql.Date.valueOf(day).toLocalDate().equals(day)) {
+                return day;
+            }
+        }
+        throw new BeanValidationSupport.ConstraintConflictException("no day from " + min + " to " + max
+                + " is one that a java.sql.Date holds in the default time zone "
+                + java.util.TimeZone.getDefault().getID());
+    }
+
+    /**
+     * The day as a {@code java.sql.Date}, as {@link SqlDateGenerator} gives it: a day that the default time
+     * zone cannot hold reads back as a later one, and gives {@code lastHeld} where that is past {@code max}.
+     * A range that the {@code java.util.Date} members allow ends before the instants a {@code java.sql.Date}
+     * holds run out, so no day reads back before {@code min}.
+     */
+    private static java.sql.Date sqlDateWithin(LocalDate day, LocalDate max, LocalDate lastHeld) {
+        java.sql.Date date = java.sql.Date.valueOf(day);
+        try {
+            if (!date.toLocalDate().isAfter(max)) {
+                return date;
+            }
+        } catch (java.time.DateTimeException unreadable) {
+            // Long before the year 1, a day can read back as no date at all.
+        }
+        return java.sql.Date.valueOf(lastHeld);
+    }
+
+    private static Generator<java.sql.Timestamp> buildSqlTimestampGenerator(
+            GeneratorConfig config, Random seedSource, LocalDate min, LocalDate max) {
+        if (min.equals(LocalDate.of(1970, 1, 1)) && max.equals(LocalDate.of(2100, 12, 31))) {
+            return lazyGenerator(lazyDerived(config, seedSource, SqlTimestampGenerator::new));
+        }
+        Long seed = nextDeterministicSeed(config, seedSource);
+        if (seed != null) {
+            return lazyGenerator(() -> {
+                SqlTimestampGenerator generator = new SqlTimestampGenerator(min, max);
+                generator.reseed(seed);
+                return generator;
+            });
+        }
+        long minMillis = min.atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli();
+        long maxExclusiveMillis =
+                max.plusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli();
+        return () -> new java.sql.Timestamp(seedSource.nextLong(minMillis, maxExclusiveMillis));
+    }
+
+    private static LocalDate randomDate(Random source, LocalDate min, LocalDate max) {
+        return LocalDate.ofEpochDay(source.nextLong(min.toEpochDay(), max.toEpochDay() + 1L));
+    }
+
+    private static LocalDateTime randomLocalDateTime(Random source, LocalDate min, LocalDate max) {
+        return LocalDateTime.of(
+                randomDate(source, min, max), LocalTime.of(source.nextInt(24), source.nextInt(60), source.nextInt(60)));
+    }
+
+    private static Instant randomInstant(Random source, LocalDate min, LocalDate max) {
+        return randomDate(source, min, max)
+                .atStartOfDay()
+                .toInstant(ZoneOffset.UTC)
+                .plusMillis(source.nextLong(MILLIS_PER_DAY));
+    }
+
+    /**
+     * The seed from which {@link ObjectFieldStreamPolicy#INDEPENDENT} member streams derive their
+     * provider-backed semantic generators, or {@code null} for every other stream model.
+     */
+    private @Nullable Long independentSemanticSeed(@Nullable Long generationSeed) {
+        return generationSeed != null
+                        && generatorConfig.getObjectFieldStreamPolicy() == ObjectFieldStreamPolicy.INDEPENDENT
+                ? generationSeed
+                : null;
+    }
+
+    private static SemanticStringGenerators buildSemanticStringGenerators(
+            GeneratorConfig config,
+            Random seedSource,
+            SemanticFieldRegistry semanticRegistry,
+            @Nullable Long independentSemanticSeed) {
+        Set<String> providerKeys = semanticRegistry.providerBackedSemanticKeys();
+        long[] providerSeeds = null;
+        // The number of provider-backed keys depends on installed modules. INDEPENDENT member streams
+        // must not shift when an unrelated provider is registered, so they derive each key's seed by
+        // name; every other seeded stream draws one seed per key in registry order.
+        if (independentSemanticSeed == null && config.getSeed().isPresent()) {
+            providerSeeds = new long[providerKeys.size()];
+            for (int i = 0; i < providerSeeds.length; i++) {
+                providerSeeds[i] = seedSource.nextLong();
+            }
+        }
+        Long statusSeed = nextDeterministicSeed(config, seedSource);
+        return new LazySemanticGenerators(
+                providerKeys,
+                providerSeeds,
+                independentSemanticSeed,
+                (key, seed) ->
+                        buildProviderBackedSemanticGenerator(configWithSeed(config, seed), semanticRegistry, key),
+                () -> newStatusStringGenerator(configWithSeed(config, statusSeed)));
+    }
+
+    /** Looks up a provider-backed semantic string generator by semantic key. */
+    @FunctionalInterface
+    private interface SemanticStringGenerators {
+
+        /** Structural-only generation has no semantic string generators. */
+        SemanticStringGenerators NONE = semanticKey -> null;
+
+        @Nullable Generator<?> get(String semanticKey);
+    }
+
+    /**
+     * Provider-backed semantic generators, built on first use. Each key's seed is drawn when the
+     * resolver is created, in the same order as eager construction, so seeded output is unchanged;
+     * only the cost of building generators a type never uses is avoided.
+     */
+    private static final class LazySemanticGenerators implements SemanticStringGenerators {
+
+        private final Set<String> providerKeys;
+        private final long @Nullable [] providerSeeds;
+        private final @Nullable Long independentSeed;
+        private final BiFunction<String, @Nullable Long, Generator<?>> providerFactory;
+        private final Supplier<Generator<?>> statusFactory;
+        private final Map<String, Optional<Generator<?>>> built = new HashMap<>();
+
+        private LazySemanticGenerators(
+                Set<String> providerKeys,
+                long @Nullable [] providerSeeds,
+                @Nullable Long independentSeed,
+                BiFunction<String, @Nullable Long, Generator<?>> providerFactory,
+                Supplier<Generator<?>> statusFactory) {
+            this.providerKeys = providerKeys;
+            this.providerSeeds = providerSeeds;
+            this.independentSeed = independentSeed;
+            this.providerFactory = providerFactory;
+            this.statusFactory = statusFactory;
+        }
+
+        @Override
+        public @Nullable Generator<?> get(String semanticKey) {
+            Optional<Generator<?>> generator = built.get(semanticKey);
+            if (generator == null) {
+                generator = construct(semanticKey);
+                built.put(semanticKey, generator);
+            }
+            return generator.orElse(null);
+        }
+
+        private Optional<Generator<?>> construct(String semanticKey) {
+            try {
+                // The status generator replaces any provider registered under the same key.
+                if ("status".equals(semanticKey)) {
+                    return Optional.of(statusFactory.get());
+                }
+                int index = 0;
+                for (String key : providerKeys) {
+                    if (key.equals(semanticKey)) {
+                        return Optional.of(providerFactory.apply(key, seedFor(key, index)));
+                    }
+                    index++;
+                }
+                return Optional.empty();
+            } catch (UnsupportedOperationException unavailable) {
+                // Locale/provider not available — fall back to generic type resolution.
+                return Optional.empty();
+            }
+        }
+
+        private @Nullable Long seedFor(String key, int index) {
+            if (independentSeed != null) {
+                return GenerationRecipe.deriveChildSeed(independentSeed, "semantic:" + key);
+            }
+            return providerSeeds != null ? Long.valueOf(providerSeeds[index]) : null;
+        }
+    }
+
+    private static Map<String, Map<Class<?>, Generator<?>>> buildSemanticTypedGenerators(
+            ObjectGeneratorConfig objectConfig, GeneratorConfig config, Random seedSource, Generator<?> zoneOffsets) {
+        Map<String, Map<Class<?>, Generator<?>>> generators = new HashMap<>();
+
+        LocalDate today = LocalDate.now(config.getClock());
+        registerTemporalSemantic(
+                generators, objectConfig, config, seedSource, zoneOffsets, "createdat", today.minusYears(10), today);
+        registerTemporalSemantic(
+                generators, objectConfig, config, seedSource, zoneOffsets, "updatedat", today.minusYears(10), today);
+        registerTemporalSemantic(
+                generators,
+                objectConfig,
+                config,
+                seedSource,
+                zoneOffsets,
+                "birthdate",
+                today.minusYears(90),
+                today.minusYears(18));
+        Generator<Integer> ageGenerator = intGenerator(nextDeterministicSeed(config, seedSource), seedSource, 18, 91);
+        registerTypedSemantic(generators, "age", int.class, ageGenerator);
+        registerTypedSemantic(generators, "age", Integer.class, ageGenerator);
+        registerTypedSemantic(
+                generators, "age", long.class, (Generator<Long>) () -> Long.valueOf(ageGenerator.generate()));
+        registerTypedSemantic(
+                generators, "age", Long.class, (Generator<Long>) () -> Long.valueOf(ageGenerator.generate()));
+        registerTypedSemantic(generators, "age", short.class, (Generator<Short>)
+                () -> Short.valueOf(ageGenerator.generate().shortValue()));
+        registerTypedSemantic(generators, "age", Short.class, (Generator<Short>)
+                () -> Short.valueOf(ageGenerator.generate().shortValue()));
+        registerTypedSemantic(
+                generators, "age", String.class, (Generator<String>) () -> Integer.toString(ageGenerator.generate()));
+
+        registerNumericSemantic(
+                generators,
+                "amount",
+                bigDecimalGenerator(nextDeterministicSeed(config, seedSource), seedSource, "0", "1000000", 2),
+                bigIntegerGenerator(nextDeterministicSeed(config, seedSource), seedSource, 1L, Long.MAX_VALUE),
+                intGenerator(nextDeterministicSeed(config, seedSource), seedSource, 1, Integer.MAX_VALUE),
+                longGenerator(nextDeterministicSeed(config, seedSource), seedSource, 1L, Long.MAX_VALUE),
+                doubleGenerator(nextDeterministicSeed(config, seedSource), seedSource, 0.01, 1000000.0, 2),
+                floatGenerator(nextDeterministicSeed(config, seedSource), seedSource, 0.01f, 1000000.0f, 2));
+
+        registerNumericSemantic(
+                generators,
+                "balance",
+                bigDecimalGenerator(nextDeterministicSeed(config, seedSource), seedSource, "0", "10000000", 2),
+                bigIntegerGenerator(nextDeterministicSeed(config, seedSource), seedSource, 1L, Long.MAX_VALUE),
+                intGenerator(nextDeterministicSeed(config, seedSource), seedSource, 1, Integer.MAX_VALUE),
+                longGenerator(nextDeterministicSeed(config, seedSource), seedSource, 1L, Long.MAX_VALUE),
+                doubleGenerator(nextDeterministicSeed(config, seedSource), seedSource, 0.01, 10000000.0, 2),
+                floatGenerator(nextDeterministicSeed(config, seedSource), seedSource, 0.01f, 10000000.0f, 2));
+
+        registerNumericSemantic(
+                generators,
+                "price",
+                bigDecimalGenerator(nextDeterministicSeed(config, seedSource), seedSource, "0", "10000", 2),
+                bigIntegerGenerator(nextDeterministicSeed(config, seedSource), seedSource, 1L, 10000L),
+                intGenerator(nextDeterministicSeed(config, seedSource), seedSource, 1, 10000),
+                longGenerator(nextDeterministicSeed(config, seedSource), seedSource, 1L, 10000L),
+                doubleGenerator(nextDeterministicSeed(config, seedSource), seedSource, 0.01, 10000.0, 2),
+                floatGenerator(nextDeterministicSeed(config, seedSource), seedSource, 0.01f, 10000.0f, 2));
+
+        Generator<String> currencyCodeGenerator = buildLocaleCurrencyCodeGenerator(config, seedSource);
+        registerTypedSemantic(generators, "currency", String.class, currencyCodeGenerator);
+        registerTypedSemantic(
+                generators,
+                "currency",
+                io.github.frikit.krandom.generator.finance.Currency.class,
+                buildLibraryCurrencyGenerator(config, seedSource));
+        registerTypedSemantic(
+                generators, "currency", java.util.Currency.class, buildJavaCurrencyGenerator(config, seedSource));
+
+        Generator<Long> stringIdGenerator =
+                longGenerator(nextDeterministicSeed(config, seedSource), seedSource, 1L, Long.MAX_VALUE);
+        registerTypedSemantic(
+                generators, "id", UUID.class, lazyGenerator(lazyDerived(config, seedSource, UUIDGenerator::new)));
+        registerTypedSemantic(generators, "id", String.class, () -> Long.toString(stringIdGenerator.generate()));
+        registerTypedSemantic(
+                generators,
+                "id",
+                BigInteger.class,
+                bigIntegerGenerator(nextDeterministicSeed(config, seedSource), seedSource, 1L, Long.MAX_VALUE));
+        registerTypedSemantic(
+                generators,
+                "id",
+                int.class,
+                intGenerator(nextDeterministicSeed(config, seedSource), seedSource, 1, Integer.MAX_VALUE));
+        registerTypedSemantic(
+                generators,
+                "id",
+                Integer.class,
+                intGenerator(nextDeterministicSeed(config, seedSource), seedSource, 1, Integer.MAX_VALUE));
+        registerTypedSemantic(
+                generators,
+                "id",
+                long.class,
+                longGenerator(nextDeterministicSeed(config, seedSource), seedSource, 1L, Long.MAX_VALUE));
+        registerTypedSemantic(
+                generators,
+                "id",
+                Long.class,
+                longGenerator(nextDeterministicSeed(config, seedSource), seedSource, 1L, Long.MAX_VALUE));
+
+        Generator<Boolean> activeGenerator = buildActiveGenerator(config, seedSource);
+        registerTypedSemantic(generators, "active", boolean.class, activeGenerator);
+        registerTypedSemantic(generators, "active", Boolean.class, activeGenerator);
+
+        Supplier<CoordinatesGenerator> coordinates = lazyDerived(config, seedSource, CoordinatesGenerator::new);
+        Generator<Double> latitude = () -> coordinates.get().generateLatitude();
+        Generator<Double> longitude = () -> coordinates.get().generateLongitude();
+        registerTypedSemantic(generators, "latitude", double.class, latitude);
+        registerTypedSemantic(generators, "latitude", Double.class, latitude);
+        registerTypedSemantic(generators, "latitude", float.class, (Generator<Float>)
+                () -> latitude.generate().floatValue());
+        registerTypedSemantic(generators, "latitude", Float.class, (Generator<Float>)
+                () -> latitude.generate().floatValue());
+        registerTypedSemantic(
+                generators,
+                "latitude",
+                BigDecimal.class,
+                () -> BigDecimal.valueOf(latitude.generate()).setScale(6, java.math.RoundingMode.HALF_UP));
+
+        registerTypedSemantic(generators, "longitude", double.class, longitude);
+        registerTypedSemantic(generators, "longitude", Double.class, longitude);
+        registerTypedSemantic(generators, "longitude", float.class, (Generator<Float>)
+                () -> longitude.generate().floatValue());
+        registerTypedSemantic(generators, "longitude", Float.class, (Generator<Float>)
+                () -> longitude.generate().floatValue());
+        registerTypedSemantic(
+                generators,
+                "longitude",
+                BigDecimal.class,
+                () -> BigDecimal.valueOf(longitude.generate()).setScale(6, java.math.RoundingMode.HALF_UP));
+
+        Map<String, Map<Class<?>, Generator<?>>> unmodifiable = new HashMap<>(generators.size());
+        for (Map.Entry<String, Map<Class<?>, Generator<?>>> entry : generators.entrySet()) {
+            unmodifiable.put(entry.getKey(), Collections.unmodifiableMap(new HashMap<>(entry.getValue())));
+        }
+        return Collections.unmodifiableMap(unmodifiable);
+    }
+
+    private static void registerTemporalSemantic(
+            Map<String, Map<Class<?>, Generator<?>>> generators,
+            ObjectGeneratorConfig objectConfig,
+            GeneratorConfig config,
+            Random seedSource,
+            Generator<?> zoneOffsets,
+            String semanticKey,
+            LocalDate min,
+            LocalDate max) {
+        LocalDate effectiveMin = objectConfig.getDateMin() != null ? objectConfig.getDateMin() : min;
+        LocalDate effectiveMax = objectConfig.getDateMax() != null ? objectConfig.getDateMax() : max;
+        registerTypedSemantic(
+                generators,
+                semanticKey,
+                LocalDate.class,
+                buildDateGenerator(config, seedSource, effectiveMin, effectiveMax));
+        registerTypedSemantic(
+                generators,
+                semanticKey,
+                LocalDateTime.class,
+                buildLocalDateTimeGenerator(config, seedSource, effectiveMin, effectiveMax));
+        registerTypedSemantic(
+                generators,
+                semanticKey,
+                Instant.class,
+                buildInstantGenerator(config, seedSource, effectiveMin, effectiveMax));
+        Generator<ZonedDateTime> zonedGenerator =
+                buildZonedDateTimeGenerator(config, seedSource, effectiveMin, effectiveMax);
+        registerTypedSemantic(generators, semanticKey, ZonedDateTime.class, zonedGenerator);
+        registerTypedSemantic(generators, semanticKey, OffsetDateTime.class, (Generator<OffsetDateTime>)
+                () -> zonedGenerator.generate().toLocalDateTime().atOffset((ZoneOffset) zoneOffsets.generate()));
+        Generator<GregorianCalendar> calendarGenerator = () -> calendarOf(zonedGenerator.generate());
+        registerTypedSemantic(generators, semanticKey, Calendar.class, calendarGenerator);
+        registerTypedSemantic(generators, semanticKey, GregorianCalendar.class, calendarGenerator);
+        registerTypedSemantic(
+                generators,
+                semanticKey,
+                java.util.Date.class,
+                buildUtilDateGenerator(config, seedSource, effectiveMin, effectiveMax));
+        registerTypedSemantic(
+                generators,
+                semanticKey,
+                java.sql.Date.class,
+                buildSqlDateGenerator(config, seedSource, effectiveMin, effectiveMax));
+        registerTypedSemantic(
+                generators,
+                semanticKey,
+                java.sql.Timestamp.class,
+                buildSqlTimestampGenerator(config, seedSource, effectiveMin, effectiveMax));
+    }
+
+    private static void registerNumericSemantic(
+            Map<String, Map<Class<?>, Generator<?>>> generators,
+            String semanticKey,
+            Generator<BigDecimal> bigDecimalGenerator,
+            Generator<BigInteger> bigIntegerGenerator,
+            Generator<Integer> intGenerator,
+            Generator<Long> longGenerator,
+            Generator<Double> doubleGenerator,
+            Generator<Float> floatGenerator) {
+        registerTypedSemantic(generators, semanticKey, BigDecimal.class, bigDecimalGenerator);
+        registerTypedSemantic(generators, semanticKey, BigInteger.class, bigIntegerGenerator);
+        registerTypedSemantic(generators, semanticKey, int.class, intGenerator);
+        registerTypedSemantic(generators, semanticKey, Integer.class, intGenerator);
+        registerTypedSemantic(generators, semanticKey, long.class, longGenerator);
+        registerTypedSemantic(generators, semanticKey, Long.class, longGenerator);
+        registerTypedSemantic(generators, semanticKey, double.class, doubleGenerator);
+        registerTypedSemantic(generators, semanticKey, Double.class, doubleGenerator);
+        registerTypedSemantic(generators, semanticKey, float.class, floatGenerator);
+        registerTypedSemantic(generators, semanticKey, Float.class, floatGenerator);
+    }
+
+    private static void registerTypedSemantic(
+            Map<String, Map<Class<?>, Generator<?>>> generators,
+            String semanticKey,
+            Class<?> rawType,
+            Generator<?> generator) {
+        generators.computeIfAbsent(semanticKey, ignored -> new HashMap<>()).put(rawType, generator);
+    }
+
+    private static Generator<?> newStatusStringGenerator(GeneratorConfig config) {
+        List<String> values = List.of("ACTIVE", "INACTIVE", "PENDING", "SUSPENDED", "ENABLED", "DISABLED");
+        Random random = config.createRandom();
+        return () -> values.get(random.nextInt(values.size()));
+    }
+
+    private static Generator<?> buildProviderBackedSemanticGenerator(
+            GeneratorConfig config, SemanticFieldRegistry semanticRegistry, String semanticKey) {
+        String providerName = Objects.requireNonNull(
+                semanticRegistry.semanticProviderNameFor(semanticKey),
+                "No provider mapping for semantic key: " + semanticKey);
+        Generator<?> provider = BuiltInProviderResolver.generator(providerName, config);
+        if ("uuid".equals(semanticKey)) {
+            return () -> provider.generate().toString();
+        }
+        return provider;
+    }
+
+    private static Generator<BigDecimal> bigDecimalGenerator(
+            @Nullable Long seed, Random source, String min, String max, int scale) {
+        BigDecimal lower = new BigDecimal(min);
+        BigDecimal upper = new BigDecimal(max);
+        long originInclusive = lower.scaleByPowerOfTen(scale).toBigInteger().longValueExact();
+        long boundExclusive =
+                Math.addExact(upper.scaleByPowerOfTen(scale).toBigInteger().longValueExact(), 1L);
+        Random random = streamFor(seed, source);
+        return () -> BigDecimal.valueOf(random.nextLong(originInclusive, boundExclusive), scale);
+    }
+
+    private static Generator<BigInteger> bigIntegerGenerator(
+            @Nullable Long seed, Random source, long min, long maxExclusive) {
+        if (seed != null) {
+            // Seeded values keep BigIntegerGenerator's rejection sampling; its configuration is built
+            // only when the object actually has such a field.
+            BigInteger lower = BigInteger.valueOf(min);
+            BigInteger upper = BigInteger.valueOf(Math.max(min + 1, maxExclusive));
+            return lazyGenerator(() -> new BigIntegerGenerator(
+                    lower, upper, GeneratorConfig.builder().seed(seed).build()));
+        }
+        return () -> BigInteger.valueOf(source.nextLong(min, maxExclusive));
+    }
+
+    private static Generator<Integer> intGenerator(@Nullable Long seed, Random source, int min, int maxExclusive) {
+        Random random = streamFor(seed, source);
+        return () -> random.nextInt(min, maxExclusive);
+    }
+
+    private static Generator<Long> longGenerator(@Nullable Long seed, Random source, long min, long maxExclusive) {
+        Random random = streamFor(seed, source);
+        return () -> random.nextLong(min, maxExclusive);
+    }
+
+    private static Generator<Double> doubleGenerator(
+            @Nullable Long seed, Random source, double min, double max, @Nullable Integer precision) {
+        Random random = streamFor(seed, source);
+        return () -> {
+            double value = random.nextDouble(min, max);
+            return precision == null ? value : round(value, precision);
+        };
+    }
+
+    private static Generator<Float> floatGenerator(
+            @Nullable Long seed, Random source, float min, float max, @Nullable Integer precision) {
+        Random random = streamFor(seed, source);
+        return () -> {
+            float value = random.nextFloat(min, max);
+            return precision == null ? value : (float) round(value, precision);
+        };
+    }
+
+    private static double round(double value, int precision) {
+        return BigDecimal.valueOf(value)
+                .setScale(precision, java.math.RoundingMode.HALF_UP)
+                .doubleValue();
+    }
+
+    private static Generator<Boolean> buildActiveGenerator(GeneratorConfig config, Random seedSource) {
+        Random random = randomFor(config, seedSource);
+        return () -> random.nextDouble() < 0.85d;
+    }
+
+    private static Generator<String> buildLocaleCurrencyCodeGenerator(GeneratorConfig config, Random seedSource) {
+        Supplier<CurrencyGenerator> generator = lazyDerived(
+                config,
+                seedSource,
+                derived -> BuiltInProviderResolver.provider("finance.currency", derived, CurrencyGenerator.class));
+        return () -> generator.get().generateCurrencyIsoCode(config.getLocale());
+    }
+
+    private static Generator<io.github.frikit.krandom.generator.finance.Currency> buildLibraryCurrencyGenerator(
+            GeneratorConfig config, Random seedSource) {
+        Generator<String> codeGenerator = buildLocaleCurrencyCodeGenerator(config, seedSource);
+        return () -> {
+            io.github.frikit.krandom.generator.finance.Currency localeCurrency =
+                    io.github.frikit.krandom.generator.finance.Currency.forLocale(config.getLocale());
+            if (localeCurrency != null) {
+                return localeCurrency;
+            }
+            // The code generator only emits codes from the library's own currency table.
+            return Objects.requireNonNull(
+                    io.github.frikit.krandom.generator.finance.Currency.fromCode(codeGenerator.generate()),
+                    "generated currency code must resolve to a library currency");
+        };
+    }
+
+    private static Generator<java.util.Currency> buildJavaCurrencyGenerator(GeneratorConfig config, Random seedSource) {
+        Generator<String> codeGenerator = buildLocaleCurrencyCodeGenerator(config, seedSource);
+        return () -> java.util.Currency.getInstance(codeGenerator.generate());
+    }
+
+    static String normalizeSemanticFieldName(String fieldName) {
+        return SemanticFieldRegistry.normalizeFieldName(fieldName);
+    }
+
+    static @Nullable String semanticKeyForFieldName(String fieldName) {
+        return SemanticFieldRegistry.defaults().semanticKeyForFieldName(fieldName);
+    }
+
+    static Set<String> semanticAliasesFor(String semanticKey) {
+        return SemanticFieldRegistry.defaults().semanticAliasesFor(semanticKey);
+    }
+
+    static @Nullable String semanticProviderNameFor(String semanticKey) {
+        return SemanticFieldRegistry.defaults().semanticProviderNameFor(semanticKey);
+    }
+
+    private @Nullable Generator<?> semanticGeneratorFor(Class<?> rawType, String fieldName) {
+        if (semanticMode == ObjectGenerationSemanticMode.STRUCTURAL_ONLY) {
+            return null;
+        }
+        String semanticKey = semanticRegistry.semanticKeyForFieldName(fieldName);
+        if (semanticKey == null) {
+            return null;
+        }
+        if (rawType.isEnum() && "status".equals(semanticKey)) {
+            Generator<?> enumGenerator = semanticStatusEnumGenerator(rawType);
+            if (enumGenerator != null) {
+                return enumGenerator;
+            }
+        }
+        Map<Class<?>, Generator<?>> typedGenerators = semanticTypedGenerators.get(semanticKey);
+        if (typedGenerators != null) {
+            Generator<?> typedGenerator = typedGenerators.get(rawType);
+            if (typedGenerator != null) {
+                return typedGenerator;
+            }
+        }
+        if (rawType != String.class) {
+            return null;
+        }
+        return semanticStringGenerators.get(semanticKey);
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private @Nullable Generator<?> semanticStatusEnumGenerator(Class<?> rawType) {
+        Object[] constants = rawType.getEnumConstants();
+        if (constants == null || constants.length == 0) {
+            return null;
+        }
+        List<Enum> preferred = new ArrayList<>();
+        for (Object constant : constants) {
+            Enum<?> enumConstant = (Enum<?>) constant;
+            String name = normalizeSemanticFieldName(enumConstant.name());
+            if (Set.of(
+                            "active",
+                            "inactive",
+                            "pending",
+                            "suspended",
+                            "enabled",
+                            "disabled",
+                            "open",
+                            "closed",
+                            "archived",
+                            "deleted")
+                    .contains(name)) {
+                preferred.add((Enum) enumConstant);
+            }
+        }
+        if (preferred.isEmpty()) {
+            return null;
+        }
+        Random random = randomFor(generatorConfig, sequenceRandom);
+        return () -> preferred.get(random.nextInt(preferred.size()));
+    }
+
+    /**
+     * A value from an override, an annotation or a constraint, which may repeat unless its own name was
+     * requested.
+     */
+    private @Nullable Object generateIfRequestedUnique(
+            Generator<?> generator,
+            Class<?> rawType,
+            Type declaredType,
+            Class<?> ownerType,
+            String fieldName,
+            int depth) {
+        return config.isRequestedUniqueField(fieldName)
+                ? generateUnique(generator, rawType, declaredType, ownerType, fieldName, depth)
+                : generator.generate();
+    }
+
+    /**
+     * A value that is checked under every unique name, not just a requested one. The semantic route
+     * passes its key, so that its aliases count too.
+     */
+    private @Nullable Object generateWithUniqueness(
+            Generator<?> generator,
+            @Nullable String semanticKey,
+            Class<?> rawType,
+            Type declaredType,
+            Class<?> ownerType,
+            String fieldName,
+            int depth) {
+        try {
+            return isUniqueField(normalizeSemanticFieldName(fieldName), semanticKey)
+                    ? generateUnique(generator, rawType, declaredType, ownerType, fieldName, depth)
+                    : generator.generate();
+        } catch (BeanValidationSupport.ConstraintConflictException conflict) {
+            // A configured range that no value of the member's type meets, such as an objectDateRange in the year 0
+            // for a java.sql.Date.
+            return handleConstraintConflict(rawType, declaredType, ownerType, fieldName, depth, conflict);
+        }
+    }
+
+    private @Nullable Object generateUnique(
+            Generator<?> generator,
+            Class<?> rawType,
+            Type declaredType,
+            Class<?> ownerType,
+            String fieldName,
+            int depth) {
+        try {
+            return uniqueFieldTracker.nextUnique(
+                    UniqueFieldTracker.fieldKey(ownerType, fieldName),
+                    memberPath(fieldName),
+                    generator::generate,
+                    config.getUniquenessMaxAttempts());
+        } catch (UniqueFieldTracker.ExhaustedException exhausted) {
+            return handleExhaustedUniqueField(rawType, declaredType, ownerType, fieldName, depth, exhausted);
+        }
+    }
+
+    private boolean isUniqueField(String normalizedFieldName, @Nullable String semanticKey) {
+        if (uniqueFieldNames.contains(normalizedFieldName)) {
+            return true;
+        }
+        if (semanticKey == null) {
+            return false;
+        }
+        if (uniqueFieldNames.contains(semanticKey)) {
+            return true;
+        }
+        for (String alias : semanticRegistry.semanticAliasesFor(semanticKey)) {
+            if (uniqueFieldNames.contains(alias)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean shouldReturnNull(
+            @Nullable AnnotatedElement element,
+            Class<?> rawType,
+            @Nullable Generator<?> annotationGenerator,
+            @Nullable Generator<?> bvGen,
+            boolean requiredConstraint) {
+        if (element == null || element instanceof AnnotatedType || rawType.isPrimitive() || rawType == Optional.class) {
+            return false;
+        }
+        if (annotationGenerator != null || bvGen != null || requiredConstraint) {
+            return false;
+        }
+        double probability = config.getNullProbability();
+        return probability > 0.0 && sequenceRandom.nextDouble() < probability;
+    }
+
+    private boolean shouldReturnNull(
+            @Nullable AnnotatedElement element,
+            Class<?> rawType,
+            @Nullable Generator<?> annotationGenerator,
+            @Nullable Generator<?> bvGen) {
+        return shouldReturnNull(element, rawType, annotationGenerator, bvGen, false);
+    }
+
+    private boolean shouldReturnEmptyOptional(@Nullable AnnotatedElement element) {
+        if (element == null || element instanceof AnnotatedType) {
+            return false;
+        }
+        double probability = config.getOptionalEmptyProbability();
+        return probability > 0.0 && sequenceRandom.nextDouble() < probability;
+    }
+
+    // ── Primary entry point ───────────────────────────────────────────────────
+
+    private ResolvedType containerArgument(Type type, Class<?> containerContract, int index) {
+        return containerArgument(typeBindings, type, containerContract, index);
+    }
+
+    /**
+     * The argument {@code index} of a container contract, such as a list's element type, under the
+     * bindings of the object that declares the container. {@link FixtureRuleAnalysis} follows containers
+     * with it as generation does.
+     */
+    static ResolvedType containerArgument(
+            Map<TypeVariable<?>, Type> typeBindings, Type type, Class<?> containerContract, int index) {
+        // The type at the end of a chain of type variables, which holds the container's arguments.
+        Type hierarchyType =
+                mostSpecific(ResolvedType.resolve(type, typeBindings)).declaredType();
+        Map<TypeVariable<?>, Type> bindings = new LinkedHashMap<>(typeBindings);
+        bindings.putAll(ResolvedType.bindingsFor(hierarchyType));
+        return ResolvedType.resolve(containerContract.getTypeParameters()[index], bindings);
+    }
+
+    /**
+     * Follows the whole binding chain: {@code SortedSet<P>} resolves {@code Set}'s {@code E} to
+     * {@code SortedSet}'s {@code E}, and only that resolves to {@code P}.
+     */
+    static ResolvedType mostSpecific(ResolvedType type) {
+        ResolvedType current = type;
+        while (current.effectiveType() != null) {
+            current = current.effectiveType();
+        }
+        return current;
+    }
+
+    /** The raw class of a type the caller has already checked is resolved. */
+    private static Class<?> resolvedRawClass(ResolvedType type) {
+        return Objects.requireNonNull(mostSpecific(type).rawClass(), "type must be resolved");
+    }
+
+    static boolean isSortedContainer(Class<?> rawType) {
+        return rawType == TreeSet.class
+                || rawType == SortedSet.class
+                || rawType == NavigableSet.class
+                || rawType == PriorityQueue.class
+                || rawType == TreeMap.class
+                || rawType == SortedMap.class
+                || rawType == NavigableMap.class;
+    }
+
+    /**
+     * Sorted containers need an element order. Comparable elements use their natural order and
+     * other types their value-based {@code toString()}. Types that only inherit
+     * {@link Object#toString()} would be ordered by identity hash codes, which differ between runs.
+     */
+    static boolean hasDeterministicOrder(ResolvedType elementType) {
+        Class<?> type = resolvedRawClass(elementType);
+        return Comparable.class.isAssignableFrom(type) || overridesToString(type);
+    }
+
+    private static boolean overridesToString(Class<?> type) {
+        try {
+            return type.getMethod("toString").getDeclaringClass() != Object.class;
+        } catch (NoSuchMethodException interfaceWithoutToString) {
+            return false;
+        }
+    }
+
+    private static @Nullable Comparator<Object> sortedOrderFor(ResolvedType elementType) {
+        return Comparable.class.isAssignableFrom(resolvedRawClass(elementType))
+                ? null
+                : Comparator.comparing(String::valueOf);
+    }
+
+    private boolean hasResolvedArguments(Type type, Class<?> containerContract) {
+        for (int i = 0; i < containerContract.getTypeParameters().length; i++) {
+            if (!containerArgument(type, containerContract, i).isResolved()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static @Nullable Set<Object> toSetType(Class<?> rawType, ResolvedType elementType, List<Object> values) {
+        if (rawType == TreeSet.class || rawType == SortedSet.class || rawType == NavigableSet.class) {
+            Set<Object> set = new TreeSet<>(sortedOrderFor(elementType));
+            addAllOrThrow(set, values);
+            return set;
+        }
+        if (rawType == Set.class) {
+            return new LinkedHashSet<>(values);
+        }
+        if (rawType == java.util.EnumSet.class) {
+            // EnumSet is abstract and has no constructor; it must be created for its element type.
+            Set<Object> enumSet = newEnumSet(resolvedRawClass(elementType));
+            addAllOrThrow(enumSet, values);
+            return enumSet;
+        }
+        Set<Object> concrete = instantiateCollectionType(rawType, Set.class);
+        if (concrete != null) {
+            addAllOrThrow(concrete, values);
+            return concrete;
+        }
+        if (rawType.isInterface() || java.lang.reflect.Modifier.isAbstract(rawType.getModifiers())) {
+            return new LinkedHashSet<>(values);
+        }
+        return null;
+    }
+
+    // ── Array generation ──────────────────────────────────────────────────────
+
+    private static @Nullable List<Object> toListType(Class<?> rawType, List<Object> values) {
+        if (rawType == List.class) {
+            return Collections.unmodifiableList(values);
+        }
+        if (rawType == LinkedList.class) {
+            return new LinkedList<>(values);
+        }
+        if (rawType == ArrayList.class) {
+            return new ArrayList<>(values);
+        }
+        if (rawType == Vector.class) {
+            return new Vector<>(values);
+        }
+        if (rawType == Stack.class) {
+            Stack<Object> stack = new Stack<>();
+            stack.addAll(values);
+            return stack;
+        }
+        if (rawType == CopyOnWriteArrayList.class) {
+            return new CopyOnWriteArrayList<>(values);
+        }
+        List<Object> concrete = instantiateCollectionType(rawType, List.class);
+        if (concrete != null) {
+            addAllOrThrow(concrete, values);
+            return concrete;
+        }
+        if (rawType.isInterface() || java.lang.reflect.Modifier.isAbstract(rawType.getModifiers())) {
+            return new ArrayList<>(values);
+        }
+        // Unknown concrete List subtype with no usable constructor — returning null preserves
+        // assignability and avoids reflective assignment failures in ObjectGenerator.
+        return null;
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private static @Nullable Queue<Object> toQueueType(
+            Class<?> rawType, ResolvedType elementType, List<Object> values) {
+        if (rawType == PriorityQueue.class) {
+            Queue<Object> queue = new PriorityQueue<>(sortedOrderFor(elementType));
+            addAllOrThrow(queue, values);
+            return queue;
+        }
+        Queue<Object> concrete = instantiateCollectionType(rawType, Queue.class);
+        if (concrete != null) {
+            addAllOrThrow(concrete, values);
+            return concrete;
+        }
+        if (rawType.isInterface() || java.lang.reflect.Modifier.isAbstract(rawType.getModifiers())) {
+            Queue<Object> queue = new java.util.ArrayDeque<>();
+            addAllOrThrow(queue, values);
+            return queue;
+        }
+        return null;
+    }
+
+    private static @Nullable Map<Object, Object> toMapType(Class<?> rawType, ResolvedType keyType) {
+        if (rawType == TreeMap.class || rawType == SortedMap.class || rawType == NavigableMap.class) {
+            return new TreeMap<>(sortedOrderFor(keyType));
+        }
+        if (rawType == java.util.EnumMap.class) {
+            // EnumMap has no no-argument constructor; it must be created for its key type.
+            return newEnumMap(resolvedRawClass(keyType));
+        }
+        Map<Object, Object> concrete = instantiateCollectionType(rawType, Map.class);
+        if (concrete != null) {
+            return concrete;
+        }
+        if (rawType.isInterface() || java.lang.reflect.Modifier.isAbstract(rawType.getModifiers())) {
+            return new LinkedHashMap<>();
+        }
+        // Unknown concrete map subtype with no usable constructor.
+        return null;
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static Set<Object> newEnumSet(Class<?> enumType) {
+        return java.util.EnumSet.noneOf(requireEnum(enumType));
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static Map<Object, Object> newEnumMap(Class<?> enumType) {
+        return new java.util.EnumMap(requireEnum(enumType));
+    }
+
+    /**
+     * A wildcard such as {@code EnumSet<? extends Enum<?>>} resolves to {@link Enum} itself, which
+     * names no constants. Report it as a construction failure so the failure policy applies.
+     */
+    @SuppressWarnings("rawtypes")
+    private static Class requireEnum(Class<?> type) {
+        if (!type.isEnum()) {
+            throw new CollectionConstructionFailure(new IllegalArgumentException(
+                    "EnumSet and EnumMap need a concrete enum type argument, got " + type.getName()));
+        }
+        return type;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> @Nullable T instantiateCollectionType(Class<?> rawType, Class<?> expectedType) {
+        if (!expectedType.isAssignableFrom(rawType)) {
+            return null;
+        }
+        if (rawType.isInterface() || java.lang.reflect.Modifier.isAbstract(rawType.getModifiers())) {
+            return null;
+        }
+        try {
+            Constructor<?> ctor = rawType.getDeclaredConstructor();
+            ctor.setAccessible(true);
+            return (T) ctor.newInstance();
+        } catch (NoSuchMethodException ignored) {
+            return null;
+        } catch (InvocationTargetException e) {
+            throw new CollectionConstructionFailure(e.getTargetException());
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            throw new CollectionConstructionFailure(e);
+        }
+    }
+
+    /**
+     * Fills a collection or reports that it cannot hold the generated values, so that the failure policy
+     * discards it whole. A queue, for example, rejects the null left for a cut nested object.
+     */
+    private static void addAllOrThrow(Collection<Object> target, List<Object> values) {
+        try {
+            target.addAll(values);
+        } catch (RuntimeException failure) {
+            throw new CollectionInsertionFailure(failure);
+        }
+    }
+
+    private static final class CollectionInsertionFailure extends RuntimeException {
+
+        private static final long serialVersionUID = 1L;
+
+        private final RuntimeException insertionCause;
+
+        private CollectionInsertionFailure(RuntimeException insertionCause) {
+            super(insertionCause);
+            this.insertionCause = insertionCause;
+        }
+
+        private RuntimeException insertionCause() {
+            return insertionCause;
+        }
+    }
+
+    private static final class CollectionConstructionFailure extends RuntimeException {
+
+        private static final long serialVersionUID = 1L;
+
+        private final Throwable constructionCause;
+
+        private CollectionConstructionFailure(Throwable constructionCause) {
+            super(constructionCause);
+            this.constructionCause = constructionCause;
+        }
+
+        private Throwable constructionCause() {
+            return constructionCause;
+        }
+    }
+
+    private @Nullable Generator<?> fakeAnnotationGeneratorFor(AnnotatedElement element, Class<?> rawType) {
+        Fake annotation = element.getAnnotation(Fake.class);
+        if (annotation == null) return null;
+        String key = normalizeSemanticFieldName(annotation.value());
+        String canonicalKey = semanticRegistry.semanticKeyForFieldName(annotation.value());
+        if (canonicalKey == null) {
+            canonicalKey = key;
+        }
+        // Try typed generators first (for non-String types)
+        Map<Class<?>, Generator<?>> typedGenerators = semanticTypedGenerators.get(canonicalKey);
+        if (typedGenerators != null) {
+            Generator<?> typedGen = typedGenerators.get(rawType);
+            if (typedGen != null) return typedGen;
+        }
+        // Fall back to string generator
+        if (rawType == String.class) {
+            Generator<?> stringGen = semanticStringGenerators.get(canonicalKey);
+            if (stringGen != null) return stringGen;
+        }
+        return null;
+    }
+
+    private @Nullable Generator<?> fakeRangeGeneratorFor(AnnotatedElement element, Class<?> rawType) {
+        FakeRange annotation = element.getAnnotation(FakeRange.class);
+        if (annotation == null) return null;
+        long min = annotation.min();
+        long max = annotation.max();
+        Long seed = nextDeterministicSeed(generatorConfig, sequenceRandom);
+        if (rawType == int.class || rawType == Integer.class) {
+            long[] range = narrowFakeRange(min, max, Integer.MIN_VALUE, Integer.MAX_VALUE + 1L, "int");
+            return range[1] > Integer.MAX_VALUE
+                    ? longGenerator(seed, sequenceRandom, range[0], range[1]).map(Long::intValue)
+                    : intGenerator(seed, sequenceRandom, (int) range[0], (int) range[1]);
+        }
+        if (rawType == long.class || rawType == Long.class) {
+            long[] range = narrowFakeRange(min, max, Long.MIN_VALUE, Long.MAX_VALUE, "long");
+            return longGenerator(seed, sequenceRandom, range[0], range[1]);
+        }
+        if (rawType == double.class || rawType == Double.class) {
+            return doubleGenerator(seed, sequenceRandom, min, max, null);
+        }
+        if (rawType == float.class || rawType == Float.class) {
+            return floatGenerator(seed, sequenceRandom, min, max, null);
+        }
+        if (rawType == short.class || rawType == Short.class) {
+            long[] range = narrowFakeRange(min, max, Short.MIN_VALUE, Short.MAX_VALUE + 1L, "short");
+            return range[1] > Short.MAX_VALUE
+                    ? intGenerator(seed, sequenceRandom, (int) range[0], (int) range[1])
+                            .map(Integer::shortValue)
+                    : shortGenerator(seed, sequenceRandom, (short) range[0], (short) range[1]);
+        }
+        if (rawType == byte.class || rawType == Byte.class) {
+            long[] range = narrowFakeRange(min, max, Byte.MIN_VALUE, Byte.MAX_VALUE + 1L, "byte");
+            return range[1] > Byte.MAX_VALUE
+                    ? intGenerator(seed, sequenceRandom, (int) range[0], (int) range[1])
+                            .map(Integer::byteValue)
+                    : byteGenerator(seed, sequenceRandom, (byte) range[0], (byte) range[1]);
+        }
+        return null;
+    }
+
+    /**
+     * Narrows {@link FakeRange} bounds to an integral field type. The default {@code max} is
+     * {@link Long#MAX_VALUE}, so a plain cast would overflow for {@code int}, {@code short} and
+     * {@code byte} fields. A range that reaches past the type's largest value includes it, so the
+     * returned exclusive bound can be one above that value; callers then sample a wider type.
+     */
+    private static long[] narrowFakeRange(
+            long min, long maxExclusive, long typeMin, long typeMaxExclusive, String typeName) {
+        long narrowedMin = Math.max(min, typeMin);
+        long narrowedMax = Math.min(maxExclusive, typeMaxExclusive);
+        if (narrowedMin >= narrowedMax) {
+            throw new IllegalArgumentException(
+                    "@FakeRange(min = " + min + ", max = " + maxExclusive + ") has no " + typeName + " values");
+        }
+        return new long[] {narrowedMin, narrowedMax};
+    }
+
+    private @Nullable Generator<?> annotationRandomizerFor(
+            AnnotatedElement element, Class<?> ownerType, String fieldName, int depth) {
+        Randomizer annotation = element.getAnnotation(Randomizer.class);
+        if (annotation == null) return null;
+        Class<? extends Generator<?>> generatorType = annotation.value();
+        String path = memberPath(fieldName);
+        Generator<?> generator = uniqueFieldTracker.randomizer(
+                element, () -> constructRandomizer(element, generatorType, ownerType, path, depth));
+        if (generationSeed != null) {
+            reseedRandomizer(generator, GenerationRecipe.deriveChildSeed(generationSeed, "randomizer:" + path));
+        }
+        return () -> generateWithRandomizerContext(generator, generatorType, ownerType, path, depth);
+    }
+
+    /**
+     * Seedable randomizers follow the object's seeded stream like built-in generators. The seed is derived by
+     * name, so no other member's draws shift. With the opt-in, so do the built-ins that are not Seedable but whose
+     * reseed leaves them as a new build with that seed would be; without it they keep their own source.
+     */
+    private void reseedRandomizer(Generator<?> generator, long seed) {
+        if (generator instanceof Seedable seedable) {
+            seedable.reseed(seed);
+            return;
+        }
+        if (generatorConfig.isObjectReseedBuiltInRandomizers()) {
+            Reseeding.Reseeder<Generator<?>> reseeder = Reseeding.reseederOf(generator);
+            if (reseeder != null) {
+                reseeder.reseed(generator, seed);
+            }
+        }
+    }
+
+    private static Generator<?> constructRandomizer(
+            AnnotatedElement element,
+            Class<? extends Generator<?>> generatorType,
+            Class<?> ownerType,
+            String path,
+            int depth) {
+        try {
+            RandomizerArgument[] args = element.getAnnotationsByType(RandomizerArgument.class);
+            Class<?>[] parameterTypes = new Class<?>[args.length];
+            Object[] parameterValues = new Object[args.length];
+            for (int i = 0; i < args.length; i++) {
+                parameterTypes[i] = args[i].type();
+                parameterValues[i] = convertArgumentValue(args[i].value(), parameterTypes[i]);
+            }
+            Constructor<? extends Generator<?>> ctor = generatorType.getDeclaredConstructor(parameterTypes);
+            ctor.setAccessible(true);
+            return ctor.newInstance(parameterValues);
+        } catch (InvocationTargetException e) {
+            throw randomizerFailure(
+                    GenerationOperation.CONSTRUCT, generatorType, ownerType, path, depth, e.getTargetException());
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            throw randomizerFailure(GenerationOperation.CONSTRUCT, generatorType, ownerType, path, depth, e);
+        }
+    }
+
+    private static Object generateWithRandomizerContext(
+            Generator<?> generator,
+            Class<? extends Generator<?>> generatorType,
+            Class<?> ownerType,
+            String path,
+            int depth) {
+        try {
+            return generator.generate();
+        } catch (ObjectGenerationException e) {
+            if (e.getContext().isPresent()) {
+                throw e;
+            }
+            throw randomizerFailure(GenerationOperation.GENERATE, generatorType, ownerType, path, depth, e);
+        } catch (RuntimeException e) {
+            throw randomizerFailure(GenerationOperation.GENERATE, generatorType, ownerType, path, depth, e);
+        }
+    }
+
+    /** A failure of a member's {@code @Randomizer}, at the member's path from the root object. */
+    private static ObjectGenerationException randomizerFailure(
+            GenerationOperation operation,
+            Class<? extends Generator<?>> generatorType,
+            Class<?> ownerType,
+            String path,
+            int depth,
+            Throwable cause) {
+        String generatorTypeName = generatorType.getName();
+        GenerationFailureContext context = new GenerationFailureContext(
+                GenerationFailureCategory.CUSTOM_GENERATOR, operation, path, ownerType, generatorTypeName, depth, -1);
+        return new ObjectGenerationException(
+                "Could not " + operation.name().toLowerCase(java.util.Locale.ROOT)
+                        + " @" + Randomizer.class.getSimpleName() + " generator at '" + path
+                        + "' (generator type " + generatorTypeName + ", depth " + depth + ")",
+                context,
+                cause);
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private static Object convertArgumentValue(String rawValue, Class<?> type) {
+        if (type.isArray()) {
+            return convertArrayArgument(rawValue, type);
+        }
+        Function<String, Object> parser = ARGUMENT_PARSERS.get(type);
+        if (parser != null) return parser.apply(rawValue);
+        if (type.isEnum()) {
+            return Enum.valueOf((Class<? extends Enum>) type.asSubclass(Enum.class), rawValue);
+        }
+        throw new IllegalArgumentException(
+                "Unsupported @" + RandomizerArgument.class.getSimpleName() + " type: " + type.getName());
+    }
+
+    private static Object convertArrayArgument(String rawValue, Class<?> arrayType) {
+        Class<?> componentType = arrayType.getComponentType();
+        String[] parts = rawValue.split(",", -1);
+        int length = parts.length;
+        while (length > 0 && parts[length - 1].isEmpty()) {
+            length--;
+        }
+
+        Object array = Array.newInstance(componentType, length);
+        for (int i = 0; i < length; i++) {
+            Array.set(array, i, convertArgumentValue(parts[i].trim(), componentType));
+        }
+        return array;
+    }
+
+    private static java.util.Date parseUtilDate(String rawValue) {
+        LocalDateTime dateTime = LocalDateTime.parse(rawValue, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        return java.util.Date.from(dateTime.toInstant(ZoneOffset.UTC));
+    }
+
+    private static Character parseChar(String rawValue) {
+        if (rawValue.length() != 1) {
+            throw new IllegalArgumentException("Expected single character value but got: " + rawValue);
+        }
+        return rawValue.charAt(0);
+    }
+
+    /**
+     * Resolve and generate a value for a field whose generic type is known.
+     *
+     * @param genericType  the full generic type (e.g. {@code List<String>}) for collection resolution
+     * @param rawType      the erasure of {@code genericType}
+     * @param fieldName    name of the field (used for field-level override lookup)
+     * @param ownerType    class that declares the field
+     * @param currentDepth nesting depth of the parent {@link ObjectGenerator} (0 = root)
+     * @param element      the declaration or annotated type node for annotation-based resolution;
+     *                     {@code null} when no reflection metadata is available
+     * @return generated value, or a safe default / {@code null} when the type is unsupported
+     */
+    @Nullable Object resolveAndGenerate(
+            Type genericType,
+            Class<?> rawType,
+            String fieldName,
+            Class<?> ownerType,
+            int currentDepth,
+            @Nullable AnnotatedElement element) {
+        return resolveAndGenerate(genericType, rawType, fieldName, ownerType, currentDepth, element, element, null);
+    }
+
+    /**
+     * Resolves a value whose Bean Validation constraints are read from {@code constraintSource}, which is
+     * the element itself except for an array's component type, where it is {@code null}: see
+     * {@link #generateArray}. A field predicate override matches {@code overrideField}, the field behind a
+     * constructor parameter that an adapter resolves, or else the element where it is a field.
+     */
+    private @Nullable Object resolveAndGenerate(
+            Type genericType,
+            Class<?> rawType,
+            String fieldName,
+            Class<?> ownerType,
+            int currentDepth,
+            @Nullable AnnotatedElement element,
+            @Nullable AnnotatedElement constraintSource,
+            java.lang.reflect.@Nullable Field overrideField) {
+        GenerationReporter active = reporter;
+        if (active == null) {
+            return resolveValue(
+                    genericType,
+                    rawType,
+                    fieldName,
+                    ownerType,
+                    currentDepth,
+                    element,
+                    constraintSource,
+                    overrideField,
+                    null);
+        }
+        GenerationReporter.Trace trace = active.trace(memberPath(fieldName));
+        GenerationReporter.Trace enclosing = currentTrace;
+        currentTrace = trace;
+        Object value;
+        try {
+            value = resolveValue(
+                    genericType,
+                    rawType,
+                    fieldName,
+                    ownerType,
+                    currentDepth,
+                    element,
+                    constraintSource,
+                    overrideField,
+                    trace);
+        } finally {
+            currentTrace = enclosing;
+        }
+        // The entry is built from what the resolution decided, never from the value.
+        active.emit(trace);
+        return value;
+    }
+
+    /** Resolves one value, telling {@code trace}, when there is one, how it does so. */
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private @Nullable Object resolveValue(
+            Type genericType,
+            Class<?> rawType,
+            String fieldName,
+            Class<?> ownerType,
+            int currentDepth,
+            @Nullable AnnotatedElement element,
+            @Nullable AnnotatedElement constraintSource,
+            java.lang.reflect.@Nullable Field overrideField,
+            GenerationReporter.@Nullable Trace trace) {
+
+        ResolvedType resolvedType = ResolvedType.resolve(genericType, typeBindings);
+        rawType = Objects.requireNonNullElse(resolvedType.rawClass(), rawType);
+
+        GenerationReporter.constraints(trace, constraintSource);
+        Generator<?> override = overrideFor(
+                rawType,
+                genericType,
+                fieldName,
+                ownerType,
+                currentDepth,
+                element,
+                overrideField != null ? overrideField : element instanceof java.lang.reflect.Field field ? field : null,
+                trace);
+        if (override != null) {
+            return generateIfRequestedUnique(override, rawType, genericType, ownerType, fieldName, currentDepth);
+        }
+
+        Generator<?> annotationGenerator =
+                element != null ? annotationRandomizerFor(element, ownerType, fieldName, currentDepth) : null;
+        Generator<?> fakeAnnotationGenerator = element != null ? fakeAnnotationGeneratorFor(element, rawType) : null;
+        Generator<?> fakeRangeGenerator = element != null ? fakeRangeGeneratorFor(element, rawType) : null;
+        BeanValidationSupport.ConstraintModel bvConstraints;
+        Generator<?> bvGen;
+        try {
+            bvConstraints = BeanValidationSupport.constraintModelFor(constraintSource, rawType);
+            bvGen = constraintSource != null
+                    ? BeanValidationSupport.constraintGeneratorFor(
+                            constraintSource,
+                            rawType,
+                            sequenceRandom,
+                            generatorConfig.getClock(),
+                            bvConstraints,
+                            generatorConfig.getEmailDomainPolicy())
+                    : null;
+        } catch (BeanValidationSupport.ConstraintConflictException conflict) {
+            GenerationReporter.fallback(trace, rawType, GenerationDecision.CONSTRAINT_CONFLICT);
+            Object fallback =
+                    handleConstraintConflict(rawType, genericType, ownerType, fieldName, currentDepth, conflict);
+            return fallback;
+        }
+
+        // ── 3a. Semantic field-name resolver ─────────────────────────────────
+        String semanticKey = semanticRegistry.semanticKeyForFieldName(fieldName);
+        Generator<?> semanticGenerator = semanticGeneratorFor(rawType, fieldName);
+        if (semanticGenerator != null
+                && !bvConstraints.constrained()
+                && (semanticMode == ObjectGenerationSemanticMode.STRICT
+                        || (annotationGenerator == null
+                                && fakeAnnotationGenerator == null
+                                && fakeRangeGenerator == null))) {
+            GenerationReporter.semantic(trace, Objects.requireNonNull(semanticKey, "semantic key"), generatorConfig);
+            return generateWithUniqueness(
+                    semanticGenerator, semanticKey, rawType, genericType, ownerType, fieldName, currentDepth);
+        }
+        if (semanticGenerator != null) {
+            GenerationReporter.decision(trace, GenerationDecision.SEMANTIC_DEFERRED, "object.semantic-mode");
+        }
+
+        // ── 3aa. Configured null/optional behavior ────────────────────────────
+        if (bvConstraints.nullOnly()) {
+            GenerationReporter.step(trace, GenerationStep.NULL, "jakarta.validation.constraints.Null");
+            return generateConstraintValue(bvGen, rawType, genericType, ownerType, fieldName, currentDepth);
+        }
+        if (Optional.class == rawType) {
+            if (!hasResolvedArguments(genericType, Optional.class)) {
+                return unsupported(trace, rawType, genericType, ownerType, fieldName, currentDepth);
+            }
+            GenerationReporter.step(trace, GenerationStep.OPTIONAL, rawType);
+            if (shouldReturnEmptyOptional(element)) {
+                GenerationReporter.decision(
+                        trace, GenerationDecision.OPTIONAL_EMPTY, "object.optional-empty-probability");
+                return Optional.empty();
+            }
+            ResolvedType valueType = containerArgument(genericType, Optional.class, 0);
+            Object value = resolveAndGenerate(
+                    valueType, fieldName + ".value", ownerType, currentDepth, typeArgumentElement(element, 0));
+            return Optional.ofNullable(value);
+        }
+        if (shouldReturnNull(element, rawType, annotationGenerator, bvGen, bvConstraints.required())) {
+            GenerationReporter.step(trace, GenerationStep.NULL, "null");
+            GenerationReporter.decision(trace, GenerationDecision.NULL_PROBABILITY, "object.null-probability");
+            return null;
+        }
+
+        // ── 3b. Declarative @Randomizer override ─────────────────────────────
+        if (annotationGenerator != null) {
+            GenerationReporter.step(
+                    trace,
+                    GenerationStep.RANDOMIZER,
+                    Objects.requireNonNull(element, "an annotated element")
+                            .getAnnotation(Randomizer.class)
+                            .value());
+            return generateIfRequestedUnique(
+                    annotationGenerator, rawType, genericType, ownerType, fieldName, currentDepth);
+        }
+
+        // ── 3ba. Declarative @Fake override ──────────────────────────────────
+        if (fakeAnnotationGenerator != null) {
+            GenerationReporter.fake(
+                    trace,
+                    Objects.requireNonNull(element, "an annotated element")
+                            .getAnnotation(Fake.class)
+                            .value(),
+                    semanticRegistry,
+                    generatorConfig);
+            try {
+                return generateIfRequestedUnique(
+                        fakeAnnotationGenerator, rawType, genericType, ownerType, fieldName, currentDepth);
+            } catch (BeanValidationSupport.ConstraintConflictException conflict) {
+                // A semantic value whose configured range no value of the member's type meets, as above.
+                return handleConstraintConflict(rawType, genericType, ownerType, fieldName, currentDepth, conflict);
+            }
+        }
+
+        // ── 3bb. Declarative @FakeRange override ─────────────────────────────
+        if (fakeRangeGenerator != null) {
+            GenerationReporter.step(trace, GenerationStep.FAKE_RANGE, rawType);
+            return generateIfRequestedUnique(
+                    fakeRangeGenerator, rawType, genericType, ownerType, fieldName, currentDepth);
+        }
+
+        // ── 3c. Bean Validation constraint override ───────────────────────────
+        if (bvGen != null) {
+            GenerationReporter.constraint(trace, rawType, bvConstraints, generatorConfig);
+            return generateConstraintValue(bvGen, rawType, genericType, ownerType, fieldName, currentDepth);
+        }
+
+        // ── 4. Built-in (primitives, wrappers, String, JSR-310, UUID, BigDecimal, BigInteger) ──
+        var builtin = builtins.get(rawType);
+        if (builtin != null) {
+            GenerationReporter.builtIn(trace, rawType, config);
+            return generateWithUniqueness(builtin, null, rawType, genericType, ownerType, fieldName, currentDepth);
+        }
+
+        // ── 5. Enum ───────────────────────────────────────────────────────────
+        if (rawType.isEnum()) {
+            GenerationReporter.step(trace, GenerationStep.ENUM, rawType);
+            return generateEnum(rawType, genericType, ownerType, fieldName, currentDepth);
+        }
+
+        // ── 6a. Array ─────────────────────────────────────────────────────────
+        if (rawType.isArray()) {
+            if (!resolvedType.isResolved()) {
+                return unsupported(trace, rawType, genericType, ownerType, fieldName, currentDepth);
+            }
+            GenerationReporter.collection(trace, rawType);
+            return generateArray(resolvedType, rawType, ownerType, fieldName, currentDepth, element, bvConstraints);
+        }
+
+        // ── 6b. Set ───────────────────────────────────────────────────────────
+        if (Set.class.isAssignableFrom(rawType)) {
+            if (!hasResolvedArguments(genericType, Set.class)) {
+                return unsupported(trace, rawType, genericType, ownerType, fieldName, currentDepth);
+            }
+            ResolvedType elem = containerArgument(genericType, Set.class, 0);
+            if (isSortedContainer(rawType) && !hasDeterministicOrder(elem)) {
+                return unsupported(trace, rawType, genericType, ownerType, fieldName, currentDepth);
+            }
+            GenerationReporter.collection(trace, rawType);
+            int elementCount = nextCollectionSize(bvConstraints);
+            // A sorted set keeps one element per ordering key, so count distinct elements by that order.
+            Set<Object> values =
+                    isSortedContainer(rawType) ? new TreeSet<>(sortedOrderFor(elem)) : new LinkedHashSet<>();
+            int attempts = 0;
+            int maxAttempts = Math.max(10, elementCount * 10);
+            while (values.size() < elementCount && attempts++ < maxAttempts) {
+                Object value = resolveAndGenerate(
+                        elem, fieldName + "[]", ownerType, currentDepth, typeArgumentElement(element, 0));
+                try {
+                    values.add(value);
+                } catch (RuntimeException rejected) {
+                    // A set sorted by natural order rejects the null left for a cut nested object.
+                    return handleCollectionInsertionFailure(ownerType, fieldName, genericType, currentDepth, rejected);
+                }
+            }
+            BeanValidationSupport.ConstraintConflictException shortfall = sizeShortfall(values.size(), bvConstraints);
+            if (shortfall != null) {
+                return handleConstraintConflict(rawType, genericType, ownerType, fieldName, currentDepth, shortfall);
+            }
+            try {
+                Set<Object> set = toSetType(rawType, elem, new ArrayList<>(values));
+                return set != null
+                        ? set
+                        : handleNonConstructibleCollection(rawType, genericType, ownerType, fieldName, currentDepth);
+            } catch (CollectionInsertionFailure failure) {
+                return handleCollectionInsertionFailure(
+                        ownerType, fieldName, genericType, currentDepth, failure.insertionCause());
+            } catch (CollectionConstructionFailure failure) {
+                return handleCollectionConstructionFailure(
+                        ownerType, fieldName, genericType, currentDepth, failure.constructionCause());
+            }
+        }
+
+        // ── 6c. List / Queue ──────────────────────────────────────────────────
+        if (List.class.isAssignableFrom(rawType) || Queue.class.isAssignableFrom(rawType)) {
+            Class<?> containerContract = List.class.isAssignableFrom(rawType) ? List.class : Queue.class;
+            if (!hasResolvedArguments(genericType, containerContract)) {
+                return unsupported(trace, rawType, genericType, ownerType, fieldName, currentDepth);
+            }
+            ResolvedType elem = containerArgument(genericType, containerContract, 0);
+            if (isSortedContainer(rawType) && !hasDeterministicOrder(elem)) {
+                return unsupported(trace, rawType, genericType, ownerType, fieldName, currentDepth);
+            }
+            GenerationReporter.collection(trace, rawType);
+            int elementCount = nextCollectionSize(bvConstraints);
+            List<Object> els = new ArrayList<>(elementCount);
+            for (int i = 0; i < elementCount; i++) {
+                els.add(resolveAndGenerate(
+                        elem, fieldName + "[]", ownerType, currentDepth, typeArgumentElement(element, 0)));
+            }
+            try {
+                Collection<Object> collection = List.class.isAssignableFrom(rawType)
+                        ? toListType(rawType, els)
+                        : toQueueType(rawType, elem, els);
+                return collection != null
+                        ? collection
+                        : handleNonConstructibleCollection(rawType, genericType, ownerType, fieldName, currentDepth);
+            } catch (CollectionInsertionFailure failure) {
+                return handleCollectionInsertionFailure(
+                        ownerType, fieldName, genericType, currentDepth, failure.insertionCause());
+            } catch (CollectionConstructionFailure failure) {
+                return handleCollectionConstructionFailure(
+                        ownerType, fieldName, genericType, currentDepth, failure.constructionCause());
+            }
+        }
+
+        // ── 6d. Map ───────────────────────────────────────────────────────────
+        if (Map.class.isAssignableFrom(rawType)) {
+            if (!hasResolvedArguments(genericType, Map.class)) {
+                return unsupported(trace, rawType, genericType, ownerType, fieldName, currentDepth);
+            }
+            ResolvedType k = containerArgument(genericType, Map.class, 0);
+            ResolvedType v = containerArgument(genericType, Map.class, 1);
+            if (isSortedContainer(rawType) && !hasDeterministicOrder(k)) {
+                return unsupported(trace, rawType, genericType, ownerType, fieldName, currentDepth);
+            }
+            GenerationReporter.collection(trace, rawType);
+            Map<Object, Object> map;
+            try {
+                map = toMapType(rawType, k);
+            } catch (CollectionConstructionFailure failure) {
+                return handleCollectionConstructionFailure(
+                        ownerType, fieldName, genericType, currentDepth, failure.constructionCause());
+            }
+            if (map == null) {
+                return handleNonConstructibleCollection(rawType, genericType, ownerType, fieldName, currentDepth);
+            }
+            int elementCount = nextCollectionSize(bvConstraints);
+            int attempts = 0;
+            int maxAttempts = Math.max(10, elementCount * 10);
+            while (map.size() < elementCount && attempts++ < maxAttempts) {
+                Object key = resolveAndGenerate(
+                        k, fieldName + ".key", ownerType, currentDepth, typeArgumentElement(element, 0));
+                Object val = resolveAndGenerate(
+                        v, fieldName + ".value", ownerType, currentDepth, typeArgumentElement(element, 1));
+                if (key != null) {
+                    String entryPath = memberPath(fieldName) + "[" + map.size() + "]";
+                    try {
+                        map.put(key, val);
+                    } catch (RuntimeException e) {
+                        GenerationReporter.failed(currentTrace, GenerationDecision.FAILURE_FALLBACK);
+                        String declaredType = genericType.getTypeName();
+                        GenerationFailureContext context = new GenerationFailureContext(
+                                GenerationFailureCategory.COLLECTION_INSERTION,
+                                GenerationOperation.INSERT,
+                                entryPath,
+                                ownerType,
+                                declaredType,
+                                currentDepth,
+                                -1);
+                        return failurePolicy.handle(
+                                new ObjectGenerationException(
+                                        "Could not insert map entry at '" + entryPath + "' (declared type "
+                                                + declaredType + ", depth " + currentDepth + ")",
+                                        context,
+                                        e),
+                                null);
+                    }
+                }
+            }
+            BeanValidationSupport.ConstraintConflictException shortfall = sizeShortfall(map.size(), bvConstraints);
+            if (shortfall != null) {
+                return handleConstraintConflict(rawType, genericType, ownerType, fieldName, currentDepth, shortfall);
+            }
+            if (rawType == Map.class) {
+                return Collections.unmodifiableMap(map);
+            }
+            return map;
+        }
+
+        if (!resolvedType.isResolved()
+                || (resolvedType.kind() == ResolvedType.Kind.CLASS && rawType.getTypeParameters().length > 0)) {
+            return unsupported(trace, rawType, genericType, ownerType, fieldName, currentDepth);
+        }
+
+        // ── 7. Depth guard ────────────────────────────────────────────────────
+        if (currentDepth >= config.getMaxDepth()) {
+            GenerationReporter.fallback(trace, rawType, GenerationDecision.DEPTH_CUT);
+            GenerationReporter.setting(trace, "object.max-depth");
+            return bvConstraints.required() && !(element instanceof AnnotatedType)
+                    ? handleRequiredMemberAtMaxDepth(rawType, genericType, ownerType, fieldName, currentDepth)
+                    : PRIMITIVE_DEFAULTS.getOrDefault(rawType, null);
+        }
+
+        // ── 8. Nested class or record (cycle-safe) ────────────────────────────
+        // Abstract/interface field types may be mapped to a concrete implementation
+        // via GeneratorConfig.objectSubtype / ObjectGeneratorConfig.subtype, and an
+        // unmapped sealed one takes one of its concrete subclasses.
+        Class<?> nestedType = config.resolveSubtype(rawType);
+        String poolTypeSignature = poolTypeSignature(resolvedType);
+        if (SealedTypes.isSealed(nestedType, uniqueFieldTracker)) {
+            List<Class<?>> subclasses;
+            try {
+                subclasses = SealedTypes.concreteSubclasses(nestedType, config, uniqueFieldTracker);
+            } catch (RuntimeException unsupported) {
+                return handleUnsupportedType(rawType, genericType, ownerType, fieldName, currentDepth, unsupported);
+            }
+            Class<?> chosen = chooseSubclass(subclasses, resolvedType);
+            Generator<?> chosenOverride =
+                    typeOverrideFor(chosen, genericType, fieldName, ownerType, currentDepth, element, trace);
+            if (chosenOverride != null) {
+                return generateIfRequestedUnique(
+                        chosenOverride, chosen, genericType, ownerType, fieldName, currentDepth);
+            }
+            if (chosen.isEnum()) {
+                GenerationReporter.step(trace, GenerationStep.ENUM, chosen);
+                return generateEnum(chosen, genericType, ownerType, fieldName, currentDepth);
+            }
+            nestedType = chosen;
+            // The chosen class is generated as its own type, so a member of that type inside it sees it.
+            poolTypeSignature = subclassSignature(resolvedType, chosen);
+        }
+        if (isNestableType(nestedType)) {
+            GenerationReporter.step(trace, GenerationStep.OBJECT, nestedType);
+            if (pool.isInProgress(nestedType, poolTypeSignature)) {
+                GenerationReporter.decision(trace, GenerationDecision.CYCLE_CUT, null);
+                return pool.getCached(nestedType, poolTypeSignature); // break circular reference
+            }
+            pool.begin(nestedType, poolTypeSignature);
+            try {
+                Object instance = new ObjectGenerator<>(
+                                nestedType,
+                                config,
+                                currentDepth + 1,
+                                pool,
+                                nextDeterministicSeed(generatorConfig, sequenceRandom),
+                                uniqueFieldTracker,
+                                nestedTypeBindings(resolvedType, nestedType),
+                                memberPath(fieldName))
+                        .generate();
+                pool.end(nestedType, poolTypeSignature, instance);
+                // What the nested object added belongs to it, not to this member, even if it is this very value.
+                uniqueFieldTracker.forgetLastAdded();
+                return instance;
+            } catch (ObjectGenerationException e) {
+                pool.end(nestedType, poolTypeSignature, null);
+                GenerationReporter.failed(currentTrace, GenerationDecision.FAILURE_FALLBACK);
+                return failurePolicy.handle(
+                        contextualizeNestedFailure(
+                                e, nestedType, ownerType, fieldName, memberPath(fieldName), genericType, currentDepth),
+                        null);
+            } catch (Exception e) {
+                pool.end(nestedType, poolTypeSignature, null);
+                GenerationReporter.failed(currentTrace, GenerationDecision.FAILURE_FALLBACK);
+                return failurePolicy.handle(
+                        nestedFailure(
+                                GenerationFailureCategory.REFLECTION,
+                                GenerationOperation.GENERATE,
+                                memberPath(fieldName),
+                                ownerType,
+                                genericType.getTypeName(),
+                                currentDepth,
+                                e),
+                        null);
+            }
+        }
+
+        // ── 9. Unsupported type ───────────────────────────────────────────────
+        return unsupported(trace, rawType, genericType, ownerType, fieldName, currentDepth);
+    }
+
+    /** An unsupported type, reported as a fallback before the failure policy decides. */
+    private @Nullable Object unsupported(
+            GenerationReporter.@Nullable Trace trace,
+            Class<?> rawType,
+            Type genericType,
+            Class<?> ownerType,
+            String fieldName,
+            int currentDepth) {
+        GenerationReporter.fallback(trace, rawType, GenerationDecision.UNSUPPORTED_TYPE);
+        return handleUnsupportedType(rawType, genericType, ownerType, fieldName, currentDepth);
+    }
+
+    /**
+     * The override that supplies this member, in order of precedence, or {@code null} when none does. A field
+     * predicate override is matched against {@code predicateField}, the member's field, when there is one.
+     */
+    private @Nullable Generator<?> overrideFor(
+            Class<?> rawType,
+            Type genericType,
+            String fieldName,
+            Class<?> ownerType,
+            int currentDepth,
+            @Nullable AnnotatedElement element,
+            java.lang.reflect.@Nullable Field predicateField,
+            GenerationReporter.@Nullable Trace trace) {
+        // ── 0a. Contextual field-level override ───────────────────────────────
+        var ctxField = config.getContextualFieldOverride(ownerType, fieldName);
+        if (ctxField.isPresent()) {
+            GenerationReporter.override(trace, FixtureRuleKind.CONTEXT_FIELD_OVERRIDE, ctxField.get());
+            return withContext(
+                    ctxField.get(), generationContext(fieldName, ownerType, currentDepth, genericType, element));
+        }
+
+        // ── 0aa. Contextual predicate field override ─────────────────────────
+        if (predicateField != null) {
+            var ctxPredicateField = config.getContextualFieldPredicateOverride(predicateField);
+            if (ctxPredicateField.isPresent()) {
+                GenerationReporter.override(trace, FixtureRuleKind.CONTEXT_PREDICATE_OVERRIDE, ctxPredicateField.get());
+                return withContext(
+                        ctxPredicateField.get(),
+                        generationContext(fieldName, ownerType, currentDepth, genericType, element));
+            }
+        }
+
+        // ── 1. Field-level override ───────────────────────────────────────────
+        var fieldOverride = config.getFieldOverride(ownerType, fieldName);
+        if (fieldOverride.isPresent()) {
+            GenerationReporter.override(trace, FixtureRuleKind.FIELD_OVERRIDE, fieldOverride.get());
+            return fieldOverride.get();
+        }
+
+        // ── 1a. Predicate field-level override ───────────────────────────────
+        if (predicateField != null) {
+            var predicateFieldOverride = config.getFieldPredicateOverride(predicateField);
+            if (predicateFieldOverride.isPresent()) {
+                GenerationReporter.override(trace, FixtureRuleKind.PREDICATE_OVERRIDE, predicateFieldOverride.get());
+                return predicateFieldOverride.get();
+            }
+        }
+
+        // ── 2. Type-level override, after every field-level override ──────────
+        return typeOverrideFor(rawType, genericType, fieldName, ownerType, currentDepth, element, trace);
+    }
+
+    /** The contextual or plain type override that generates {@code rawType} for this member, if any. */
+    private @Nullable Generator<?> typeOverrideFor(
+            Class<?> rawType,
+            Type genericType,
+            String fieldName,
+            Class<?> ownerType,
+            int currentDepth,
+            @Nullable AnnotatedElement element,
+            GenerationReporter.@Nullable Trace trace) {
+        // ── 2. Contextual type-level override ─────────────────────────────────
+        var ctxType = config.getContextualTypeOverride(rawType);
+        if (ctxType.isPresent()) {
+            GenerationReporter.override(trace, FixtureRuleKind.CONTEXT_TYPE_OVERRIDE, ctxType.get());
+            return withContext(
+                    ctxType.get(), generationContext(fieldName, ownerType, currentDepth, genericType, element));
+        }
+
+        // ── 2a. Type-level override ───────────────────────────────────────────
+        Generator<?> typeOverride = config.getTypeOverride(rawType).orElse(null);
+        if (typeOverride != null) {
+            GenerationReporter.override(trace, FixtureRuleKind.TYPE_OVERRIDE, typeOverride);
+        }
+        return typeOverride;
+    }
+
+    /** One of the enum's constants, or {@code null} for an enum with none. */
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private @Nullable Object generateEnum(
+            Class<?> enumType, Type declaredType, Class<?> ownerType, String fieldName, int currentDepth) {
+        Object[] constants = enumType.getEnumConstants();
+        if (constants.length == 0) return null;
+        Long enumSeed = nextDeterministicSeed(generatorConfig, sequenceRandom);
+        Generator<?> enumGenerator = enumSeed != null
+                ? new EnumGenerator((Class<? extends Enum>) enumType, enumSeed)
+                : () -> constants[sequenceRandom.nextInt(constants.length)];
+        return generateWithUniqueness(enumGenerator, null, enumType, declaredType, ownerType, fieldName, currentDepth);
+    }
+
+    /**
+     * Draws one of a sealed type's classes. A class already being generated on this path would repeat
+     * a cycle, so it is left out while another class remains, and a recursive hierarchy such as an
+     * expression tree ends in a leaf.
+     */
+    private Class<?> chooseSubclass(List<Class<?>> subclasses, ResolvedType resolvedType) {
+        List<Class<?>> open = new ArrayList<>(subclasses.size());
+        for (Class<?> subclass : subclasses) {
+            if (!pool.isInProgress(subclass, subclassSignature(resolvedType, subclass))) {
+                open.add(subclass);
+            }
+        }
+        List<Class<?>> choices = open.isEmpty() ? subclasses : open;
+        return choices.get(sequenceRandom.nextInt(choices.size()));
+    }
+
+    /**
+     * The cycle key of a class chosen for a sealed member: its own type, with the type arguments that the
+     * member gives it, as a member declared with that type reads, so its self-references see it.
+     */
+    private String subclassSignature(ResolvedType resolvedType, Class<?> subclass) {
+        return ResolvedType.resolvedSignature(subclass, nestedTypeBindings(resolvedType, subclass));
+    }
+
+    private static Generator<?> withContext(ContextualGenerator<?> generator, GenerationContext context) {
+        return () -> generator.generate(context);
+    }
+
+    @Nullable Object resolveAndGenerateMember(
+            Type genericType,
+            Class<?> rawType,
+            String fieldName,
+            Class<?> ownerType,
+            int currentDepth,
+            @Nullable AnnotatedElement element,
+            String streamIdentity) {
+        return resolveAndGenerateMember(
+                genericType, rawType, fieldName, ownerType, currentDepth, element, null, streamIdentity);
+    }
+
+    /**
+     * Resolves a member from its own stream where members have one. A field predicate override matches
+     * {@code overrideField}, the field behind a constructor parameter that an adapter resolves, where it is
+     * given, and otherwise the element where it is a field.
+     */
+    @Nullable Object resolveAndGenerateMember(
+            Type genericType,
+            Class<?> rawType,
+            String fieldName,
+            Class<?> ownerType,
+            int currentDepth,
+            @Nullable AnnotatedElement element,
+            java.lang.reflect.@Nullable Field overrideField,
+            String streamIdentity) {
+        FieldGeneratorResolver memberResolver = namedChildStreams
+                ? new FieldGeneratorResolver(
+                        config,
+                        pool,
+                        uniqueFieldTracker,
+                        GenerationRecipe.deriveChildSeed(Objects.requireNonNull(generationSeed), streamIdentity),
+                        typeBindings,
+                        objectPath)
+                : this;
+        return memberResolver.resolveAndGenerate(
+                genericType, rawType, fieldName, ownerType, currentDepth, element, element, overrideField);
+    }
+
+    private GenerationContext generationContext(
+            String fieldName,
+            Class<?> ownerType,
+            int depth,
+            Type declaredType,
+            @Nullable AnnotatedElement declaration) {
+        return new GenerationContext(
+                fieldName, ownerType, depth, memberPath(fieldName), declaredType, declaration, generatorConfig);
+    }
+
+    private String memberPath(String fieldName) {
+        return objectPath + "." + fieldName;
+    }
+
+    private Map<TypeVariable<?>, Type> nestedTypeBindings(ResolvedType resolvedType, Class<?> nestedType) {
+        return nestedTypeBindings(typeBindings, resolvedType, nestedType);
+    }
+
+    /**
+     * The type bindings of a nested object of {@code nestedType}, declared as {@code resolvedType} in an
+     * object with {@code typeBindings}. {@link FixtureRuleAnalysis} follows nested objects with them as
+     * generation does.
+     */
+    static Map<TypeVariable<?>, Type> nestedTypeBindings(
+            Map<TypeVariable<?>, Type> typeBindings, ResolvedType resolvedType, Class<?> nestedType) {
+        Map<TypeVariable<?>, Type> bindings = new LinkedHashMap<>(typeBindings);
+        Map<TypeVariable<?>, Type> nestedBindings = ResolvedType.bindingsFor(nestedType);
+        bindings.putAll(nestedBindings);
+        // The type at the end of a chain of type variables, which holds the arguments.
+        ResolvedType generationType = mostSpecific(resolvedType);
+        Map<TypeVariable<?>, Type> declaredBindings =
+                new LinkedHashMap<>(ResolvedType.bindingsFor(generationType.declaredType()));
+        // The declared type's own arguments are written in this object's type variables, so one that names
+        // a variable is read as this object binds it. A recursive generic member, such as Node<T> next inside
+        // a Node<String>, or Pair<B, A> inside a Pair<A, B>, rebinds the same variables in the nested object,
+        // where they would name themselves. The bindings of the declared class's superclasses are written in
+        // the nested object's own variables, and are left as they are.
+        Class<?> declaredClass = Objects.requireNonNull(generationType.rawClass(), "a nested type is resolved");
+        for (TypeVariable<?> parameter : declaredClass.getTypeParameters()) {
+            declaredBindings.computeIfPresent(
+                    parameter,
+                    (ignored, argument) -> argument instanceof TypeVariable<?> outer
+                            ? typeBindings.getOrDefault(outer, argument)
+                            : argument);
+        }
+        bindings.putAll(declaredBindings);
+        // A mapped or sealed subclass of a generic declared type takes its arguments.
+        bindings.putAll(ResolvedType.subtypeArguments(nestedBindings, declaredBindings));
+        return Map.copyOf(bindings);
+    }
+
+    /**
+     * The cycle key of a nested type: the signature of what it resolves to, as {@link ObjectPool} asks,
+     * so that a member reached through inherited type variables, or declared with type variables that its
+     * object binds, such as {@code Node<T> next} inside a {@code Node<String>}, shares the key of a member
+     * declared with the resolved type.
+     */
+    private static String poolTypeSignature(ResolvedType resolvedType) {
+        return resolvedType.resolvedSignature();
+    }
+
+    private static ObjectGenerationException contextualizeNestedFailure(
+            ObjectGenerationException failure,
+            Class<?> nestedType,
+            Class<?> ownerType,
+            String fieldName,
+            String parentPath,
+            Type declaredType,
+            int depth) {
+        Optional<GenerationFailureContext> existing = failure.getContext();
+        if (existing.isEmpty()) {
+            return nestedFailure(
+                    GenerationFailureCategory.REFLECTION,
+                    GenerationOperation.GENERATE,
+                    parentPath,
+                    ownerType,
+                    declaredType.getTypeName(),
+                    depth,
+                    failure.getCause());
+        }
+
+        GenerationFailureContext child = existing.orElseThrow();
+        String contextualPath = child.path();
+        if (!contextualPath.equals(parentPath) && !contextualPath.startsWith(parentPath + ".")) {
+            String nestedRoot = nestedType.getSimpleName();
+            if (contextualPath.equals(nestedRoot)) {
+                contextualPath = parentPath;
+            } else if (contextualPath.startsWith(nestedRoot + ".")) {
+                contextualPath = parentPath + contextualPath.substring(nestedRoot.length());
+            } else {
+                contextualPath = parentPath + "." + contextualPath;
+            }
+        }
+        return nestedFailure(
+                child.category(),
+                child.operation(),
+                contextualPath,
+                child.ownerType(),
+                child.declaredType(),
+                child.depth(),
+                failure.getCause());
+    }
+
+    private static ObjectGenerationException nestedFailure(
+            GenerationFailureCategory category,
+            GenerationOperation operation,
+            String path,
+            @Nullable Class<?> ownerType,
+            @Nullable String declaredType,
+            int depth,
+            @Nullable Throwable cause) {
+        GenerationFailureContext context =
+                new GenerationFailureContext(category, operation, path, ownerType, declaredType, depth, -1);
+        return new ObjectGenerationException(
+                "Could not generate nested value at '" + path + "' (declared type " + declaredType + ", depth " + depth
+                        + ")",
+                context,
+                cause);
+    }
+
+    private @Nullable Object handleUnsupportedType(
+            Class<?> rawType, Type declaredType, Class<?> ownerType, String fieldName, int depth) {
+        return handleUnsupportedType(
+                rawType,
+                declaredType,
+                ownerType,
+                fieldName,
+                depth,
+                new UnsupportedOperationException("No generator is registered for the declared type"));
+    }
+
+    private @Nullable Object handleUnsupportedType(
+            Class<?> rawType,
+            Type declaredType,
+            Class<?> ownerType,
+            String fieldName,
+            int depth,
+            RuntimeException cause) {
+        GenerationReporter.failed(currentTrace, GenerationDecision.UNSUPPORTED_TYPE);
+        String path = memberPath(fieldName);
+        String declaredTypeName = declaredType.getTypeName();
+        GenerationFailureContext context = new GenerationFailureContext(
+                GenerationFailureCategory.UNSUPPORTED_TYPE,
+                GenerationOperation.GENERATE,
+                path,
+                ownerType,
+                declaredTypeName,
+                depth,
+                -1);
+        return failurePolicy.handle(
+                new ObjectGenerationException(
+                        "Unsupported type at '" + path + "' (declared type " + declaredTypeName + ", depth " + depth
+                                + ")",
+                        context,
+                        cause),
+                PRIMITIVE_DEFAULTS.getOrDefault(rawType, null));
+    }
+
+    private @Nullable Object handleConstraintConflict(
+            Class<?> rawType,
+            Type declaredType,
+            Class<?> ownerType,
+            String fieldName,
+            int depth,
+            BeanValidationSupport.ConstraintConflictException cause) {
+        GenerationReporter.failed(currentTrace, GenerationDecision.CONSTRAINT_CONFLICT);
+        String path = memberPath(fieldName);
+        String declaredTypeName = declaredType.getTypeName();
+        GenerationFailureContext context = new GenerationFailureContext(
+                GenerationFailureCategory.UNSUPPORTED_TYPE,
+                GenerationOperation.GENERATE,
+                path,
+                ownerType,
+                declaredTypeName,
+                depth,
+                -1);
+        return failurePolicy.handle(
+                new ObjectGenerationException(
+                        "Unsatisfiable constraints at '" + path + "' (declared type " + declaredTypeName + ", depth "
+                                + depth + ")",
+                        context,
+                        cause),
+                PRIMITIVE_DEFAULTS.getOrDefault(rawType, null));
+    }
+
+    /**
+     * A required member must not be left {@code null} by the depth limit. A member no depth could
+     * generate fails as it does above the limit, so the failure only asks for more depth when more
+     * depth would help.
+     */
+    private @Nullable Object handleRequiredMemberAtMaxDepth(
+            Class<?> rawType, Type declaredType, Class<?> ownerType, String fieldName, int depth) {
+        Class<?> nestedType = config.resolveSubtype(rawType);
+        if (!isNestableType(nestedType) && !SealedTypes.isSealed(nestedType, uniqueFieldTracker)) {
+            return handleUnsupportedType(rawType, declaredType, ownerType, fieldName, depth);
+        }
+        GenerationReporter.failed(currentTrace, GenerationDecision.CONSTRAINT_CONFLICT);
+        // The whole member path: an inherited field's owner is not the nested type on that path.
+        String path = memberPath(fieldName);
+        String declaredTypeName = declaredType.getTypeName();
+        GenerationFailureContext context = new GenerationFailureContext(
+                GenerationFailureCategory.UNSUPPORTED_TYPE,
+                GenerationOperation.GENERATE,
+                path,
+                ownerType,
+                declaredTypeName,
+                depth,
+                -1);
+        return failurePolicy.handle(
+                new ObjectGenerationException(
+                        "Required member would be null at '" + path + "' (declared type " + declaredTypeName
+                                + ", depth " + depth + ")",
+                        context,
+                        new BeanValidationSupport.ConstraintConflictException(
+                                "required member would be null at objectMaxDepth " + config.getMaxDepth()
+                                        + "; raise objectMaxDepth or override the member")),
+                null);
+    }
+
+    /**
+     * The domain of a unique field ran out. The whole member path names it, because an inherited
+     * field's owner is not the nested type on that path.
+     */
+    private @Nullable Object handleExhaustedUniqueField(
+            Class<?> rawType,
+            Type declaredType,
+            Class<?> ownerType,
+            String fieldName,
+            int depth,
+            UniqueFieldTracker.ExhaustedException cause) {
+        GenerationReporter.failed(currentTrace, GenerationDecision.FAILURE_FALLBACK);
+        String path = memberPath(fieldName);
+        String declaredTypeName = declaredType.getTypeName();
+        GenerationFailureContext context = new GenerationFailureContext(
+                GenerationFailureCategory.UNSUPPORTED_TYPE,
+                GenerationOperation.GENERATE,
+                path,
+                ownerType,
+                declaredTypeName,
+                depth,
+                -1);
+        return failurePolicy.handle(
+                new ObjectGenerationException(
+                        "Could not generate a unique value at '" + path + "' (declared type " + declaredTypeName
+                                + ", depth " + depth + ")",
+                        context,
+                        cause),
+                PRIMITIVE_DEFAULTS.getOrDefault(rawType, null));
+    }
+
+    private @Nullable Object generateConstraintValue(
+            @Nullable Generator<?> generator,
+            Class<?> rawType,
+            Type declaredType,
+            Class<?> ownerType,
+            String fieldName,
+            int depth) {
+        try {
+            // A constrained model always carries its generator; the resolver only gets here for one.
+            return generateIfRequestedUnique(
+                    Objects.requireNonNull(generator, "constraint generator"),
+                    rawType,
+                    declaredType,
+                    ownerType,
+                    fieldName,
+                    depth);
+        } catch (BeanValidationSupport.ConstraintConflictException conflict) {
+            Object fallback = handleConstraintConflict(rawType, declaredType, ownerType, fieldName, depth, conflict);
+            return fallback;
+        }
+    }
+
+    private @Nullable Object handleCollectionInsertionFailure(
+            Class<?> ownerType, String fieldName, Type declaredType, int depth, RuntimeException cause) {
+        GenerationReporter.failed(currentTrace, GenerationDecision.FAILURE_FALLBACK);
+        String path = memberPath(fieldName);
+        String declaredTypeName = declaredType.getTypeName();
+        GenerationFailureContext context = new GenerationFailureContext(
+                GenerationFailureCategory.COLLECTION_INSERTION,
+                GenerationOperation.INSERT,
+                path,
+                ownerType,
+                declaredTypeName,
+                depth,
+                -1);
+        return failurePolicy.handle(
+                new ObjectGenerationException(
+                        "Could not populate collection at '" + path + "' (declared type " + declaredTypeName
+                                + ", depth " + depth + ")",
+                        context,
+                        cause),
+                null);
+    }
+
+    /**
+     * A concrete collection subtype that is neither built in nor instantiable through a no-argument
+     * constructor cannot be populated. Report it through the failure policy instead of silently
+     * leaving the member {@code null}: strict mode throws, lenient mode returns {@code null} and
+     * notifies the listener.
+     */
+    private @Nullable Object handleNonConstructibleCollection(
+            Class<?> rawType, Type declaredType, Class<?> ownerType, String fieldName, int depth) {
+        return handleCollectionConstructionFailure(
+                ownerType,
+                fieldName,
+                declaredType,
+                depth,
+                new UnsupportedOperationException("No usable no-argument constructor for " + rawType.getName()));
+    }
+
+    private @Nullable Object handleCollectionConstructionFailure(
+            Class<?> ownerType, String fieldName, Type declaredType, int depth, Throwable cause) {
+        GenerationReporter.failed(currentTrace, GenerationDecision.FAILURE_FALLBACK);
+        String path = memberPath(fieldName);
+        String declaredTypeName = declaredType.getTypeName();
+        GenerationFailureContext context = new GenerationFailureContext(
+                GenerationFailureCategory.CONSTRUCTION,
+                GenerationOperation.CONSTRUCT,
+                path,
+                ownerType,
+                declaredTypeName,
+                depth,
+                -1);
+        return failurePolicy.handle(
+                new ObjectGenerationException(
+                        "Could not construct collection at '" + path + "' (declared type " + declaredTypeName
+                                + ", depth " + depth + ")",
+                        context,
+                        cause),
+                null);
+    }
+
+    private @Nullable Object resolveAndGenerate(
+            ResolvedType type,
+            String fieldName,
+            Class<?> ownerType,
+            int currentDepth,
+            @Nullable AnnotatedElement element) {
+        return resolveAndGenerate(type, fieldName, ownerType, currentDepth, element, element);
+    }
+
+    private @Nullable Object resolveAndGenerate(
+            ResolvedType type,
+            String fieldName,
+            Class<?> ownerType,
+            int currentDepth,
+            @Nullable AnnotatedElement element,
+            @Nullable AnnotatedElement constraintSource) {
+        ResolvedType generationType = mostSpecific(type);
+        Class<?> rawType = Objects.requireNonNullElse(generationType.rawClass(), Object.class);
+        return resolveAndGenerate(
+                generationType.declaredType(),
+                rawType,
+                fieldName,
+                ownerType,
+                currentDepth,
+                element,
+                constraintSource,
+                null);
+    }
+
+    /**
+     * Generates an array of the size its constraints and the configured collection size allow.
+     *
+     * <p>Java places an annotation written before an array type, as in {@code @Size(max = 3) String[]},
+     * on the array's component type as well as on the declaration. Bean Validation reads such a
+     * constraint for the array alone, as Hibernate Validator does, so the elements read no constraint
+     * from the component type: {@code @NotEmpty Leaf[]} is a non-empty array of any {@code Leaf}. A
+     * constraint on a type argument inside the component, as in {@code List<@Email String>[]}, still
+     * applies to that container's elements.
+     */
+    private Object generateArray(
+            ResolvedType declaredArrayType,
+            Class<?> runtimeArrayType,
+            Class<?> ownerType,
+            String fieldName,
+            int depth,
+            @Nullable AnnotatedElement element,
+            BeanValidationSupport.ConstraintModel constraints) {
+        Class<?> comp = runtimeArrayType.getComponentType();
+        ResolvedType declaredComponentType = Objects.requireNonNull(declaredArrayType.componentType());
+        int elementCount = nextCollectionSize(constraints);
+        Object arr = Array.newInstance(comp, elementCount);
+        for (int i = 0; i < elementCount; i++) {
+            Object el = resolveAndGenerate(
+                    declaredComponentType, fieldName + "[]", ownerType, depth, arrayComponentElement(element), null);
+            try {
+                Array.set(arr, i, el);
+            } catch (IllegalArgumentException e) {
+                String elementPath = memberPath(fieldName) + "[" + i + "]";
+                String declaredType = declaredArrayType.signature();
+                GenerationFailureContext context = new GenerationFailureContext(
+                        GenerationFailureCategory.COLLECTION_INSERTION,
+                        GenerationOperation.INSERT,
+                        elementPath,
+                        ownerType,
+                        declaredType,
+                        depth,
+                        -1);
+                failurePolicy.handle(
+                        new ObjectGenerationException(
+                                "Could not insert array element at '" + elementPath + "' (declared type " + declaredType
+                                        + ", depth " + depth + ")",
+                                context,
+                                e),
+                        null);
+                // Passed over: the array is still generated, with this element at its default, told after the
+                // element's entry. Under a policy that throws, nothing is told.
+                GenerationReporter active = reporter;
+                if (active != null) {
+                    active.failedStore(memberPath(fieldName + "[]"), comp, GenerationStep.DEFAULT);
+                }
+            }
+        }
+        return arr;
+    }
+
+    static @Nullable AnnotatedElement typeArgumentElement(@Nullable AnnotatedElement element, int index) {
+        AnnotatedType type = annotatedTypeFor(element);
+        if (!(type instanceof AnnotatedParameterizedType parameterizedType)) {
+            return null;
+        }
+        AnnotatedType[] arguments = parameterizedType.getAnnotatedActualTypeArguments();
+        return index < arguments.length ? arguments[index] : null;
+    }
+
+    static @Nullable AnnotatedElement arrayComponentElement(@Nullable AnnotatedElement element) {
+        AnnotatedType type = annotatedTypeFor(element);
+        return type instanceof AnnotatedArrayType arrayType ? arrayType.getAnnotatedGenericComponentType() : null;
+    }
+
+    private static @Nullable AnnotatedType annotatedTypeFor(@Nullable AnnotatedElement element) {
+        if (element instanceof AnnotatedType annotatedType) {
+            return annotatedType;
+        }
+        if (element instanceof java.lang.reflect.Field field) {
+            return field.getAnnotatedType();
+        }
+        if (element instanceof RecordComponent recordComponent) {
+            return recordComponent.getAnnotatedType();
+        }
+        if (element instanceof Parameter parameter) {
+            // A constructor argument whose type arguments declare no constraints takes those of the field
+            // it initializes, which has the same type, as it does for the constraints on the declaration.
+            AnnotatedType declared = parameter.getAnnotatedType();
+            java.lang.reflect.Field field = BeanValidationSupport.initializedField(parameter);
+            return field != null && !BeanValidationSupport.constrainsTypeArguments(declared)
+                    ? field.getAnnotatedType()
+                    : declared;
+        }
+        return null;
+    }
+
+    /**
+     * Distinct-element containers can end up smaller than requested when the element domain is
+     * small (a {@code Set<Boolean>} holds at most two values). That is fine for the default size,
+     * but a declared minimum must not be violated silently.
+     */
+    private static BeanValidationSupport.@Nullable ConstraintConflictException sizeShortfall(
+            int reached, BeanValidationSupport.ConstraintModel constraints) {
+        BeanValidationSupport.SizeRange declared = constraints.size();
+        if (declared == null || reached >= declared.min()) {
+            return null;
+        }
+        return new BeanValidationSupport.ConstraintConflictException(
+                "only " + reached + " distinct values available for a declared minimum size of " + declared.min());
+    }
+
+    /** The configured collection size, within the declared size where there is one. */
+    private int nextCollectionSize(BeanValidationSupport.ConstraintModel constraints) {
+        return BeanValidationSupport.sizeFor(
+                constraints.size(),
+                sequenceRandom,
+                generatorConfig.getMinCollectionSize(),
+                generatorConfig.getMaxCollectionSize());
+    }
+
+    /**
+     * Return {@code true} for concrete classes and records that {@link ObjectGenerator}
+     * can instantiate. Excludes interfaces, abstract classes, and JDK types
+     * (bootstrap-loaded classes) to avoid recursing into platform internals.
+     *
+     * <p>Arrays are excluded at step 5a in {@link #resolveAndGenerate} before this method
+     * is ever called, so there is no {@code isArray} check here.
+     */
+    static boolean isNestableType(Class<?> type) {
+        if (type.isInterface()) return false;
+        if (java.lang.reflect.Modifier.isAbstract(type.getModifiers())) return false;
+        // Bootstrap ClassLoader (null) loads all JDK platform classes — skip them
+        if (type.getClassLoader() == null) return false;
+        return true;
+    }
+}

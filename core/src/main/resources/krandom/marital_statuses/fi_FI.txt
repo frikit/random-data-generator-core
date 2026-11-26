@@ -1,0 +1,10 @@
+# Marital status values, one per line.
+Naimaton
+Naimisissa
+Eronnut
+Leski
+Asumuserossa
+Avoliitto
+Mitätöity avioliitto
+Päättynyt avoliitto
+Eloonjäänyt avopuoliso

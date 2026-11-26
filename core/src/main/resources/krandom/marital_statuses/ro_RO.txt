@@ -1,0 +1,10 @@
+# Marital status values, one per line.
+Necăsătorit(ă)
+Căsătorit(ă)
+Divorțat(ă)
+Văduv(ă)
+Separat(ă)
+Uniune consensuală
+Căsătorie anulată
+Uniune consensuală desfăcută
+Partener(ă) supraviețuitor(oare)

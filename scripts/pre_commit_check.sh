@@ -1,0 +1,335 @@
+#!/bin/bash
+# Run the local quality gate: formatting and license headers, documentation checks, compilation,
+# module boundaries, public API compatibility, release SBOMs, Javadoc, tests, critical-path mutation
+# testing, and the exact core coverage gate.
+# Usage: ./scripts/pre_commit_check.sh [--fast]
+#   --fast  Iteration mode: reuse up-to-date test results instead of forcing a rerun, and skip
+#           mutation testing and SBOM validation. Run the full gate before pushing.
+# Exit code: 0 = all passed, non-zero = something failed.
+
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+GRADLEW="${REPO_ROOT}/gradlew"
+COVERAGE_THRESHOLD="100.0"
+FAST=false
+
+for arg in "$@"; do
+    case "${arg}" in
+        --fast) FAST=true ;;
+        -h|--help)
+            sed -n '2,8p' "${BASH_SOURCE[0]}"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: ${arg}" >&2
+            echo "Usage: $0 [--fast]" >&2
+            exit 2
+            ;;
+    esac
+done
+
+cd "${REPO_ROOT}"
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+GREEN="\033[0;32m"
+RED="\033[0;31m"
+RESET="\033[0m"
+
+PASS="${GREEN}[PASS]${RESET}"
+FAIL="${RED}[FAIL]${RESET}"
+
+step() { echo; echo "==> $*"; }
+ok()   { echo -e "${PASS} $*"; }
+fail() { echo -e "${FAIL} $*"; }
+skip() { echo; echo "==> Skipped in --fast mode: $*"; }
+
+# ── Steps ─────────────────────────────────────────────────────────────────────
+
+if [ "${FAST}" = true ]; then
+    echo "Fast mode: reusing up-to-date test results; skipping SBOM validation and mutation testing."
+fi
+
+step "Verify Java runtime"
+if "${REPO_ROOT}/scripts/require_java21.sh"; then
+    ok "Java runtime is 21+"
+else
+    fail "Java runtime check failed"
+    exit 1
+fi
+
+step "Apply code formatting and license headers (spotlessApply)"
+if "${GRADLEW}" spotlessApply --quiet; then
+    ok "Formatting applied"
+else
+    fail "spotlessApply failed"
+    exit 1
+fi
+
+step "Verify formatting and license headers (spotlessCheck)"
+if "${GRADLEW}" spotlessCheck --quiet; then
+    ok "Formatting OK"
+else
+    fail "spotlessCheck failed — run ./gradlew spotlessApply and re-check"
+    exit 1
+fi
+
+step "Format markdown documentation"
+if "${GRADLEW}" spotlessMarkdownApply --quiet; then
+    ok "Markdown formatted"
+else
+    fail "Markdown formatting failed"
+    exit 1
+fi
+
+step "Verify markdown documentation"
+if "${GRADLEW}" spotlessMarkdownCheck --quiet; then
+    ok "Markdown OK"
+else
+    fail "Markdown check failed — run ./gradlew spotlessMarkdownApply and re-check"
+    exit 1
+fi
+
+step "Verify repository Markdown links"
+if bash "${REPO_ROOT}/scripts/verify_markdown_links.sh"; then
+    ok "Repository Markdown links OK"
+else
+    fail "Repository Markdown link verification failed"
+    exit 1
+fi
+
+step "Verify docs-site internal links"
+if bash "${REPO_ROOT}/scripts/verify_docs_site_links.sh"; then
+    ok "Docs-site links OK"
+else
+    fail "Docs-site link verification failed"
+    exit 1
+fi
+
+step "Verify documentation facts"
+if bash "${REPO_ROOT}/scripts/verify_documentation_facts.sh"; then
+    ok "Documentation facts OK"
+else
+    fail "Documentation facts verification failed"
+    exit 1
+fi
+
+step "Verify pinned build inputs"
+if bash "${REPO_ROOT}/scripts/verify_build_input_pins.sh"; then
+    ok "Build inputs are immutable or checksum-verified"
+else
+    fail "Build input pin verification failed"
+    exit 1
+fi
+
+step "Compile all modules"
+if "${GRADLEW}" classes testClasses --quiet; then
+    ok "Compilation OK"
+else
+    fail "Compilation failed"
+    exit 1
+fi
+
+step "Verify module boundaries"
+if bash "${REPO_ROOT}/scripts/verify_module_boundaries.sh"; then
+    ok "Module identities are unique and no package is split"
+else
+    fail "Module boundary verification failed"
+    exit 1
+fi
+
+API_BASELINE_VERSION="$(awk -F= '$1 == "apiBaselineVersion" { print substr($0, index($0, "=") + 1) }' "${REPO_ROOT}/gradle.properties")"
+step "Verify public API compatibility with ${API_BASELINE_VERSION}"
+# --continue reports every module that breaks the baseline, not only the first.
+if "${GRADLEW}" checkApiCompatibility --continue --quiet; then
+    ok "Public API keeps every ${API_BASELINE_VERSION} declaration compatible"
+else
+    fail "Public API compatibility failed — see the changes listed above and build/reports/api-compatibility"
+    exit 1
+fi
+
+if [ "${FAST}" = true ]; then
+    skip "release SBOM generation and validation"
+else
+    step "Generate and validate release SBOMs"
+    if "${GRADLEW}" verifyReleaseSboms --quiet; then
+        ok "Release SBOMs are valid"
+    else
+        fail "Release SBOM validation failed — see build/reports/sbom"
+        exit 1
+    fi
+fi
+
+step "Validate Javadoc (check for broken links and missing docs)"
+if "${GRADLEW}" :core:javadoc --quiet; then
+    ok "Javadoc validation passed"
+else
+    fail "Javadoc validation failed — see core/build/reports/javadoc/index.html"
+    exit 1
+fi
+
+step "Run tests with coverage report"
+# java21Test is core's tests that need Java 21 or later (core/src/java21Test); --rerun applies to the task before it.
+TEST_ARGS=()
+for test_task in test java21Test; do
+    TEST_ARGS+=("${test_task}")
+    if [ "${FAST}" = false ]; then
+        TEST_ARGS+=(--rerun)
+    fi
+done
+TEST_ARGS+=(--quiet)
+TEST_START=$(date +%s)
+if "${GRADLEW}" "${TEST_ARGS[@]}"; then
+    TEST_END=$(date +%s)
+    TEST_SECS=$(( TEST_END - TEST_START ))
+    TEST_MINS=$(( TEST_SECS / 60 ))
+    TEST_SECS=$(( TEST_SECS % 60 ))
+    ok "Tests passed (${TEST_MINS}m ${TEST_SECS}s)"
+else
+    TEST_END=$(date +%s)
+    TEST_SECS=$(( TEST_END - TEST_START ))
+    TEST_MINS=$(( TEST_SECS / 60 ))
+    TEST_SECS=$(( TEST_SECS % 60 ))
+    fail "Tests failed after ${TEST_MINS}m ${TEST_SECS}s — see core/build/reports/tests/test/index.html"
+    exit 1
+fi
+
+if [ "${FAST}" = true ]; then
+    skip "critical-path mutation tests"
+else
+    step "Run critical-path mutation tests"
+    if "${GRADLEW}" :core:pitest --quiet; then
+        ok "Mutation score meets the measured critical-path threshold"
+    else
+        fail "Mutation testing failed — see core/build/reports/pitest"
+        exit 1
+    fi
+fi
+
+step "Enforce coverage thresholds (core exact 100%, integration module floors)"
+COVERAGE_OK=0
+# The unqualified task name runs the verification of every module that defines one.
+"${GRADLEW}" jacocoTestCoverageVerification --quiet && COVERAGE_OK=1 || true
+
+# ── Coverage report — always printed ──────────────────────────────────────────
+
+step "Coverage report"
+CSV="${REPO_ROOT}/core/build/jacoco/jacoco.csv"
+
+# Pass ANSI codes into awk via printf to avoid shell interpretation issues
+G="$(printf '\033[0;32m')"
+R="$(printf '\033[0;31m')"
+RST="$(printf '\033[0m')"
+
+# ── Summary box ───────────────────────────────────────────────────────────────
+awk -F',' -v G="${G}" -v R="${R}" -v RST="${RST}" -v THRESHOLD="${COVERAGE_THRESHOLD}" '
+function bar(pct,    w, filled, i, b) {
+    w = 20; filled = int(pct / 5 + 0.5); b = ""
+    for (i = 1; i <= w; i++) b = b (i <= filled ? "#" : "-")
+    return b
+}
+NR == 1 { next }
+{ tlm += $8+0; tlc += $9+0; tbm += $6+0; tbc += $7+0 }
+END {
+    tl = tlm + tlc; tb = tbm + tbc
+    lp = (tl > 0) ? tlc * 100 / tl : 0
+    bp = (tb > 0) ? tbc * 100 / tb : 0
+
+    lp_col = (lp >= THRESHOLD ? G : R) sprintf("%5.1f%%", lp) RST
+    bp_col = (bp >= THRESHOLD ? G : R) sprintf("%5.1f%%", bp) RST
+    ls_col = (lp >= THRESHOLD ? G "PASS" RST : R "FAIL" RST)
+    bs_col = (bp >= THRESHOLD ? G "PASS" RST : R "FAIL" RST)
+
+    print ""
+    print "─────────────────────────────────────────────────────────────────────────"
+    print "                     CODE COVERAGE SUMMARY"
+    print "─────────────────────────────────────────────────────────────────────────"
+    printf "  Line   coverage : %s  [%s]\n", lp_col, bar(lp)
+    printf "  Branch coverage : %s  [%s]\n", bp_col, bar(bp)
+    printf "  Threshold       :  %5.1f%%  minimum (all counters)\n", THRESHOLD
+    printf "  Line   status   :  %s\n", ls_col
+    printf "  Branch status   :  %s\n", bs_col
+    print "─────────────────────────────────────────────────────────────────────────"
+    printf "  Lines  covered  :   %3d / %-3d\n", tlc, tl
+    printf "  Branch covered  :   %3d / %-3d\n", tbc, tb
+    print "─────────────────────────────────────────────────────────────────────────"
+}' "${CSV}"
+
+# ── Per-package table (sorted alphabetically) ─────────────────────────────────
+# fmt returns exactly 7 visible chars:
+#   numbers  ->  sprintf("%6.1f", v) + mark  e.g. " 100.0 " or "  63.1!"
+#   N/A      ->  "   N/A "
+echo ""
+printf "%-55s %7s   %7s\n" "PACKAGE" "LINE%" "BRANCH%"
+printf '─%.0s' {1..73}; echo ""
+
+awk -F',' -v G="${G}" -v R="${R}" -v RST="${RST}" -v THRESHOLD="${COVERAGE_THRESHOLD}" '
+function fmt(v,    c, mark) {
+    # v < 0 means no branchable code in this package (N/A in JaCoCo).
+    # Treat as 100.0: no branches means nothing can be missed.
+    # Width must match the number path: sprintf("%6.1f") = 6 chars + 1 mark = 7 total.
+    if (v < 0) return G " 100.0 " RST
+    c    = (v >= THRESHOLD) ? G : R
+    mark = (v >= THRESHOLD) ? " " : "!"
+    return c sprintf("%6.1f", v) mark RST
+}
+NR == 1 { next }
+{
+    pkg_lm[$2] += $8+0; pkg_lc[$2] += $9+0; pkg_bm[$2] += $6+0; pkg_bc[$2] += $7+0
+    tlm += $8+0; tlc += $9+0; tbm += $6+0; tbc += $7+0
+}
+END {
+    for (p in pkg_lc) {
+        pl = pkg_lm[p] + pkg_lc[p]; pb = pkg_bm[p] + pkg_bc[p]
+        lpp = (pl > 0) ? pkg_lc[p] * 100 / pl : -1
+        bpp = (pb > 0) ? pkg_bc[p] * 100 / pb : -1
+        printf "%s\t%-55s %s   %s\n", p, p, fmt(lpp), fmt(bpp)
+    }
+    tl = tlm + tlc; tb = tbm + tbc
+    tlp = (tl > 0) ? tlc * 100 / tl : -1
+    tbp = (tb > 0) ? tbc * 100 / tb : -1
+    printf "ZZZTOTAL\t%-55s %s   %s\n", "TOTAL", fmt(tlp), fmt(tbp)
+}' "${CSV}" | sort | cut -f2- | awk '
+/^TOTAL/ { total = $0; next }
+        { print }
+END     { printf "%-73s\n", "─────────────────────────────────────────────────────────────────────────"; print total }'
+
+echo ""
+printf "! = below %s%% threshold\n" "${COVERAGE_THRESHOLD}"
+
+# ── Integration modules: reported, not gated ──────────────────────────────────
+echo ""
+echo "Integration module coverage (line/branch floors enforced by each module's jacocoTestCoverageVerification):"
+for report in "${REPO_ROOT}"/*/build/reports/jacoco/test/jacocoTestReport.csv; do
+    [ -f "${report}" ] || continue
+    module="${report#"${REPO_ROOT}/"}"
+    module="${module%%/*}"
+    awk -F',' -v module="${module}" '
+    NR == 1 { next }
+    { lm += $8; lc += $9; bm += $6; bc += $7 }
+    END {
+        lines = lm + lc; branches = bm + bc
+        printf "  %-22s line %6.1f%%   branch %6.1f%%\n", module,
+            (lines > 0 ? lc * 100 / lines : 100), (branches > 0 ? bc * 100 / branches : 100)
+    }' "${report}"
+done
+
+# ── Summary ───────────────────────────────────────────────────────────────────
+
+echo
+if [ "${COVERAGE_OK}" -eq 1 ] && [ "${FAST}" = true ]; then
+    ok "Coverage thresholds met"
+    echo -e "${GREEN}============================================"
+    echo -e " Fast checks passed. Run the full gate"
+    echo -e " (without --fast) before pushing."
+    echo -e "============================================${RESET}"
+elif [ "${COVERAGE_OK}" -eq 1 ]; then
+    ok "Coverage thresholds met"
+    echo -e "${GREEN}============================================"
+    echo -e " All pre-commit checks passed. Safe to commit."
+    echo -e "============================================${RESET}"
+else
+    fail "Coverage below threshold — see core/build/jacoco/html/index.html or <module>/build/reports/jacoco/test/html/index.html"
+    exit 1
+fi

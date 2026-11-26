@@ -1,0 +1,711 @@
+/*
+ * Copyright (c) 2026 krandom contributors
+ *
+ * Licensed under the MIT License. See LICENSE in the project root for license information.
+ */
+package io.github.frikit.krandom.generator.location;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import io.github.frikit.krandom.generator.GeneratorConfig;
+import io.github.frikit.krandom.generator.Vocabulary;
+import io.github.frikit.krandom.generator.locale.SupportedLocale;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+@DisplayName("CountryGenerator")
+class CountryGeneratorTest {
+
+    @Test
+    @DisplayName("default config uses US locale with English country names")
+    void defaultConfig() {
+        CountryGenerator gen = new CountryGenerator(GeneratorConfig.defaults());
+
+        assertEquals(Locale.US, gen.getLocale());
+        assertTrue(gen.getCountryCount() > 0);
+    }
+
+    @Test
+    @DisplayName("generate() returns non-null, non-empty country name")
+    void generateNotEmpty() {
+        CountryGenerator gen = new CountryGenerator(Locale.US);
+        String country = gen.generate();
+
+        assertNotNull(country);
+        assertFalse(country.isEmpty());
+    }
+
+    @Test
+    @DisplayName("generateCode() returns ISO alpha-2 code")
+    void generateCode() {
+        CountryGenerator gen = new CountryGenerator(Locale.US);
+        String code = gen.generateCode();
+        assertNotNull(code);
+        assertTrue(code.matches("[A-Z]{2}"));
+        assertTrue(Arrays.asList(Locale.getISOCountries()).contains(code));
+    }
+
+    @Test
+    @DisplayName("generateCodeAlpha3() returns ISO alpha-3 code")
+    void generateCodeAlpha3() {
+        CountryGenerator gen = new CountryGenerator(Locale.US);
+        String code = gen.generateCodeAlpha3();
+        assertNotNull(code);
+        assertTrue(code.matches("[A-Z]{3}"));
+    }
+
+    @Test
+    @DisplayName("generateCode(format) supports alpha2, alpha3, numeric")
+    void generateCodeByFormat() {
+        CountryGenerator gen = new CountryGenerator(Locale.US);
+        assertTrue(gen.generateCode(CountryGenerator.CountryCodeFormat.ALPHA2).matches("[A-Z]{2}"));
+        assertTrue(gen.generateCode(CountryGenerator.CountryCodeFormat.ALPHA3).matches("[A-Z]{3}"));
+        assertTrue(gen.generateCode(CountryGenerator.CountryCodeFormat.NUMERIC).matches("\\d{3}"));
+        assertThrows(NullPointerException.class, () -> gen.generateCode(null));
+    }
+
+    @Test
+    @DisplayName("the bundled ISO 3166-1 table has all 249 countries, unique in every column, in alpha-2 order")
+    void isoTableIsCompleteAndConsistent() {
+        List<CountryCodes> table =
+                CountryGenerator.parseIsoCodes(CountryResourceLoader.load("krandom/country_codes/iso_3166_1.txt"));
+        List<String> alpha2 = table.stream().map(CountryCodes::alpha2).toList();
+
+        assertEquals(249, table.size());
+        assertEquals(249, alpha2.stream().distinct().count());
+        assertEquals(249, table.stream().map(CountryCodes::alpha3).distinct().count());
+        assertEquals(249, table.stream().map(CountryCodes::numeric).distinct().count());
+        assertEquals(alpha2.stream().sorted().toList(), alpha2);
+        for (CountryCodes codes : table) {
+            assertTrue(codes.alpha2().matches("[A-Z]{2}"), codes.toString());
+            assertTrue(codes.numeric().matches("\\d{3}"), codes.toString());
+            assertEquals(new Locale("", codes.alpha2()).getISO3Country(), codes.alpha3(), codes.toString());
+        }
+    }
+
+    @Test
+    @DisplayName("numeric codes match ISO 3166-1 for the formerly mapped countries and the easy-to-get-wrong ones")
+    void isoNumericCodesMatchTheStandard() {
+        Map<String, String> numericByAlpha2 =
+                CountryGenerator.parseIsoCodes(CountryResourceLoader.load("krandom/country_codes/iso_3166_1.txt"))
+                        .stream()
+                        .collect(Collectors.toMap(CountryCodes::alpha2, CountryCodes::numeric));
+        String[] pairs = """
+                US 840 GB 826 AU 036 DE 276 FR 250 ES 724 IT 380 BR 076 JP 392 CN 156 NL 528 PL 616
+                RU 643 KR 410 TR 792 SE 752 NO 578 CZ 203 SA 682 IN 356 DK 208 FI 246 HU 348 RO 642
+                SK 703 UA 804 BG 100 HR 191 GR 300 TH 764 VN 704 ID 360 MY 458 IL 376 CA 124 NZ 554
+                IE 372 ZA 710 BE 056 CH 756 AT 040 MX 484 AR 032 PT 620 TW 158
+                AQ 010 AX 248 BQ 535 CD 180 CG 178 CW 531 EH 732 IO 086 KP 408 PS 275 SS 728 SX 534
+                UM 581 VA 336
+                """.trim().split("\\s+");
+
+        for (int i = 0; i < pairs.length; i += 2) {
+            assertEquals(pairs[i + 1], numericByAlpha2.get(pairs[i]), pairs[i]);
+        }
+        assertFalse(numericByAlpha2.containsKey("XK"), "Kosovo's XK is user-assigned, not ISO 3166-1");
+    }
+
+    @Test
+    @DisplayName("seeded code sequences are fixed on every Java version, alpha-2 and alpha-3 as before the table")
+    void seededCodeSequencesAreFixed() {
+        GeneratorConfig config = GeneratorConfig.builder().seed(42L).build();
+        CountryGenerator alpha2 = new CountryGenerator(config);
+        CountryGenerator alpha3 = new CountryGenerator(config);
+        CountryGenerator numeric = new CountryGenerator(config);
+        List<String> alpha2Codes = new ArrayList<>();
+        List<String> alpha3Codes = new ArrayList<>();
+        List<String> numericCodes = new ArrayList<>();
+        for (int i = 0; i < 6; i++) {
+            alpha2Codes.add(alpha2.generateCode());
+            alpha3Codes.add(alpha3.generateCodeAlpha3());
+            numericCodes.add(numeric.generateCodeNumeric());
+        }
+
+        assertEquals(List.of("SM", "TK", "NF", "GL", "AD", "KZ"), alpha2Codes);
+        assertEquals(List.of("SMR", "TKL", "NFK", "GRL", "AND", "KAZ"), alpha3Codes);
+        assertEquals(List.of("674", "772", "574", "304", "020", "398"), numericCodes);
+    }
+
+    @Test
+    @DisplayName("a malformed ISO 3166-1 row is rejected")
+    void malformedIsoRowIsRejected() {
+        IllegalStateException ex = assertThrows(
+                IllegalStateException.class, () -> CountryGenerator.parseIsoCodes(new String[] {"GB GBR"}));
+        assertTrue(ex.getMessage().contains("GB GBR"));
+    }
+
+    @Test
+    @DisplayName("generateCodes() returns the three codes of one country, drawn from the whole table")
+    void generateCodesBelongTogether() {
+        CountryGenerator gen =
+                new CountryGenerator(GeneratorConfig.builder().seed(7L).build());
+        Set<String> numericCodes = new HashSet<>();
+        for (int i = 0; i < 500; i++) {
+            CountryCodes codes = gen.generateCodes();
+            assertEquals(new Locale("", codes.alpha2()).getISO3Country(), codes.alpha3(), codes.toString());
+            numericCodes.add(codes.numeric());
+        }
+        assertTrue(numericCodes.size() > 45, "numeric codes come from every country, not a short list");
+    }
+
+    @Test
+    @DisplayName("current-country helpers return locale-specific values")
+    void currentCountryHelpers() {
+        CountryGenerator us = new CountryGenerator(Locale.US);
+        assertEquals("US", us.currentCountryCode());
+        assertEquals("USA", us.currentCountryCodeAlpha3());
+        assertEquals("840", us.currentCountryCodeNumeric());
+        assertEquals(new CountryCodes("US", "USA", "840"), us.currentCountryCodes());
+        assertEquals("US", us.currentCountryCode(CountryGenerator.CountryCodeFormat.ALPHA2));
+        assertEquals("USA", us.currentCountryCode(CountryGenerator.CountryCodeFormat.ALPHA3));
+        assertEquals("840", us.currentCountryCode(CountryGenerator.CountryCodeFormat.NUMERIC));
+        assertFalse(us.currentCountry().isBlank());
+        assertEquals(
+                new CountryCodes("NG", "NGA", "566"),
+                new CountryGenerator(new Locale("en", "NG")).currentCountryCodes());
+    }
+
+    @Test
+    @DisplayName("current-country helpers throw when locale has no country")
+    void currentCountryHelpersNoCountry() {
+        CountryGenerator languageOnly = new CountryGenerator(
+                GeneratorConfig.builder().locale(Locale.ENGLISH).build());
+        assertThrows(UnsupportedOperationException.class, languageOnly::currentCountry);
+        assertThrows(UnsupportedOperationException.class, languageOnly::currentCountryCode);
+        assertThrows(UnsupportedOperationException.class, languageOnly::currentCountryCodeAlpha3);
+        assertThrows(UnsupportedOperationException.class, languageOnly::currentCountryCodeNumeric);
+        assertThrows(UnsupportedOperationException.class, languageOnly::currentCountryCodes);
+        assertThrows(UnsupportedOperationException.class, languageOnly::currentContinent);
+        assertThrows(UnsupportedOperationException.class, languageOnly::currentCallingCode);
+        assertThrows(UnsupportedOperationException.class, languageOnly::currentTimezone);
+    }
+
+    @Test
+    @DisplayName("continent, calling code and timezone helpers are available")
+    void continentCallingTimezone() {
+        CountryGenerator us = new CountryGenerator(Locale.US);
+        assertEquals("North America", us.currentContinent());
+        assertEquals("+1", us.currentCallingCode());
+        assertEquals("America/New_York", us.currentTimezone());
+
+        assertFalse(us.generateContinent().isBlank());
+        assertTrue(us.generateCallingCode().startsWith("+"));
+        assertTrue(us.generateTimezone().contains("/"));
+    }
+
+    @Test
+    @DisplayName("seeded calling-code, continent and timezone sequences draw ISO countries in a JVM-independent order")
+    void seededCountryMetadataSequencesAreJvmIndependent() {
+        GeneratorConfig config = GeneratorConfig.builder().seed(42L).build();
+        CountryGenerator codes = new CountryGenerator(config);
+        CountryGenerator calling = new CountryGenerator(config);
+        CountryGenerator continent = new CountryGenerator(config);
+        CountryGenerator timezone = new CountryGenerator(config);
+
+        List<String> countryCodes = new ArrayList<>();
+        List<String> callingCodes = new ArrayList<>();
+        List<String> continents = new ArrayList<>();
+        List<String> timezones = new ArrayList<>();
+        for (int i = 0; i < 8; i++) {
+            countryCodes.add(codes.generateCode());
+            callingCodes.add(calling.generateCallingCode());
+            continents.add(continent.generateContinent());
+            timezones.add(timezone.generateTimezone());
+        }
+
+        // Each draw picks one of the 249 ISO countries, the same country generateCode() picks.
+        assertEquals(List.of("SM", "TK", "NF", "GL", "AD", "KZ", "MQ", "BF"), countryCodes);
+        assertEquals(List.of("+378", "+690", "+672", "+299", "+376", "+7", "+596", "+226"), callingCodes);
+        assertEquals(
+                List.of("Europe", "Oceania", "Oceania", "North America", "Europe", "Asia", "North America", "Africa"),
+                continents);
+        assertEquals(
+                List.of(
+                        "Europe/San_Marino",
+                        "Pacific/Fakaofo",
+                        "Pacific/Norfolk",
+                        "America/Nuuk",
+                        "Europe/Andorra",
+                        "Asia/Almaty",
+                        "America/Martinique",
+                        "Africa/Ouagadougou"),
+                timezones);
+    }
+
+    @Test
+    @DisplayName("generated calling codes, continents and timezones come from every ISO country")
+    void generatedCountryMetadataComesFromEveryCountry() {
+        CountryGenerator gen =
+                new CountryGenerator(GeneratorConfig.builder().seed(7L).build());
+        Set<String> callingCodes = new HashSet<>();
+        Set<String> continents = new HashSet<>();
+        Set<String> timezones = new HashSet<>();
+        for (int i = 0; i < 2_000; i++) {
+            callingCodes.add(gen.generateCallingCode());
+            continents.add(gen.generateContinent());
+            timezones.add(gen.generateTimezone());
+        }
+
+        assertTrue(callingCodes.size() > 150, "calling codes: " + callingCodes.size());
+        assertEquals(
+                Set.of("Africa", "Antarctica", "Asia", "Europe", "North America", "Oceania", "South America"),
+                continents);
+        assertTrue(timezones.size() > 200, "timezones: " + timezones.size());
+    }
+
+    @Test
+    @DisplayName("a calling-code, continent or timezone table must list every ISO country once, in ISO order")
+    void malformedCountryValueTablesAreRejected() {
+        List<CountryCodes> countries =
+                List.of(new CountryCodes("AD", "AND", "020"), new CountryCodes("AE", "ARE", "784"));
+
+        Map<String, String> values = CountryGenerator.parseCountryValues(
+                new String[] {"AD North America", "AE Asia"}, countries, "test.txt");
+        assertEquals(List.of("AD", "AE"), List.copyOf(values.keySet()));
+        assertEquals(List.of("North America", "Asia"), List.copyOf(values.values()));
+
+        IllegalStateException missingRow = assertThrows(
+                IllegalStateException.class,
+                () -> CountryGenerator.parseCountryValues(new String[] {"AD +376"}, countries, "test.txt"));
+        assertEquals("test.txt must have 2 rows, one for each ISO 3166-1 country, found: 1", missingRow.getMessage());
+
+        IllegalStateException missingValue = assertThrows(
+                IllegalStateException.class,
+                () -> CountryGenerator.parseCountryValues(new String[] {"AD +376", "AE"}, countries, "test.txt"));
+        assertEquals("test.txt row 2 must be AE and its value, found: AE", missingValue.getMessage());
+
+        IllegalStateException wrongOrder = assertThrows(
+                IllegalStateException.class,
+                () -> CountryGenerator.parseCountryValues(new String[] {"AE +971", "AD +376"}, countries, "test.txt"));
+        assertEquals("test.txt row 1 must be AD and its value, found: AE +971", wrongOrder.getMessage());
+    }
+
+    @Test
+    @DisplayName("current-country helper metadata is available for every built-in locale country")
+    void currentCountryMetadataHelpersSupportAllBuiltInLocales() {
+        for (SupportedLocale supportedLocale : SupportedLocale.values()) {
+            CountryGenerator generator = new CountryGenerator(supportedLocale.locale());
+            assertNotNull(generator.currentCountryCodeNumeric(), supportedLocale + " numeric code");
+            assertFalse(generator.currentCountryCodeNumeric().isBlank(), supportedLocale + " numeric code");
+            assertTrue(generator.currentCallingCode().startsWith("+"), supportedLocale + " calling code");
+            assertFalse(generator.currentContinent().isBlank(), supportedLocale + " continent");
+            assertTrue(generator.currentTimezone().contains("/"), supportedLocale + " timezone");
+        }
+    }
+
+    @Test
+    @DisplayName("US locale returns English country names")
+    void usLocaleEnglish() {
+        CountryGenerator gen = new CountryGenerator(Locale.US);
+        assertEquals("United States", gen.currentCountry());
+        assertFalse(gen.generate().isBlank());
+        assertTrue(gen.getCountryCount() > 50);
+    }
+
+    @Test
+    @DisplayName("German locale returns German country names")
+    void germanLocale() {
+        CountryGenerator gen = new CountryGenerator(Locale.GERMANY);
+        assertEquals("Deutschland", gen.currentCountry());
+        assertFalse(gen.generate().isBlank());
+        assertTrue(gen.getCountryCount() > 50);
+    }
+
+    @Test
+    @DisplayName("Dutch locale returns Dutch country names")
+    void dutchLocale() {
+        CountryGenerator gen = new CountryGenerator(new Locale("nl", "NL"));
+        assertEquals("Nederland", gen.currentCountry());
+        assertFalse(gen.generate().isBlank());
+        assertTrue(gen.getCountryCount() > 150);
+    }
+
+    @Test
+    @DisplayName("Polish locale returns Polish country names")
+    void polishLocale() {
+        CountryGenerator gen = new CountryGenerator(new Locale("pl", "PL"));
+        assertEquals("Polska", gen.currentCountry());
+        assertFalse(gen.generate().isBlank());
+        assertTrue(gen.getCountryCount() > 150);
+    }
+
+    @Test
+    @DisplayName("Czech locale returns Czech country names")
+    void czechLocale() {
+        Locale locale = new Locale("cs", "CZ");
+        CountryGenerator gen = new CountryGenerator(locale);
+        assertEquals(new Locale("", "CZ").getDisplayCountry(locale), gen.currentCountry());
+        assertFalse(gen.generate().isBlank());
+        assertTrue(gen.getCountryCount() > 150);
+    }
+
+    @Test
+    @DisplayName("Korean locale returns Korean country names")
+    void koreanLocale() {
+        Locale locale = new Locale("ko", "KR");
+        CountryGenerator gen = new CountryGenerator(locale);
+        assertEquals(new Locale("", "KR").getDisplayCountry(locale), gen.currentCountry());
+        assertFalse(gen.generate().isBlank());
+        assertTrue(gen.getCountryCount() > 150);
+    }
+
+    @Test
+    @DisplayName("Russian locale returns Russian country names")
+    void russianLocale() {
+        Locale locale = new Locale("ru", "RU");
+        CountryGenerator gen = new CountryGenerator(locale);
+        assertEquals(new Locale("", "RU").getDisplayCountry(locale), gen.currentCountry());
+        assertFalse(gen.generate().isBlank());
+        assertTrue(gen.getCountryCount() > 150);
+    }
+
+    @Test
+    @DisplayName("Turkish locale returns Turkish country names")
+    void turkishLocale() {
+        Locale locale = new Locale("tr", "TR");
+        CountryGenerator gen = new CountryGenerator(locale);
+        assertEquals(new Locale("", "TR").getDisplayCountry(locale), gen.currentCountry());
+        assertFalse(gen.generate().isBlank());
+        assertTrue(gen.getCountryCount() > 150);
+    }
+
+    @Test
+    @DisplayName("Hindi locale returns Hindi country names")
+    void hindiLocale() {
+        Locale locale = new Locale("hi", "IN");
+        CountryGenerator gen = new CountryGenerator(locale);
+        assertEquals(new Locale("", "IN").getDisplayCountry(locale), gen.currentCountry());
+        assertFalse(gen.generate().isBlank());
+        assertTrue(gen.getCountryCount() > 150);
+    }
+
+    @Test
+    @DisplayName("Arabic locale returns Arabic country names")
+    void arabicLocale() {
+        Locale locale = new Locale("ar", "SA");
+        CountryGenerator gen = new CountryGenerator(locale);
+        assertEquals(new Locale("", "SA").getDisplayCountry(locale), gen.currentCountry());
+        assertFalse(gen.generate().isBlank());
+        assertTrue(gen.getCountryCount() > 150);
+    }
+
+    @Test
+    @DisplayName("Japanese locale returns Japanese country names")
+    void japaneseLocale() {
+        CountryGenerator gen = new CountryGenerator(Locale.JAPAN);
+        assertEquals("日本", gen.currentCountry());
+        assertFalse(gen.generate().isBlank());
+    }
+
+    @Test
+    @DisplayName("French locale returns French country names")
+    void frenchLocale() {
+        CountryGenerator gen = new CountryGenerator(Locale.FRANCE);
+        assertEquals("France", gen.currentCountry());
+        assertFalse(gen.generate().isBlank());
+    }
+
+    @Test
+    @DisplayName("Chinese locale returns Chinese country names")
+    void chineseLocale() {
+        CountryGenerator gen = new CountryGenerator(new Locale("zh", "CN"));
+        assertEquals("中国", gen.currentCountry());
+        assertFalse(gen.generate().isBlank());
+    }
+
+    @Test
+    @DisplayName("Spanish locale returns Spanish country names")
+    void spanishLocale() {
+        CountryGenerator gen = new CountryGenerator(new Locale("es", "ES"));
+        assertEquals("España", gen.currentCountry());
+        assertFalse(gen.generate().isBlank());
+    }
+
+    @Test
+    @DisplayName("Italian locale returns Italian country names")
+    void italianLocale() {
+        CountryGenerator gen = new CountryGenerator(new Locale("it", "IT"));
+        assertEquals("Italia", gen.currentCountry());
+        assertFalse(gen.generate().isBlank());
+    }
+
+    @Test
+    @DisplayName("Brazilian Portuguese locale returns Portuguese country names")
+    void brazilianPortugueseLocale() {
+        CountryGenerator gen = new CountryGenerator(new Locale("pt", "BR"));
+        assertEquals("Brasil", gen.currentCountry());
+        assertFalse(gen.generate().isBlank());
+    }
+
+    @Test
+    @DisplayName("en_GB locale has its own country data")
+    void ukLocale() {
+        CountryGenerator gen = new CountryGenerator(Locale.UK);
+
+        assertNotNull(gen.generate());
+        assertTrue(gen.getCountryCount() > 50);
+    }
+
+    @Test
+    @DisplayName("en_AU locale has its own country data")
+    void australianLocale() {
+        CountryGenerator gen = new CountryGenerator(new Locale("en", "AU"));
+
+        assertNotNull(gen.generate());
+        assertTrue(gen.getCountryCount() > 50);
+    }
+
+    @Test
+    @DisplayName("seeded generator produces reproducible results")
+    void seededReproducibility() {
+        GeneratorConfig config1 =
+                GeneratorConfig.builder().locale(Locale.GERMANY).seed(42L).build();
+        GeneratorConfig config2 =
+                GeneratorConfig.builder().locale(Locale.GERMANY).seed(42L).build();
+
+        CountryGenerator gen1 = new CountryGenerator(config1);
+        CountryGenerator gen2 = new CountryGenerator(config2);
+
+        List<String> list1 = gen1.generateList(50);
+        List<String> list2 = gen2.generateList(50);
+
+        assertEquals(list1, list2);
+    }
+
+    @Test
+    @DisplayName("different seeds produce different sequences")
+    void differentSeeds() {
+        GeneratorConfig config1 = GeneratorConfig.builder().seed(111L).build();
+        GeneratorConfig config2 = GeneratorConfig.builder().seed(222L).build();
+
+        CountryGenerator gen1 = new CountryGenerator(config1);
+        CountryGenerator gen2 = new CountryGenerator(config2);
+
+        List<String> list1 = gen1.generateList(50);
+        List<String> list2 = gen2.generateList(50);
+
+        assertNotEquals(list1, list2);
+    }
+
+    @Test
+    @DisplayName("generateList() produces correct count")
+    void generateListCount() {
+        CountryGenerator gen = new CountryGenerator(Locale.US);
+        List<String> countries = gen.generateList(20);
+
+        assertEquals(20, countries.size());
+        countries.forEach(c -> {
+            assertNotNull(c);
+            assertFalse(c.isEmpty());
+        });
+    }
+
+    @Test
+    @DisplayName("stream() generates continuous values")
+    void streamGeneration() {
+        CountryGenerator gen = new CountryGenerator(Locale.JAPAN);
+
+        List<String> countries = gen.stream().limit(30).toList();
+
+        assertEquals(30, countries.size());
+        countries.forEach(c -> {
+            assertNotNull(c);
+            assertFalse(c.isEmpty());
+        });
+    }
+
+    @Test
+    @DisplayName("getLocale() returns the configured locale")
+    void getLocale() {
+        assertEquals(Locale.US, new CountryGenerator(Locale.US).getLocale());
+        assertEquals(Locale.GERMANY, new CountryGenerator(Locale.GERMANY).getLocale());
+        assertEquals(Locale.JAPAN, new CountryGenerator(Locale.JAPAN).getLocale());
+    }
+
+    @Test
+    @DisplayName("getCountryCount() returns positive value for all built-in locales")
+    void countryCountPositive() {
+        for (SupportedLocale supportedLocale : SupportedLocale.values()) {
+            CountryGenerator gen = new CountryGenerator(supportedLocale.locale());
+            assertTrue(gen.getCountryCount() > 0, "Locale " + supportedLocale.locale() + " should have countries");
+        }
+    }
+
+    @Test
+    @DisplayName("isLocaleExplicitlySupported() returns true for all built-in locales")
+    void localeSupported() {
+        assertTrue(new CountryGenerator(Locale.US).isLocaleExplicitlySupported());
+        assertTrue(new CountryGenerator(Locale.UK).isLocaleExplicitlySupported());
+        assertTrue(new CountryGenerator(Locale.GERMANY).isLocaleExplicitlySupported());
+        assertTrue(new CountryGenerator(Locale.JAPAN).isLocaleExplicitlySupported());
+        assertTrue(new CountryGenerator(Locale.FRANCE).isLocaleExplicitlySupported());
+    }
+
+    @Test
+    @DisplayName("unsupported locale throws UnsupportedOperationException")
+    void unsupportedLocaleThrows() {
+        UnsupportedOperationException ex =
+                assertThrows(UnsupportedOperationException.class, () -> new CountryGenerator(new Locale("xx", "YY")));
+
+        assertTrue(ex.getMessage().contains("not supported"));
+        assertTrue(ex.getMessage().contains("xx_YY"));
+    }
+
+    @Test
+    @DisplayName("null config throws NullPointerException")
+    void nullConfigThrows() {
+        assertThrows(NullPointerException.class, () -> new CountryGenerator((GeneratorConfig) null));
+    }
+
+    @Test
+    @DisplayName("null locale throws NullPointerException")
+    void nullLocaleThrows() {
+        assertThrows(NullPointerException.class, () -> new CountryGenerator((Locale) null));
+    }
+
+    @Test
+    @DisplayName("language-only locale falls back to language entry (en -> en_US data)")
+    void languageOnlyLocaleFallback() {
+        CountryGenerator gen = new CountryGenerator(new Locale("en"));
+
+        String country = gen.generate();
+        assertNotNull(country);
+        assertTrue(gen.getCountryCount() > 50);
+    }
+
+    @Test
+    @DisplayName("generate() produces variety — not always the same value")
+    void generateVariety() {
+        CountryGenerator gen = new CountryGenerator(Locale.US);
+
+        Set<String> seen = new HashSet<>();
+        for (int i = 0; i < 200; i++) {
+            seen.add(gen.generate());
+        }
+
+        assertTrue(seen.size() > 10, "Expected variety of countries, got: " + seen.size());
+    }
+
+    // ── CountryDataRegistry extensibility ────────────────────────────────────
+
+    @Test
+    @DisplayName("isRegistered returns false for null locale")
+    void isRegisteredNullReturnsFalse() {
+        assertFalse(CountryDataRegistry.isRegistered(null));
+    }
+
+    @Test
+    @DisplayName("forLocale returns null for null locale")
+    void forLocaleNullReturnsNull() {
+        assertNull(CountryDataRegistry.forLocale(null));
+    }
+
+    @Test
+    @DisplayName("isRegistered returns false for unregistered locale")
+    void isRegisteredUnknownLocale() {
+        assertFalse(CountryDataRegistry.isRegistered(new Locale("xx", "YY")));
+    }
+
+    @Test
+    @DisplayName("forLocale returns null for completely unknown locale")
+    void forLocaleUnknownReturnsNull() {
+        assertNull(CountryDataRegistry.forLocale(new Locale("xx", "YY")));
+    }
+
+    @Test
+    @DisplayName("forLocale returns language-level entry when no exact country match exists")
+    void forLocaleLanguageFallbackInRegistry() {
+        // "en" is registered (language-level entry seeded from EN_US).
+        // "en_ZZ" has no exact entry but shares the "en" language key.
+        CountryDataProvider provider = CountryDataRegistry.forLocale(new Locale("en", "ZZ"));
+        assertNotNull(provider);
+        assertTrue(provider.getCountries().length > 0);
+    }
+
+    @Test
+    @DisplayName("isRegistered returns true for language-only locale when language is registered")
+    void isRegisteredLanguageOnlyLocale() {
+        Locale langOnly = new Locale("de");
+        assertTrue(CountryDataRegistry.isRegistered(langOnly));
+    }
+
+    @Test
+    @DisplayName("forLocale returns provider for language-only locale")
+    void forLocaleLanguageOnlyLocale() {
+        CountryDataProvider provider = CountryDataRegistry.forLocale(new Locale("de"));
+        assertNotNull(provider);
+        assertTrue(provider.getCountries().length > 0);
+    }
+
+    @Test
+    @DisplayName("CountryResourceLoader loads valid resource file")
+    void resourceLoaderLoadsValidFile() {
+        String[] countries = CountryResourceLoader.load("krandom/countries/en_US_countries.txt");
+        assertEquals(195, countries.length);
+        assertTrue(Arrays.asList(countries).contains("United States"));
+    }
+
+    @Test
+    @DisplayName("CountryResourceLoader filters comments and blank lines")
+    void resourceLoaderFiltersCommentsAndBlanks() {
+        String[] countries = CountryResourceLoader.load("krandom/countries/test_countries.txt");
+        assertEquals(3, countries.length);
+        assertEquals("Country One", countries[0]);
+        assertEquals("Country Two", countries[1]);
+        assertEquals("Country Three", countries[2]);
+    }
+
+    @Test
+    @DisplayName("CountryResourceLoader throws for missing resource")
+    void resourceLoaderThrowsForMissingFile() {
+        IllegalStateException ex = assertThrows(
+                IllegalStateException.class, () -> CountryResourceLoader.load("krandom/countries/nonexistent.txt"));
+        assertTrue(ex.getMessage().contains("Country resource not found"));
+    }
+
+    @Test
+    @DisplayName("current country code lookups fail clearly for a context-scoped unknown country")
+    void currentCountryCodesUnsupportedForContextScopedCountry() {
+        Locale locale = new Locale("en", "ZZ");
+        io.github.frikit.krandom.generator.DataRegistryContext context =
+                io.github.frikit.krandom.generator.DataRegistryContext.builder()
+                        .register(Vocabulary.COUNTRY, new CountryDataProvider() {
+
+                            @Override
+                            public Locale getLocale() {
+                                return locale;
+                            }
+
+                            @Override
+                            public String[] getCountries() {
+                                return new String[] {"Nowhere"};
+                            }
+                        })
+                        .build();
+        CountryGenerator generator = new CountryGenerator(GeneratorConfig.builder()
+                .locale(locale)
+                .registryContext(context)
+                .build());
+
+        assertThrows(UnsupportedOperationException.class, generator::currentCountryCodeAlpha3);
+        assertThrows(UnsupportedOperationException.class, generator::currentCountryCodeNumeric);
+        assertThrows(UnsupportedOperationException.class, generator::currentCountryCodes);
+        assertThrows(UnsupportedOperationException.class, generator::currentContinent);
+        assertThrows(UnsupportedOperationException.class, generator::currentCallingCode);
+        assertThrows(UnsupportedOperationException.class, generator::currentTimezone);
+    }
+}

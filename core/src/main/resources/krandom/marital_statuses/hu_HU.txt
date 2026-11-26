@@ -1,0 +1,10 @@
+# Marital status values, one per line.
+Nőtlen/hajadon
+Házas
+Elvált
+Özvegy
+Különélő
+Élettársi kapcsolat
+Érvénytelenített házasság
+Megszűnt élettársi kapcsolat
+Özvegy élettárs

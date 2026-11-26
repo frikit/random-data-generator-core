@@ -1,0 +1,10 @@
+# Marital status values, one per line.
+Celibe/Nubile
+Sposato/a
+Divorziato/a
+Vedovo/a
+Separato/a
+Unione civile
+Matrimonio annullato
+Unione civile sciolta
+Superstite di unione civile

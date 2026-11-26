@@ -1,0 +1,10 @@
+# Marital status values, one per line.
+Ongehuwd
+Gehuwd
+Gescheiden
+Weduwe/weduwnaar
+Gescheiden van tafel en bed
+Geregistreerd partnerschap
+Nietig verklaard huwelijk
+Ontbonden geregistreerd partnerschap
+Langstlevende partner

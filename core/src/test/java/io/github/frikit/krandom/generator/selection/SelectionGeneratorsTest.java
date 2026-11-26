@@ -1,0 +1,314 @@
+/*
+ * Copyright (c) 2026 krandom contributors
+ *
+ * Licensed under the MIT License. See LICENSE in the project root for license information.
+ */
+package io.github.frikit.krandom.generator.selection;
+
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import io.github.frikit.krandom.generator.Generator;
+import io.github.frikit.krandom.generator.GeneratorConfig;
+import io.github.frikit.krandom.generator.Generators;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.IntStream;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+@DisplayName("Selection generators")
+class SelectionGeneratorsTest {
+
+    @Test
+    @DisplayName("PickGenerator picks only from source values")
+    void pickGeneratorPicksFromSource() {
+        List<String> source = List.of("a", "b", "c");
+        PickGenerator<String> gen = new PickGenerator<>(source);
+
+        for (int i = 0; i < 200; i++) {
+            assertTrue(source.contains(gen.generate()));
+        }
+    }
+
+    @Test
+    @DisplayName("PickGenerator seeded constructor is deterministic")
+    void pickGeneratorSeededIsDeterministic() {
+        List<String> source = List.of("x", "y", "z");
+        PickGenerator<String> a = new PickGenerator<>(source, seeded(123L));
+        PickGenerator<String> b = new PickGenerator<>(source, seeded(123L));
+
+        for (int i = 0; i < 20; i++) {
+            assertEquals(a.generate(), b.generate());
+        }
+    }
+
+    @Test
+    @DisplayName("PickGenerator returns a null its source holds and copies the source")
+    void pickGeneratorKeepsNullAndCopiesSource() {
+        List<String> source = new ArrayList<>(Arrays.asList(null, null));
+        PickGenerator<String> gen = new PickGenerator<>(source, seeded(123L));
+        source.set(0, "changed");
+        source.set(1, "changed");
+
+        for (int i = 0; i < 20; i++) {
+            assertNull(gen.generate());
+        }
+        assertNull(Generators.pick(Arrays.asList((String) null)).generate());
+    }
+
+    @Test
+    @DisplayName("PickSetGenerator returns distinct elements")
+    void pickSetReturnsDistinct() {
+        List<Integer> source = IntStream.rangeClosed(1, 10).boxed().toList();
+        PickSetGenerator<Integer> gen = new PickSetGenerator<>(source, 5, seeded(123L));
+
+        List<Integer> picked = gen.generate();
+        assertEquals(5, picked.size());
+        assertEquals(5, Set.copyOf(picked).size());
+        assertTrue(source.containsAll(picked));
+    }
+
+    @Test
+    @DisplayName("PickSetGenerator counts distinct values, so a source that repeats one gives no repeat")
+    void pickSetCountsDistinctValues() {
+        IllegalArgumentException tooMany = assertThrows(
+                IllegalArgumentException.class, () -> new PickSetGenerator<>(List.of("x", "x"), 2, seeded(42L)));
+        assertEquals("count must be <= the number of distinct values in source (1), got: 2", tooMany.getMessage());
+
+        List<String> source = List.of("a", "a", "b", "b", "c");
+        for (int count = 1; count <= 3; count++) {
+            PickSetGenerator<String> gen = new PickSetGenerator<>(source, count, seeded(42L));
+            java.util.Random reference = seeded(42L).createRandom();
+            for (int i = 0; i < 200; i++) {
+                List<String> picked = gen.generate();
+                assertEquals(count, Set.copyOf(picked).size(), picked.toString());
+                assertEquals(firstDistinct(source, count, reference), picked);
+            }
+        }
+        assertEquals(List.of("x"), new PickSetGenerator<>(List.of("x", "x"), 1, seeded(1L)).generate());
+    }
+
+    @Test
+    @DisplayName("PickSetGenerator picks a source without repeats as before: the first values of one shuffle")
+    void pickSetWithoutRepeatsKeepsItsPicks() {
+        List<Integer> source = IntStream.rangeClosed(1, 10).boxed().toList();
+        PickSetGenerator<Integer> gen = new PickSetGenerator<>(source, 4, seeded(123L));
+        java.util.Random reference = seeded(123L).createRandom();
+
+        for (int i = 0; i < 50; i++) {
+            List<Integer> shuffled = new java.util.ArrayList<>(source);
+            java.util.Collections.shuffle(shuffled, reference);
+            assertEquals(shuffled.subList(0, 4), gen.generate());
+        }
+    }
+
+    /** The first {@code count} distinct values of one shuffle of {@code source}. */
+    private static <T> List<T> firstDistinct(List<T> source, int count, java.util.Random random) {
+        List<T> shuffled = new java.util.ArrayList<>(source);
+        java.util.Collections.shuffle(shuffled, random);
+        return shuffled.stream().distinct().limit(count).toList();
+    }
+
+    @Test
+    @DisplayName("PickSetGenerator returns empty list when count is zero")
+    void pickSetZeroCountReturnsEmpty() {
+        PickSetGenerator<Integer> gen = new PickSetGenerator<>(List.of(1, 2, 3), 0, seeded(7L));
+        assertEquals(List.of(), gen.generate());
+    }
+
+    @Test
+    @DisplayName("ShuffleGenerator returns shuffled copy with same members")
+    void shuffleReturnsPermutation() {
+        List<Integer> source = List.of(1, 2, 3, 4, 5, 6);
+        ShuffleGenerator<Integer> gen = new ShuffleGenerator<>(source, seeded(42L));
+
+        List<Integer> shuffled = gen.generate();
+        assertEquals(source.size(), shuffled.size());
+        assertEquals(
+                source.stream().sorted().toList(), shuffled.stream().sorted().toList());
+    }
+
+    @Test
+    @DisplayName("WeightedGenerator honors weight bias")
+    void weightedHonorsBias() {
+        WeightedGenerator<String> gen = new WeightedGenerator<>(List.of("heads", "tails"), List.of(7, 3), seeded(42L));
+
+        int heads = 0;
+        int trials = 10_000;
+        for (int i = 0; i < trials; i++) {
+            if ("heads".equals(gen.generate())) {
+                heads++;
+            }
+        }
+
+        double ratio = heads / (double) trials;
+        assertTrue(ratio > 0.65 && ratio < 0.75, "heads ratio should be around 0.7, got: " + ratio);
+    }
+
+    @Test
+    @DisplayName("WeightedGenerator rejects empty values")
+    void weightedRejectsEmptyValues() {
+        assertThrows(IllegalArgumentException.class, () -> new WeightedGenerator<>(List.of(), List.of()));
+    }
+
+    @Test
+    @DisplayName("UniqueGenerator throws when source cannot produce enough distinct values")
+    void uniqueThrowsWhenExhausted() {
+        Generator<Integer> bounded = new Generator<>() {
+
+            private int n = 0;
+
+            @Override
+            public Integer generate() {
+                return n++ % 2;
+            }
+        };
+
+        UniqueGenerator<Integer> unique = new UniqueGenerator<>(bounded, 5);
+        assertDoesNotThrow(unique::generate);
+        assertDoesNotThrow(unique::generate);
+        IllegalStateException ex = assertThrows(IllegalStateException.class, unique::generate);
+        assertTrue(ex.getMessage().contains("Unable to generate a unique value"));
+    }
+
+    @Test
+    @DisplayName("UniqueGenerator default equality stays distinct across a large volume")
+    void uniqueDefaultEqualityHandlesLargeVolumes() {
+        Generator<Integer> sequential = new Generator<>() {
+
+            private int n = 0;
+
+            @Override
+            public Integer generate() {
+                return n++;
+            }
+        };
+
+        UniqueGenerator<Integer> unique = new UniqueGenerator<>(sequential);
+        List<Integer> generated = unique.generateList(10_000);
+
+        assertEquals(10_000, generated.size());
+        assertEquals(10_000, Set.copyOf(generated).size());
+    }
+
+    @Test
+    @DisplayName("UniqueGenerator supports custom comparator")
+    void uniqueSupportsCustomComparator() {
+        Generator<String> source = new Generator<>() {
+
+            private int i = 0;
+
+            @Override
+            public String generate() {
+                return (i++ % 2 == 0) ? "Alice" : "ALICE";
+            }
+        };
+
+        UniqueGenerator<String> unique = new UniqueGenerator<>(source, (a, b) -> a.equalsIgnoreCase(b), 5);
+
+        assertEquals("Alice", unique.generate());
+        assertThrows(IllegalStateException.class, unique::generate);
+    }
+
+    @Test
+    @DisplayName("UniqueGenerator custom comparator accepts distinct values after remembered ones")
+    void uniqueCustomComparatorAcceptsDistinctValues() {
+        Generator<String> source = new Generator<>() {
+
+            private int i = 0;
+
+            @Override
+            public String generate() {
+                return (i++ % 2 == 0) ? "Alice" : "Bob";
+            }
+        };
+
+        UniqueGenerator<String> unique = new UniqueGenerator<>(source, String::equalsIgnoreCase, 5);
+
+        assertEquals("Alice", unique.generate());
+        assertEquals("Bob", unique.generate());
+    }
+
+    @Test
+    @DisplayName("UniqueGenerator constructor with comparator overload works")
+    void uniqueComparatorOverloadWorks() {
+        UniqueGenerator<String> unique = new UniqueGenerator<>(() -> "a", String::equalsIgnoreCase);
+        assertEquals("a", unique.generate());
+    }
+
+    @Test
+    @DisplayName("UniqueGenerator reset allows values to be reused")
+    void uniqueResetAllowsValuesToBeReused() {
+        UniqueGenerator<String> unique = new UniqueGenerator<>(() -> "repeat", 1);
+
+        assertEquals("repeat", unique.generate());
+        assertThrows(IllegalStateException.class, unique::generate);
+
+        unique.reset();
+
+        assertEquals("repeat", unique.generate());
+    }
+
+    @Test
+    @DisplayName("UniqueGenerator reset is a no-op before generation")
+    void uniqueResetBeforeGenerationIsNoOp() {
+        UniqueGenerator<String> unique = new UniqueGenerator<>(() -> "first", 1);
+
+        assertDoesNotThrow(unique::reset);
+
+        assertEquals("first", unique.generate());
+    }
+
+    @Test
+    @DisplayName("Generators.unique wraps source generator")
+    void generatorsUniqueWrapsSource() {
+        Generator<Integer> bounded = new Generator<>() {
+
+            private int n = 0;
+
+            @Override
+            public Integer generate() {
+                return n++ % 2;
+            }
+        };
+        UniqueGenerator<Integer> unique = Generators.unique(bounded);
+        assertDoesNotThrow(unique::generate);
+        assertDoesNotThrow(unique::generate);
+    }
+
+    @Test
+    @DisplayName("RepeatGenerator returns fixed-size list")
+    void repeatReturnsFixedSizeList() {
+        RepeatGenerator<Integer> repeat = new RepeatGenerator<>(() -> 7, 4);
+        List<Integer> values = repeat.generate();
+        assertEquals(List.of(7, 7, 7, 7), values);
+    }
+
+    @Test
+    @DisplayName("Constructors validate inputs")
+    void constructorsValidateInputs() {
+        assertThrows(IllegalArgumentException.class, () -> new PickGenerator<>(List.of()));
+        assertThrows(IllegalArgumentException.class, () -> new PickSetGenerator<>(List.of(1, 2), 3));
+        assertThrows(IllegalArgumentException.class, () -> new PickSetGenerator<>(List.of(1, 2), -1));
+        assertThrows(IllegalArgumentException.class, () -> new WeightedGenerator<>(List.of("a"), List.of(0)));
+        assertThrows(IllegalArgumentException.class, () -> new WeightedGenerator<>(List.of("a"), List.of(1, 2)));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> new WeightedGenerator<>(List.of("a"), Arrays.asList((Integer) null)));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> new WeightedGenerator<>(List.of("a", "b"), List.of(Integer.MAX_VALUE, 1)));
+        assertThrows(IllegalArgumentException.class, () -> new UniqueGenerator<>(() -> 1, 0));
+        assertThrows(IllegalArgumentException.class, () -> new RepeatGenerator<>(() -> 1, -1));
+    }
+
+    private static GeneratorConfig seeded(long seed) {
+        return GeneratorConfig.builder().seed(seed).build();
+    }
+}

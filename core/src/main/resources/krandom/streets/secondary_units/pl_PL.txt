@@ -1,0 +1,35 @@
+Mieszkanie
+Lokal
+Piętro
+Klatka
+Budynek
+Segment
+Pokój
+Oficyna
+Skrzynka
+Studio
+m.
+lok.
+p.
+kl.
+bud.
+Klatka schodowa
+Klatka schodowa A
+Wejście
+Brama
+Drzwi
+Parter
+Suterena
+Piwnica
+Antresola
+Poddasze
+Apartament
+Biuro
+Kondygnacja
+Blok
+Skrzydło
+Wieżowiec
+Pawilon
+Garaż
+Boks
+Hala

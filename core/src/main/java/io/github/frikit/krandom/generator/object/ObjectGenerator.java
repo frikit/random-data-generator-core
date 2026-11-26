@@ -1,0 +1,1165 @@
+/*
+ * Copyright (c) 2026 krandom contributors
+ *
+ * Licensed under the MIT License. See LICENSE in the project root for license information.
+ */
+package io.github.frikit.krandom.generator.object;
+
+import io.github.frikit.krandom.generator.GenerationContext;
+import io.github.frikit.krandom.generator.GenerationRecipe;
+import io.github.frikit.krandom.generator.Generator;
+import io.github.frikit.krandom.generator.GeneratorConfig;
+import io.github.frikit.krandom.generator.failure.GenerationFailureCategory;
+import io.github.frikit.krandom.generator.failure.GenerationFailureContext;
+import io.github.frikit.krandom.generator.failure.GenerationOperation;
+import io.github.frikit.krandom.generator.object.exception.ObjectGenerationException;
+import io.github.frikit.krandom.generator.report.GenerationDecision;
+import io.github.frikit.krandom.generator.report.GenerationStep;
+import java.lang.reflect.AccessibleObject;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.Parameter;
+import java.lang.reflect.RecordComponent;
+import java.lang.reflect.Type;
+import java.lang.reflect.TypeVariable;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Random;
+import java.util.ServiceLoader;
+import java.util.Set;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import org.jspecify.annotations.Nullable;
+import org.objenesis.Objenesis;
+import org.objenesis.ObjenesisStd;
+
+/**
+ * Generates random instances of any Java class or record by introspecting its structure
+ * at runtime and delegating field/component population to {@link FieldGeneratorResolver}.
+ *
+ * <p><b>Supported types</b>
+ * <ul>
+ *   <li><b>Records</b> — all components are populated and the canonical constructor is invoked.</li>
+ *   <li><b>Plain classes</b> — constructors are invoked by default. A no-arg constructor is
+ *       preferred; otherwise one unambiguous declared constructor is populated through the same
+ *       resolver used for fields. With compiled parameter names, an argument meets the Bean
+ *       Validation constraints of its parameter and of the field it initializes, the nearest field
+ *       with the parameter's name and declared type, so a constraint on a final field reaches the
+ *       value that fills it. Objenesis bypass is available only through {@link
+ *       ObjectConstructionPolicy#UNSAFE_CONSTRUCTOR_BYPASS}.</li>
+ *   <li><b>Nested objects</b> — resolved recursively up to the configured object max depth. A member
+ *       past that depth is left {@code null}, unless it is required (for example {@code @NotNull}),
+ *       which fails generation with the member's path. A container that cannot hold that
+ *       {@code null}, such as a {@code Queue}, fails as a rejected insertion at its own path.</li>
+ *   <li><b>Sealed types</b> — a sealed interface or abstract sealed class, as a root or a member, is
+ *       generated as one of the concrete classes of its hierarchy, drawn from the seeded stream in
+ *       binary-name order: each concrete subclass, including a concrete sealed one, each enum's
+ *       constants, and the classes of each abstract sealed subclass. A class already being generated
+ *       is left out while another remains, so a recursive hierarchy ends in a leaf. A type override
+ *       or {@code objectSubtype} mapping for the sealed type wins, and one for an abstract subclass
+ *       makes it a choice; an abstract subclass with neither fails generation whatever the seed. A
+ *       generic subclass takes the type arguments of the declared type.</li>
+ *   <li><b>Enum fields</b> — a random constant is selected.</li>
+ *   <li><b>Arrays</b> — auto-populated using the shared collection-size defaults
+ *       (default 1 to 10 elements). A {@code @Size} or {@code @NotEmpty} written before an array
+ *       type constrains the array, not its elements, as Bean Validation reads it.</li>
+ *   <li><b>Collections ({@code List}, {@code Set}, {@code Map})</b> — auto-populated using the
+ *       shared collection-size defaults and the declared generic type.</li>
+ *   <li><b>Constrained sizes</b> — a collection, array, or map with {@code @Size} or
+ *       {@code @NotEmpty} takes the configured collection size within the declared bounds, or the
+ *       declared bound nearest it where the two do not overlap.</li>
+ *   <li><b>Circular references</b> — detected via an {@link ObjectPool} and broken by
+ *       returning a previously cached instance (or {@code null}) instead of recursing.</li>
+ * </ul>
+ *
+ * <p>With a portable seeded {@link GeneratorConfig}, each field, record component, and
+ * constructor argument receives a named child stream. Adding an unrelated member therefore does
+ * not perturb existing members; nested objects establish their own member streams from the parent
+ * member seed. Caller-owned, secure, and unseeded configurations retain sequential behavior.
+ *
+ * <p><b>Unique fields.</b> A name requested with {@link GeneratorConfig.Builder#objectUniqueField(String)}
+ * or {@link GeneratorConfig.Builder#objectUniqueFields(String...)} stays unique across every object a
+ * generator produces, including nested objects, however its value is produced. Each field has its own
+ * values, so {@code Order.id} and a nested {@code Customer.id} can be equal. A repeat draws again, up to
+ * {@link GeneratorConfig.Builder#objectUniquenessMaxAttempts(int)} times, and then generation fails, so
+ * an override that returns a constant fails on the next object. Unless replaced, {@code id},
+ * {@code email} and a few other names are unique by default, but only as a plausible default: semantic,
+ * built-in and enum values are checked, while an override, annotation or constraint may repeat its
+ * values. The generator remembers each value it hands out, so memory grows with the number of generated
+ * unique values: create a new generator to start a fresh uniqueness scope, or configure no unique fields
+ * ({@code objectUniqueFields()}) for unbounded streams.
+ *
+ * <p><b>Usage</b>
+ * <pre>{@code
+ *   // Minimal
+ *   Person p = new ObjectGenerator<>(Person.class).generate();
+ *
+ *   // Preferred public configuration path
+ *   GeneratorConfig config = GeneratorConfig.builder()
+ *       .objectMaxDepth(3)
+ *       .objectOverride(String.class, () -> "test-value")
+ *       .objectOverride(Person.class, "firstName", () -> "Alice")
+ *       .objectExcludeField("password")
+ *       .build();
+ *
+ *   ObjectGenerator<Person> gen = new ObjectGenerator<>(Person.class, config);
+ *   List<Person> people = gen.generateList(100);
+ *
+ *   // Records
+ *   PersonRecord r = new ObjectGenerator<>(PersonRecord.class).generate();
+ * }</pre>
+ *
+ * @param <T> the type to generate
+ */
+public final class ObjectGenerator<T> implements Generator<T> {
+
+    /**
+     * Thread-safe Objenesis instance; caches instantiation strategies per class.
+     */
+    private static final Objenesis OBJENESIS = new ObjenesisStd();
+
+    /**
+     * Classloader-aware cache of settable field lists per class.
+     */
+    private static final ClassValue<List<Field>> SETTABLE_FIELDS = new ClassValue<>() {
+        @Override
+        protected List<Field> computeValue(Class<?> type) {
+            return doCollectSettableFields(type, true);
+        }
+    };
+
+    /**
+     * The settable fields of a class that a construction adapter builds, but for those in a package that is not
+     * open to the engine, such as a JDK superclass's, which stay as the adapter built them.
+     */
+    private static final ClassValue<List<Field>> OPEN_SETTABLE_FIELDS = new ClassValue<>() {
+        @Override
+        protected List<Field> computeValue(Class<?> type) {
+            return doCollectSettableFields(type, false);
+        }
+    };
+
+    /**
+     * Classloader-aware cache of record component metadata per record class.
+     */
+    private static final ClassValue<RecordMeta> RECORD_META = new ClassValue<>() {
+        @Override
+        protected RecordMeta computeValue(Class<?> type) {
+            return buildRecordMeta(type);
+        }
+    };
+
+    private record RecordMeta(RecordComponent[] components, Field[] backingFields, Class<?>[] paramTypes) {}
+
+    private static final class ModuleAccessException extends RuntimeException {
+
+        private static final long serialVersionUID = 1L;
+
+        private final Class<?> declaringType;
+
+        private ModuleAccessException(Class<?> declaringType) {
+            super("Module does not open " + declaringType.getPackageName());
+            this.declaringType = declaringType;
+        }
+
+        private Class<?> getDeclaringType() {
+            return declaringType;
+        }
+    }
+
+    private final Class<T> type;
+    private final ObjectGeneratorConfig config;
+    private final @Nullable ObjectPool pool;
+    private final UniqueFieldTracker uniqueFieldTracker;
+    private final int depth;
+    private final @Nullable Long generationSeed;
+    private final @Nullable Random topLevelSeedSequence;
+    private final Map<TypeVariable<?>, Type> typeBindings;
+    private final String objectPath;
+
+    // ── Public constructors ───────────────────────────────────────────────────
+
+    /**
+     * Creates a generator with default configuration.
+     */
+    public ObjectGenerator(Class<T> type) {
+        this(type, ObjectGeneratorConfig.from(GeneratorConfig.defaults()), 0, null, null, new UniqueFieldTracker());
+    }
+
+    /**
+     * Creates a generator that uses the shared root configuration defaults.
+     */
+    public ObjectGenerator(Class<T> type, GeneratorConfig config) {
+        this(type, ObjectGeneratorConfig.from(config), 0, null, null, new UniqueFieldTracker());
+    }
+
+    /**
+     * Package-private bridge for object-local config adapters.
+     */
+    ObjectGenerator(Class<T> type, ObjectGeneratorConfig config) {
+        this(type, config, 0, null, null, new UniqueFieldTracker());
+    }
+
+    /**
+     * Internal constructor — depth and pool are managed by {@link FieldGeneratorResolver}.
+     */
+    ObjectGenerator(
+            Class<T> type,
+            ObjectGeneratorConfig config,
+            int depth,
+            @Nullable ObjectPool pool,
+            @Nullable Long generationSeed,
+            UniqueFieldTracker uniqueFieldTracker) {
+        this(
+                type,
+                config,
+                depth,
+                pool,
+                generationSeed,
+                uniqueFieldTracker,
+                ResolvedType.bindingsFor(Objects.requireNonNull(type, "type must not be null")));
+    }
+
+    ObjectGenerator(
+            Class<T> type,
+            ObjectGeneratorConfig config,
+            int depth,
+            @Nullable ObjectPool pool,
+            @Nullable Long generationSeed,
+            UniqueFieldTracker uniqueFieldTracker,
+            Map<? extends TypeVariable<?>, ? extends Type> typeBindings) {
+        this(type, config, depth, pool, generationSeed, uniqueFieldTracker, typeBindings, typePath(type));
+    }
+
+    ObjectGenerator(
+            Class<T> type,
+            ObjectGeneratorConfig config,
+            int depth,
+            @Nullable ObjectPool pool,
+            @Nullable Long generationSeed,
+            UniqueFieldTracker uniqueFieldTracker,
+            Map<? extends TypeVariable<?>, ? extends Type> typeBindings,
+            String objectPath) {
+        this.type = Objects.requireNonNull(type, "type must not be null");
+        this.config = Objects.requireNonNull(config, "config must not be null");
+        this.depth = depth;
+        this.pool = pool;
+        this.generationSeed = generationSeed;
+        this.uniqueFieldTracker = Objects.requireNonNull(uniqueFieldTracker, "uniqueFieldTracker must not be null");
+        this.typeBindings = Map.copyOf(Objects.requireNonNull(typeBindings, "typeBindings must not be null"));
+        this.objectPath = Objects.requireNonNull(objectPath, "objectPath must not be null");
+        this.topLevelSeedSequence = depth == 0 && pool == null
+                ? config.getGeneratorConfig().getSeed().isPresent()
+                        ? config.getGeneratorConfig().createRandom()
+                        : null
+                : null;
+    }
+
+    // ── Generator<T> ─────────────────────────────────────────────────────────
+
+    /**
+     * Returns the JVM default value for a primitive type, or {@code null} for reference types.
+     * Used when a record component is excluded from generation.
+     * Each primitive type gets its exact wrapper to satisfy {@link java.lang.reflect.Constructor#newInstance}.
+     */
+    private static @Nullable Object defaultForType(Class<?> type) {
+        if (type == boolean.class) return false;
+        if (type == byte.class) return (byte) 0;
+        if (type == short.class) return (short) 0;
+        if (type == int.class) return 0;
+        if (type == long.class) return 0L;
+        if (type == float.class) return 0.0f;
+        if (type == double.class) return 0.0;
+        if (type == char.class) return '\0';
+        return null;
+    }
+
+    private static boolean isDefaultValue(@Nullable Object value, Class<?> type) {
+        if (!type.isPrimitive()) return value == null;
+        return Objects.equals(value, defaultForType(type));
+    }
+
+    // ── Record population ─────────────────────────────────────────────────────
+
+    @Override
+    public T generate() {
+        if (depth == 0 && pool == null) {
+            // Fresh pool for each top-level generation call to prevent cross-call leakage.
+            ObjectGenerator<T> scoped = new ObjectGenerator<>(
+                    type,
+                    config,
+                    0,
+                    new ObjectPool(config.getObjectPoolSize()),
+                    nextGenerationSeed(),
+                    uniqueFieldTracker,
+                    typeBindings,
+                    objectPath);
+            return GenerationReporter.inSession(config, scoped::generateWithPool);
+        }
+        return generateWithPool();
+    }
+
+    /**
+     * Populates an existing mutable instance in place using this generator's configuration.
+     *
+     * <p>Records are not supported because they are immutable after construction.
+     */
+    T populate(T instance) {
+        Objects.requireNonNull(instance, "instance must not be null");
+        if (!type.isInstance(instance)) {
+            throw new IllegalArgumentException("instance must be assignable to " + type.getName() + ", got "
+                    + instance.getClass().getName());
+        }
+        if (type.isRecord()) {
+            throw new IllegalArgumentException("populate(existing) does not support record types: " + type.getName());
+        }
+        if (depth == 0 && pool == null) {
+            ObjectGenerator<T> scoped = new ObjectGenerator<>(
+                    type,
+                    config,
+                    0,
+                    new ObjectPool(config.getObjectPoolSize()),
+                    nextGenerationSeed(),
+                    uniqueFieldTracker,
+                    typeBindings,
+                    objectPath);
+            return GenerationReporter.inSession(config, () -> scoped.populateWithPool(instance));
+        }
+        return populateWithPool(instance);
+    }
+
+    // ── Class population ──────────────────────────────────────────────────────
+
+    private T generateWithPool() {
+        var contextualFactory = config.getContextualTypeOverride(type);
+        if (contextualFactory.isPresent()) {
+            return generateFromRootFactory(
+                    FixtureRuleKind.CONTEXT_TYPE_OVERRIDE,
+                    "contextual type override",
+                    () -> contextualFactory
+                            .get()
+                            .generate(new GenerationContext(
+                                    "$root", type, depth, objectPath, type, type, config.getGeneratorConfig())));
+        }
+        var factory = config.getTypeOverride(type);
+        if (factory.isPresent()) {
+            return generateFromRootFactory(FixtureRuleKind.TYPE_OVERRIDE, "type override", factory.get()::generate);
+        }
+        if (SealedTypes.isAbstract(type)) {
+            Class<?> mapped = config.resolveSubtype(type);
+            if (mapped != type) {
+                return generateAs(mapped);
+            }
+            if (SealedTypes.isSealed(type, uniqueFieldTracker)) {
+                return generateSealed();
+            }
+        }
+
+        if (depth == 0) {
+            reportRoot(type, null, null);
+        }
+        FieldGeneratorResolver resolver = new FieldGeneratorResolver(
+                config,
+                Objects.requireNonNull(pool, "pool must not be null"),
+                uniqueFieldTracker,
+                generationSeed,
+                typeBindings,
+                objectPath);
+        SemanticCoherenceAdjuster coherenceAdjuster =
+                new SemanticCoherenceAdjuster(config, uniqueFieldTracker, generationSeed, depth, objectPath);
+        try {
+            return type.isRecord()
+                    ? generateRecordInstance(resolver, coherenceAdjuster)
+                    : generateClass(resolver, coherenceAdjuster);
+        } catch (InvocationTargetException e) {
+            throw constructionFailure(e.getTargetException());
+        } catch (ReflectiveOperationException e) {
+            throw constructionFailure(e);
+        } catch (ModuleAccessException e) {
+            throw moduleAccessFailure(e.getDeclaringType(), e);
+        }
+    }
+
+    // Lenient mode deliberately returns the null fallback of a failed root factory from a
+    // non-null generator contract; that documented behavior is kept rather than widened.
+    @SuppressWarnings("NullAway")
+    private T generateFromRootFactory(FixtureRuleKind kind, String factoryKind, Supplier<?> factory) {
+        try {
+            Object value = factory.get();
+            if (value == null) {
+                throw new IllegalStateException(factoryKind + " returned null");
+            }
+            if (!type.isInstance(value)) {
+                throw new IllegalArgumentException(
+                        factoryKind + " returned " + value.getClass().getName() + " for " + type.getName());
+            }
+            reportRoot(type, kind, null);
+            return type.cast(value);
+        } catch (RuntimeException factoryFailure) {
+            String path = typePath();
+            GenerationFailureContext context = new GenerationFailureContext(
+                    GenerationFailureCategory.CUSTOM_GENERATOR,
+                    GenerationOperation.CONSTRUCT,
+                    path,
+                    type,
+                    type.getTypeName(),
+                    depth,
+                    -1);
+            ObjectGenerationFailurePolicy failurePolicy = new ObjectGenerationFailurePolicy(
+                    config.isIgnoreErrors(), config.getGeneratorConfig().getGenerationFailureListener());
+            Object fallback = failurePolicy.handle(
+                    new ObjectGenerationException(
+                            "Root " + factoryKind + " failed for '" + path + "' (declared type " + type.getTypeName()
+                                    + ", depth " + depth + ")",
+                            context,
+                            factoryFailure),
+                    null);
+            reportRoot(type, kind, GenerationDecision.FAILURE_FALLBACK);
+            return type.cast(fallback);
+        }
+    }
+
+    /**
+     * Generates an interface or abstract root as a concrete class, at this root's path and depth and
+     * from its seed, so that it is generated as a root of that class would be.
+     */
+    private T generateAs(Class<?> concreteType) {
+        return type.cast(new ObjectGenerator<>(
+                        concreteType,
+                        config,
+                        depth,
+                        pool,
+                        generationSeed,
+                        uniqueFieldTracker,
+                        ResolvedType.bindingsFor(concreteType),
+                        objectPath)
+                .generate());
+    }
+
+    /**
+     * Generates a sealed root as one of its concrete subclasses. The choice is drawn from a stream of
+     * its own, so the chosen class is generated from this root's seed. A chosen class with a type
+     * override is generated by it, an enum otherwise gives one of its constants, and any other class
+     * counts as being generated while it is, as a member's choice does, so that its members leave it
+     * out of their own choices while another class remains.
+     */
+    private T generateSealed() {
+        List<Class<?>> subclasses;
+        try {
+            subclasses = SealedTypes.concreteSubclasses(type, config, uniqueFieldTracker);
+        } catch (RuntimeException unsupported) {
+            throw unsupportedRootFailure(unsupported);
+        }
+        Random choice = generationSeed != null
+                ? new Random(GenerationRecipe.deriveChildSeed(generationSeed, sealedStreamIdentity(type)))
+                : config.getGeneratorConfig().createRandom();
+        Class<?> chosen = subclasses.get(choice.nextInt(subclasses.size()));
+        if (chosen.isEnum()
+                && config.getContextualTypeOverride(chosen).isEmpty()
+                && config.getTypeOverride(chosen).isEmpty()) {
+            reportRoot(chosen, null, null);
+            Object[] constants = chosen.getEnumConstants();
+            return type.cast(constants[choice.nextInt(constants.length)]);
+        }
+        // The chosen class's own type, the key a member's choice of it and a member of that type check.
+        ObjectPool activePool = Objects.requireNonNull(pool, "pool must not be null");
+        String poolTypeSignature = ResolvedType.resolvedSignature(chosen, ResolvedType.bindingsFor(chosen));
+        activePool.begin(chosen, poolTypeSignature);
+        T value = generateAs(chosen);
+        activePool.end(chosen, poolTypeSignature, value);
+        return value;
+    }
+
+    private ObjectGenerationException unsupportedRootFailure(RuntimeException cause) {
+        String path = typePath();
+        GenerationFailureContext context = new GenerationFailureContext(
+                GenerationFailureCategory.UNSUPPORTED_TYPE,
+                GenerationOperation.GENERATE,
+                path,
+                type,
+                type.getTypeName(),
+                depth,
+                -1);
+        return new ObjectGenerationException(
+                "Unsupported type at '" + path + "' (declared type " + type.getTypeName() + ", depth " + depth + ")",
+                context,
+                cause);
+    }
+
+    /**
+     * Reports the object this generator builds as a root, or with a type override at any depth, when a
+     * report listener is set; a nested object has the entry of the member that holds it.
+     */
+    private void reportRoot(
+            Class<?> generated, @Nullable FixtureRuleKind factory, @Nullable GenerationDecision decision) {
+        GenerationReporter reporter = reporter();
+        if (reporter != null) {
+            reporter.root(objectPath, generated, factory, decision);
+        }
+    }
+
+    /** The reporter, or {@code null} without a listener, in which case it reads no metadata at all. */
+    private @Nullable GenerationReporter reporter() {
+        if (config.getGeneratorConfig().getGenerationReportListener().isEmpty()) {
+            return null;
+        }
+        return GenerationReporter.of(
+                config,
+                ObjectFieldStreamPlanner.usesNamedChildStreams(
+                        config.getGeneratorConfig().getObjectFieldStreamPolicy(),
+                        generationSeed,
+                        config.hasPortableRecipe()));
+    }
+
+    private ObjectGenerationException constructionFailure(Throwable cause) {
+        String path = typePath();
+        GenerationFailureContext context = new GenerationFailureContext(
+                GenerationFailureCategory.CONSTRUCTION,
+                GenerationOperation.CONSTRUCT,
+                path,
+                type,
+                type.getTypeName(),
+                depth,
+                -1);
+        return new ObjectGenerationException(
+                "Could not construct type at '" + path + "' (declared type " + type.getTypeName() + ", depth " + depth
+                        + ")",
+                context,
+                cause);
+    }
+
+    private ObjectGenerationException moduleAccessFailure(Class<?> declaringType, Throwable cause) {
+        String path = typePath();
+        String packageName = declaringType.getPackageName();
+        String sourceModuleName = declaringType.getModule().getName();
+        String directive = "opens " + packageName + " to io.github.frikit.krandom;";
+        GenerationFailureContext context = new GenerationFailureContext(
+                GenerationFailureCategory.REFLECTION,
+                GenerationOperation.CONSTRUCT,
+                path,
+                declaringType,
+                type.getTypeName(),
+                depth,
+                -1);
+        return new ObjectGenerationException(
+                "Could not access reflective members of type at '" + path + "' (declared type "
+                        + type.getTypeName() + ", depth " + depth + "). Module '" + sourceModuleName
+                        + "' must open package '" + packageName + "' to kRandom; add '" + directive
+                        + "' to module-info.java",
+                context,
+                cause);
+    }
+
+    private String typePath() {
+        return objectPath;
+    }
+
+    static String typePath(Class<?> valueType) {
+        String simpleName = valueType.getSimpleName();
+        return simpleName.isBlank() ? valueType.getName() : simpleName;
+    }
+
+    private T populateWithPool(T instance) {
+        FieldGeneratorResolver resolver = new FieldGeneratorResolver(
+                config,
+                Objects.requireNonNull(pool, "pool must not be null"),
+                uniqueFieldTracker,
+                generationSeed,
+                typeBindings,
+                objectPath);
+        try {
+            populateClass(
+                    instance,
+                    resolver,
+                    new SemanticCoherenceAdjuster(config, uniqueFieldTracker, generationSeed, depth, objectPath),
+                    collectSettableFields(type),
+                    config.isOverrideDefaultInitialization(),
+                    Set.of(),
+                    Map.of(),
+                    List.of());
+            return instance;
+        } catch (ModuleAccessException e) {
+            throw moduleAccessFailure(e.getDeclaringType(), e);
+        }
+    }
+
+    private @Nullable Long nextGenerationSeed() {
+        return topLevelSeedSequence != null ? Long.valueOf(topLevelSeedSequence.nextLong()) : generationSeed;
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private T generateRecordInstance(FieldGeneratorResolver resolver, SemanticCoherenceAdjuster coherenceAdjuster)
+            throws ReflectiveOperationException {
+        RecordMeta meta = RECORD_META.get(type);
+        RecordComponent[] components = meta.components();
+        Field[] backingFields = meta.backingFields();
+
+        @Nullable Object[] args = new @Nullable Object[components.length];
+        for (int i = 0; i < components.length; i++) {
+            RecordComponent comp = components[i];
+            if (config.shouldExclude(backingFields[i])) {
+                args[i] = defaultForType(comp.getType());
+            } else {
+                args[i] = resolver.resolveAndGenerateMember(
+                        comp.getGenericType(),
+                        comp.getType(),
+                        comp.getName(),
+                        type,
+                        depth,
+                        backingFields[i],
+                        memberStreamIdentity(type, "record", comp.getName()));
+            }
+        }
+        coherenceAdjuster.adjustRecordArguments(type, components, backingFields, args);
+
+        Constructor<T> canonical = type.getDeclaredConstructor(meta.paramTypes());
+        ensureAccessible(canonical, type);
+        try {
+            return canonical.newInstance(args);
+        } catch (IllegalArgumentException argumentMismatch) {
+            // An override or provider produced a value the canonical constructor cannot accept.
+            throw constructionFailure(argumentMismatch);
+        }
+    }
+
+    private static RecordMeta buildRecordMeta(Class<?> recordType) {
+        RecordComponent[] components = recordType.getRecordComponents();
+        Class<?>[] paramTypes =
+                Arrays.stream(components).map(RecordComponent::getType).toArray(Class[]::new);
+        Map<String, Field> fieldsByName =
+                Arrays.stream(recordType.getDeclaredFields()).collect(Collectors.toMap(Field::getName, field -> field));
+        Field[] backingFields = Arrays.stream(components)
+                .map(c -> Objects.requireNonNull(
+                        fieldsByName.get(c.getName()),
+                        "record backing field missing for " + recordType.getName() + "." + c.getName()))
+                .toArray(Field[]::new);
+        return new RecordMeta(components, backingFields, paramTypes);
+    }
+
+    private T generateClass(FieldGeneratorResolver resolver, SemanticCoherenceAdjuster coherenceAdjuster)
+            throws ReflectiveOperationException {
+        Optional<ObjectConstructionAdapter> adapter =
+                uniqueFieldTracker.constructionAdapter(type, ObjectGenerator::constructionAdapterFor);
+        if (adapter.isPresent()) {
+            Set<String> constructorMembers = new HashSet<>();
+            T instance = constructWithAdapter(adapter.get(), resolver, constructorMembers);
+            if (!isHeldStatically(instance)) {
+                // The adapter stands in for the constructor. The other mutable fields, which no parameter the
+                // adapter asked about names, are filled as for a class built through its constructor, where the
+                // engine can open them; one it cannot, such as a JDK superclass's, stays as the adapter built it.
+                List<Field> otherFields = OPEN_SETTABLE_FIELDS.get(type).stream()
+                        .filter(field -> !constructorMembers.contains(field.getName()))
+                        .toList();
+                populateClass(instance, resolver, coherenceAdjuster, otherFields, true, Set.of(), Map.of(), List.of());
+            }
+            return instance;
+        }
+        if (requiresKotlinConstructionAdapter(type)) {
+            throw new ReflectiveOperationException("Immutable Kotlin type " + type.getName()
+                    + " requires the krandom-kotlin-dsl construction adapter");
+        }
+        validateConstructibleType();
+        List<Field> settableFields = collectSettableFields(type);
+        Set<String> overriddenConstructorMembers = new HashSet<>();
+        Map<String, @Nullable Object> trackedConstructorArguments = new HashMap<>();
+        List<@Nullable Object> constructorArguments = new ArrayList<>();
+        // may throw ReflectiveOperationException for throwing constructors
+        T instance =
+                instantiate(resolver, overriddenConstructorMembers, trackedConstructorArguments, constructorArguments);
+        populateClass(
+                instance,
+                resolver,
+                coherenceAdjuster,
+                settableFields,
+                true,
+                overriddenConstructorMembers,
+                trackedConstructorArguments,
+                constructorArguments);
+        return instance;
+    }
+
+    /**
+     * Whether a static field holds this very instance, as the one instance of a Kotlin object or companion object
+     * is held. Such an instance is shared, so it is left as it is. A field is read only where reading it starts
+     * no class: any field of the instance's class or a superclass, which the instance has started, whatever type
+     * it is declared with, as an object's {@code INSTANCE} is one; and the one field of the class that encloses
+     * it that Kotlin keeps a companion object in, named after the companion object's class and declared with it,
+     * as kotlin-reflect reads it. Reading any other field of an enclosing class could start that class. A field
+     * in a package that is not open to the engine, such as a JDK superclass's, cannot be read, and is passed over.
+     */
+    private static boolean isHeldStatically(Object instance) {
+        Class<?> instanceType = instance.getClass();
+        Stream<Field> own = Stream.<Class<?>>iterate(
+                        instanceType, owner -> owner != Object.class, owner -> owner.getSuperclass())
+                .flatMap(owner -> Arrays.stream(owner.getDeclaredFields()));
+        Stream<Field> companion = Stream.ofNullable(instanceType.getDeclaringClass())
+                .flatMap(host -> Arrays.stream(host.getDeclaredFields()))
+                .filter(field ->
+                        field.getName().equals(instanceType.getSimpleName()) && field.getType() == instanceType);
+        return Stream.concat(own, companion)
+                .filter(field -> Modifier.isStatic(field.getModifiers())
+                        && field.getType().isInstance(instance))
+                .filter(Field::trySetAccessible)
+                .anyMatch(field -> staticValue(field) == instance);
+    }
+
+    private static @Nullable Object staticValue(Field field) {
+        try {
+            return field.get(null);
+        } catch (IllegalAccessException e) {
+            throw new IllegalStateException(
+                    "Field should be accessible: " + field.getDeclaringClass().getSimpleName() + "." + field.getName(),
+                    e);
+        }
+    }
+
+    /**
+     * Constructs the type through the adapter, adding to {@code constructorMembers} the name of each parameter it
+     * resolves or asks about.
+     */
+    private T constructWithAdapter(
+            ObjectConstructionAdapter adapter, FieldGeneratorResolver resolver, Set<String> constructorMembers) {
+        try {
+            Object value = adapter.construct(new ObjectConstructionContext<>(
+                    type,
+                    typePath(),
+                    type,
+                    depth,
+                    (genericType, rawType, memberName, element) -> {
+                        constructorMembers.add(memberName);
+                        // A field predicate override reaches the argument through the field behind it.
+                        Supplier<@Nullable Object> argument = () -> resolver.resolveAndGenerateMember(
+                                genericType,
+                                rawType,
+                                memberName,
+                                type,
+                                depth,
+                                element,
+                                predicateField(memberName, rawType),
+                                memberStreamIdentity(type, "constructor", memberName));
+                        // The adapter names the type's own parameters, as Kotlin metadata does where no name was
+                        // compiled, so the argument meets the constraints of the field it fills too.
+                        return element instanceof Parameter parameter
+                                        && parameter.getDeclaringExecutable().getDeclaringClass() == type
+                                ? BeanValidationSupport.withNamedParameter(parameter, memberName, argument)
+                                : argument.get();
+                    },
+                    (memberName, rawType) -> {
+                        constructorMembers.add(memberName);
+                        return hasExplicitConstructionOverride(memberName, rawType);
+                    },
+                    memberName -> {
+                        constructorMembers.add(memberName);
+                        return isExcludedConstructionMember(memberName);
+                    }));
+            if (value == null) {
+                throw new IllegalStateException(adapter.getClass().getName() + " returned null");
+            }
+            if (!type.isInstance(value)) {
+                throw new IllegalArgumentException(adapter.getClass().getName() + " returned "
+                        + value.getClass().getName() + " for " + type.getName());
+            }
+            return type.cast(value);
+        } catch (ObjectGenerationException e) {
+            throw e;
+        } catch (RuntimeException e) {
+            throw constructionFailure(e);
+        }
+    }
+
+    /**
+     * Applies the same field-exclusion rules as record and class population to a constructor
+     * parameter, through the property's backing field declared on the type or a superclass.
+     */
+    private boolean isExcludedConstructionMember(String memberName) {
+        // A name exclusion applies to the member itself, whether or not a field backs it.
+        if (config.getGeneratorConfig().isObjectFieldNameExcluded(memberName)) {
+            return true;
+        }
+        Field property = constructionField(memberName);
+        return property != null && config.shouldExclude(property);
+    }
+
+    /**
+     * The field that a field predicate override matches for a constructor parameter: the field behind it, where
+     * it has the parameter's type, so that the override's value fits the argument.
+     */
+    private @Nullable Field predicateField(String memberName, Class<?> rawType) {
+        Field property = constructionField(memberName);
+        return property != null && property.getType() == rawType ? property : null;
+    }
+
+    /**
+     * The field behind a constructor parameter: the nearest one with its name, on the type or a superclass. An
+     * interface, which a construction adapter may build, has no superclass to look in.
+     */
+    private @Nullable Field constructionField(String memberName) {
+        for (Class<?> current = type; current != null && current != Object.class; current = current.getSuperclass()) {
+            try {
+                return current.getDeclaredField(memberName);
+            } catch (NoSuchFieldException notDeclaredHere) {
+                // Keep looking in the superclass.
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Whether an override targets this field itself, by owner type and name or by field predicate. Such
+     * an override replaces a non-default initializer even when default initialization is preserved;
+     * type-level overrides keep the initializer.
+     */
+    private boolean hasExplicitFieldOverride(Field field) {
+        Class<?> ownerType = field.getDeclaringClass();
+        String fieldName = field.getName();
+        return config.getContextualFieldOverride(ownerType, fieldName).isPresent()
+                || config.getFieldOverride(ownerType, fieldName).isPresent()
+                || config.getContextualFieldPredicateOverride(field).isPresent()
+                || config.getFieldPredicateOverride(field).isPresent();
+    }
+
+    /** Whether a constructor argument named {@code memberName} is produced by an owner-and-name override. */
+    private boolean hasByNameOverride(String memberName) {
+        return config.getContextualFieldOverride(type, memberName).isPresent()
+                || config.getFieldOverride(type, memberName).isPresent();
+    }
+
+    /**
+     * Whether an override targets a constructor parameter that an adapter resolves: by the member's name, by a
+     * field predicate that matches the field behind it, where that field has the parameter's type, or by the
+     * parameter's type.
+     */
+    private boolean hasExplicitConstructionOverride(String memberName, Class<?> rawType) {
+        Field property = predicateField(memberName, rawType);
+        return config.getContextualFieldOverride(type, memberName).isPresent()
+                || config.getFieldOverride(type, memberName).isPresent()
+                || (property != null
+                        && (config.getContextualFieldPredicateOverride(property).isPresent()
+                                || config.getFieldPredicateOverride(property).isPresent()))
+                || config.getContextualTypeOverride(rawType).isPresent()
+                || config.getTypeOverride(rawType).isPresent();
+    }
+
+    static @Nullable ObjectConstructionAdapter constructionAdapterFor(Class<?> requestedType) {
+        for (ObjectConstructionAdapter adapter : ServiceLoader.load(ObjectConstructionAdapter.class)) {
+            if (adapter.supports(requestedType)) {
+                return adapter;
+            }
+        }
+        return null;
+    }
+
+    static boolean requiresKotlinConstructionAdapter(Class<?> requestedType) {
+        if (!isKotlinType(requestedType)) {
+            return false;
+        }
+        if (Modifier.isAbstract(requestedType.getModifiers()) || hasKotlinObjectInstance(requestedType)) {
+            return true;
+        }
+        for (Field field : requestedType.getDeclaredFields()) {
+            int modifiers = field.getModifiers();
+            if (!Modifier.isStatic(modifiers) && !field.isSynthetic() && Modifier.isFinal(modifiers)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isKotlinType(Class<?> requestedType) {
+        return Arrays.stream(requestedType.getDeclaredAnnotations())
+                .anyMatch(annotation -> annotation.annotationType().getName().equals("kotlin.Metadata"));
+    }
+
+    private static boolean hasKotlinObjectInstance(Class<?> requestedType) {
+        try {
+            Field instance = requestedType.getDeclaredField("INSTANCE");
+            return Modifier.isStatic(instance.getModifiers()) && instance.getType() == requestedType;
+        } catch (NoSuchFieldException ignored) {
+            return false;
+        }
+    }
+
+    /**
+     * Fills the settable fields of an instance, then aligns them. A field that keeps a non-default value is not
+     * generated: the coherence pass leaves it as the class set it, unless it holds one of the
+     * {@code constructorArguments} that generation produced, which it aligns as a generated value.
+     */
+    private void populateClass(
+            T instance,
+            FieldGeneratorResolver resolver,
+            SemanticCoherenceAdjuster coherenceAdjuster,
+            List<Field> settableFields,
+            boolean allowOverwriteExisting,
+            Set<String> overriddenConstructorMembers,
+            Map<String, @Nullable Object> trackedConstructorArguments,
+            List<@Nullable Object> constructorArguments) {
+        ObjectGenerationFailurePolicy failurePolicy = new ObjectGenerationFailurePolicy(
+                config.isIgnoreErrors(), config.getGeneratorConfig().getGenerationFailureListener());
+        Set<Field> keptFields = new HashSet<>();
+        for (Field field : settableFields) {
+            if (config.shouldExclude(field)) continue; // exclusion check
+            ensureAccessible(field, field.getDeclaringClass());
+            // A field override replaces an initializer, but a field whose constructor argument was
+            // already produced by its by-name override is not generated a second time.
+            if (!config.isOverrideDefaultInitialization()
+                    && hasNonDefaultValue(instance, field)
+                    && (overriddenConstructorMembers.contains(field.getName()) || !hasExplicitFieldOverride(field))) {
+                if (!holdsArgument(instance, field, constructorArguments)) {
+                    keptFields.add(field);
+                }
+                continue;
+            }
+            // The field's new value replaces its constructor argument, which is no longer in use.
+            if (trackedConstructorArguments.containsKey(field.getName())
+                    && UniqueFieldTracker.fieldKey(type, field.getName())
+                            .equals(UniqueFieldTracker.fieldKey(field.getDeclaringClass(), field.getName()))) {
+                uniqueFieldTracker.release(
+                        UniqueFieldTracker.fieldKey(type, field.getName()),
+                        trackedConstructorArguments.get(field.getName()));
+            }
+            Object value = resolver.resolveAndGenerateMember(
+                    field.getGenericType(),
+                    field.getType(),
+                    field.getName(),
+                    field.getDeclaringClass(),
+                    depth,
+                    field,
+                    memberStreamIdentity(field.getDeclaringClass(), "field", field.getName()));
+            try {
+                field.set(instance, value);
+            } catch (IllegalAccessException | IllegalArgumentException e) {
+                String fieldContext = "field '" + field.getDeclaringClass().getSimpleName()
+                        + "." + field.getName() + "' (declared type "
+                        + field.getGenericType().getTypeName() + ", depth " + depth + ")";
+                GenerationFailureContext failureContext = new GenerationFailureContext(
+                        GenerationFailureCategory.ASSIGNMENT,
+                        GenerationOperation.ASSIGN,
+                        objectPath + "." + field.getName(),
+                        field.getDeclaringClass(),
+                        field.getGenericType().getTypeName(),
+                        depth,
+                        -1);
+                failurePolicy.handle(
+                        new ObjectGenerationException("Could not set " + fieldContext, failureContext, e), null);
+                // The member's entry told how its value was made; this one tells that the member kept the
+                // value it held instead.
+                GenerationReporter reporter = reporter();
+                if (reporter != null) {
+                    reporter.failedStore(objectPath + "." + field.getName(), field.getType(), GenerationStep.KEPT);
+                }
+            }
+        }
+        // The coherence pass leaves a kept value as the class set it, unless it is blank.
+        coherenceAdjuster.adjustInstance(type, instance, settableFields, allowOverwriteExisting, keptFields);
+    }
+
+    /**
+     * Instantiate {@code type} without populating fields.
+     *
+     * <p>Attempts to use a no-arg constructor first (public or package-private). In safe mode, one
+     * unambiguous declared constructor is resolved when no no-arg constructor exists; its parameters
+     * are resolved by name when the type was compiled with {@code -parameters} and as
+     * {@code constructorArg<index>} otherwise. The unsafe compatibility policy instead preserves the
+     * legacy Objenesis fallback.
+     *
+     * <p>Any {@link ReflectiveOperationException} thrown by {@link Constructor#newInstance}
+     * (e.g. {@link java.lang.reflect.InvocationTargetException} when the constructor body
+     * throws) propagates to the caller and is wrapped by {@link #generate()}.
+     *
+     * @throws ReflectiveOperationException if the constructor is found but throws at runtime
+     */
+    private T instantiate(
+            FieldGeneratorResolver resolver,
+            Set<String> overriddenConstructorMembers,
+            Map<String, @Nullable Object> trackedConstructorArguments,
+            List<@Nullable Object> constructorArguments)
+            throws ReflectiveOperationException {
+        try {
+            Constructor<T> ctor = type.getDeclaredConstructor();
+            ensureAccessible(ctor, type);
+            return ctor.newInstance();
+        } catch (NoSuchMethodException ignored) {
+            if (config.getConstructionPolicy() == ObjectConstructionPolicy.UNSAFE_CONSTRUCTOR_BYPASS) {
+                return OBJENESIS.newInstance(type);
+            }
+            return invokeUniqueDeclaredConstructor(
+                    resolver, overriddenConstructorMembers, trackedConstructorArguments, constructorArguments);
+        }
+    }
+
+    private void validateConstructibleType() throws ReflectiveOperationException {
+        int modifiers = type.getModifiers();
+        boolean unsupported = type.isArray()
+                || type.isPrimitive()
+                || type.isEnum()
+                || type.isAnnotation()
+                || type.isInterface()
+                || Modifier.isAbstract(modifiers)
+                || type.isLocalClass()
+                || type.isAnonymousClass()
+                || (type.isMemberClass() && !Modifier.isStatic(modifiers));
+        if (unsupported) {
+            throw new ReflectiveOperationException("Construction policy " + config.getConstructionPolicy()
+                    + " does not support root type " + type.getName());
+        }
+    }
+
+    /** Builds the type through its one constructor, and adds the arguments it generated to {@code constructorArguments}. */
+    @SuppressWarnings("unchecked")
+    private T invokeUniqueDeclaredConstructor(
+            FieldGeneratorResolver resolver,
+            Set<String> overriddenConstructorMembers,
+            Map<String, @Nullable Object> trackedConstructorArguments,
+            List<@Nullable Object> constructorArguments)
+            throws ReflectiveOperationException {
+        Constructor<?>[] candidates = type.getDeclaredConstructors();
+        if (candidates.length != 1) {
+            throw new ReflectiveOperationException("Construction policy " + ObjectConstructionPolicy.SAFE_CONSTRUCTORS
+                    + " requires one unambiguous declared constructor for " + type.getName()
+                    + "; found " + candidates.length);
+        }
+
+        Constructor<T> constructor = (Constructor<T>) candidates[0];
+        ensureAccessible(constructor, type);
+        Parameter[] parameters = constructor.getParameters();
+        @Nullable Object[] arguments = new @Nullable Object[parameters.length];
+        for (int index = 0; index < parameters.length; index++) {
+            Parameter parameter = parameters[index];
+            // Parameter names are only available when the owner was compiled with -parameters.
+            // With names, a parameter behaves like the field it initializes: by-name overrides,
+            // exclusions, and semantic resolution apply. Without names it is addressed by position.
+            String memberName = parameter.isNamePresent() ? parameter.getName() : "constructorArg" + index;
+            if (parameter.isNamePresent() && hasByNameOverride(memberName)) {
+                overriddenConstructorMembers.add(memberName);
+            }
+            if (parameter.isNamePresent() && isExcludedConstructionMember(memberName)) {
+                arguments[index] = defaultForType(parameter.getType());
+                continue;
+            }
+            uniqueFieldTracker.forgetLastAdded();
+            arguments[index] = resolver.resolveAndGenerateMember(
+                    parameter.getParameterizedType(),
+                    parameter.getType(),
+                    memberName,
+                    type,
+                    depth,
+                    parameter,
+                    memberStreamIdentity(type, "constructor", memberName));
+            // Only a requested name gets a replaced argument's value back. Any other name keeps it as used.
+            if (uniqueFieldTracker.addedLast(UniqueFieldTracker.fieldKey(type, memberName), arguments[index])
+                    && config.isRequestedUniqueField(memberName)) {
+                trackedConstructorArguments.put(memberName, arguments[index]);
+            }
+        }
+        constructorArguments.addAll(Arrays.asList(arguments));
+        try {
+            return constructor.newInstance(arguments);
+        } catch (IllegalArgumentException argumentMismatch) {
+            // An override or provider produced a value the constructor cannot accept.
+            throw constructionFailure(argumentMismatch);
+        }
+    }
+
+    /**
+     * Collect all instance fields that can be set after construction:
+     * non-static and non-final. Walks the full class hierarchy up to
+     * (but not including) {@link Object}. Results are cached per class.
+     */
+    private List<Field> collectSettableFields(Class<?> clazz) {
+        return SETTABLE_FIELDS.get(clazz);
+    }
+
+    private static String memberStreamIdentity(Class<?> ownerType, String kind, String memberName) {
+        return "object|owner=" + ownerType.getName().length() + ':' + ownerType.getName() + "|kind=" + kind + "|member="
+                + memberName.length() + ':' + memberName;
+    }
+
+    private static String sealedStreamIdentity(Class<?> sealedType) {
+        return "object|sealed=" + sealedType.getName().length() + ':' + sealedType.getName();
+    }
+
+    /**
+     * The settable fields of {@code clazz}. One in a package that is not open to the engine fails generation
+     * where {@code failOnClosed} is true, and is left out where it is false. An interface, which a construction
+     * adapter may build, has no superclass and no field to fill.
+     */
+    private static List<Field> doCollectSettableFields(Class<?> clazz, boolean failOnClosed) {
+        List<Field> fields = new ArrayList<>();
+        Class<?> current = clazz;
+        while (current != null && current != Object.class) {
+            // getDeclaredFields() order is JVM-implementation-specific; sort each class's fields by
+            // name so per-field seed allocation (and thus seeded output) is reproducible across JDK
+            // builds, vendors, and instrumentation agents. Hierarchy order (subclass before
+            // superclass) is already deterministic via getSuperclass().
+            Field[] declared = current.getDeclaredFields();
+            Arrays.sort(declared, Comparator.comparing(Field::getName));
+            for (Field f : declared) {
+                int mods = f.getModifiers();
+                if (Modifier.isStatic(mods)) continue; // class-level, not instance
+                if (Modifier.isFinal(mods)) continue; // immutable after construction
+                if (failOnClosed) {
+                    ensureAccessible(f, f.getDeclaringClass());
+                } else if (!f.trySetAccessible()) {
+                    continue; // in a package not open to the engine
+                }
+                fields.add(f);
+            }
+            current = current.getSuperclass();
+        }
+        return Collections.unmodifiableList(fields);
+    }
+
+    private static void ensureAccessible(AccessibleObject member, Class<?> declaringType) {
+        if (!member.trySetAccessible()) {
+            throw new ModuleAccessException(declaringType);
+        }
+    }
+
+    private boolean hasNonDefaultValue(T instance, Field field) {
+        return !isDefaultValue(currentValue(instance, field), field.getType());
+    }
+
+    /**
+     * Whether the field holds one of the arguments that generation gave the constructor, as the constructor stored
+     * it: the argument itself, or for a primitive field its value, which reads back in a box of its own.
+     */
+    private boolean holdsArgument(T instance, Field field, List<@Nullable Object> constructorArguments) {
+        Object value = currentValue(instance, field);
+        for (Object argument : constructorArguments) {
+            if (argument == value || (field.getType().isPrimitive() && Objects.equals(argument, value))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private @Nullable Object currentValue(T instance, Field field) {
+        try {
+            return field.get(instance);
+        } catch (IllegalAccessException e) {
+            throw new IllegalStateException(
+                    "Field should be accessible: " + field.getDeclaringClass().getSimpleName() + "." + field.getName(),
+                    e);
+        }
+    }
+
+    // ── Diagnostic ───────────────────────────────────────────────────────────
+
+    @Override
+    public String toString() {
+        return "ObjectGenerator{type=" + type.getName() + ", depth=" + depth + ", maxDepth=" + config.getMaxDepth()
+                + "}";
+    }
+}

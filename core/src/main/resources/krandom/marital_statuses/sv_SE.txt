@@ -1,0 +1,10 @@
+# Marital status values, one per line.
+Ogift
+Gift
+Skild
+Änka/änkling
+Separerad
+Sambo
+Ogiltigförklarat äktenskap
+Tidigare sambo
+Efterlevande sambo

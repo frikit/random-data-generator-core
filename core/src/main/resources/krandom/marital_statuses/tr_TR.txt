@@ -1,0 +1,10 @@
+# Marital status values, one per line.
+Bekâr
+Evli
+Boşanmış
+Dul
+Ayrı yaşıyor
+Resmî nikâhsız birliktelik
+İptal edilmiş evlilik
+Sona ermiş resmî nikâhsız birliktelik
+Sağ kalan partner

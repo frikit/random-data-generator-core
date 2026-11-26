@@ -1,0 +1,10 @@
+# Marital status values, one per line.
+Single
+Married
+Divorced
+Widowed
+Separated
+Domestic Partnership
+Annulled
+Dissolved Partnership
+Surviving Partner

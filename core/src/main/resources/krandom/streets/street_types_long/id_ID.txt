@@ -1,0 +1,19 @@
+Jalan
+Gang
+Kampung
+Desa
+Kelurahan
+Kecamatan
+Kavling
+Blok
+Komplek
+Pasar
+Taman
+Industri
+Lorong
+Dusun
+Perumahan
+Boulevard
+Jalan Raya
+Jalan Tol
+Simpang

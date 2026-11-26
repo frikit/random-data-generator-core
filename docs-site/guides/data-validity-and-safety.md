@@ -1,0 +1,339 @@
+---
+layout: page
+title: Data Validity and Safety
+permalink: /guides/data-validity-and-safety/
+---
+
+# Data Validity and Safety
+
+Generated values are test fixtures, not production identities or credentials. Use these terms precisely when selecting or documenting a generator:
+
+| Term | Meaning |
+|:---|:---|
+| **Format-valid** | Matches the documented shape, alphabet, length, or regular expression |
+| **Checksum-valid** | Also satisfies a published check-digit/checksum algorithm |
+| **Semantically plausible** | Related fields and ranges look realistic for their stated domain |
+| **Test-safe / non-routable** | Uses an official test range/value or a deliberately non-routable space |
+
+These levels are not interchangeable. A checksum-valid credit-card number, IBAN, or national ID is not automatically test-safe and must not be sent to payment processors, identity systems, KYC services, account-creation endpoints, or other external production systems.
+
+## Payment-card contract
+
+`CreditCardGenerator` and `CreditCardInfoGenerator` use the typed
+`PaymentCardSafetyPolicy` in `GeneratorConfig`:
+
+| Policy | Properties | Intended use |
+|:---|:---|:---|
+| `TEST_SAFE_NON_ROUTABLE` (default) | Issuer-shaped and format-valid; deliberately fails Luhn | Formatting, UI, and validation-rejection fixtures |
+| `STRIPE_SANDBOX` | Stripe's published interactive test-card number for the selected supported card type | Stripe sandbox tests with Stripe test API keys only |
+| `CHECKSUM_VALID` | Issuer-shaped and Luhn-valid; not a sandbox credential | Isolated validator fixtures only |
+
+The selected policy is included in a portable generation recipe. `CHECKSUM_VALID` never means
+that a number is real, processor-approved, or safe to send externally. `STRIPE_SANDBOX` is not
+portable to another processor and must never be used with live Stripe keys. Use the payment
+processor's documented sandbox values and test credentials for integration tests.
+
+## Phone-number contract
+
+`PhoneNumberSafetyPolicy.TEST_SAFE_WHERE_AVAILABLE` is the default for locale-style output. It
+draws from ranges that the numbering authority reserves for fiction and never assigns to a
+subscriber, for the two numbering plans whose fiction range kRandom implements:
+
+- North American Numbering Plan locales, which resolve to the United States or Canada (`en_US`,
+  `en_CA`, `fr_CA`, and the language-only English fallback), use
+  [NANPA's fictional, non-working `555-0100` through `555-0199` line-number range](https://www.nanpa.com/numbering/555-line-numbers).
+- United Kingdom locales (`en_GB`, and any other locale whose country is `GB`) use
+  [Ofcom's telephone numbers for TV and radio drama](https://www.ofcom.org.uk/phones-and-broadband/phone-numbers/numbers-for-drama):
+  mobile numbers `07700 900000` to `07700 900999`, and landline numbers from the 16 geographic
+  blocks below. Ofcom sets these numbers aside for drama and does not allocate them to
+  communications providers for their customers, and says it will not in the foreseeable future.
+
+| Area | Landline drama range |
+|:---|:---|
+| Leeds | `0113 496 0000` to `0113 496 0999` |
+| Sheffield | `0114 496 0000` to `0114 496 0999` |
+| Nottingham | `0115 496 0000` to `0115 496 0999` |
+| Leicester | `0116 496 0000` to `0116 496 0999` |
+| Bristol | `0117 496 0000` to `0117 496 0999` |
+| Reading | `0118 496 0000` to `0118 496 0999` |
+| Birmingham | `0121 496 0000` to `0121 496 0999` |
+| Edinburgh | `0131 496 0000` to `0131 496 0999` |
+| Glasgow | `0141 496 0000` to `0141 496 0999` |
+| Liverpool | `0151 496 0000` to `0151 496 0999` |
+| Manchester | `0161 496 0000` to `0161 496 0999` |
+| London | `020 7946 0000` to `020 7946 0999` |
+| Tyneside, Durham and Sunderland | `0191 498 0000` to `0191 498 0999` |
+| Northern Ireland | `028 9649 6000` to `028 9649 6999` |
+| Cardiff | `029 2018 0000` to `029 2018 0999` |
+| No area | `01632 960000` to `01632 960999` |
+
+Every other `SupportedLocale` country uses its own national format; other locales remain realistic
+but unclassified, as do custom phone-number templates and generated MSISDNs. A locale whose country
+has no built-in format uses the first catalog country of its language (for example `de_LI` uses the
+German format), and an unknown language uses `en_US`. `REALISTIC_UNCLASSIFIED` explicitly preserves
+the prior realistic-looking behavior, including realistic NANP exchanges and UK area codes and
+mobile prefixes, without a safety claim.
+
+Neither allocation makes the same digits safe in another country's numbering plan: NANPA's range
+is fictional only within the NANP, and Ofcom's ranges only within the United Kingdom. Use a
+country-specific official test allocation only when the generator documents it.
+
+## Email-domain contract
+
+`EmailDomainPolicy.TEST_SAFE_RESERVED_DOMAINS` is the default for every domain a generator chooses
+on its own. Personal addresses from `EmailGenerator` (and the contact, person, and profile payloads
+built on it) use only the [RFC 2606](https://www.rfc-editor.org/rfc/rfc2606) reserved domains
+`example.com`, `example.net`, and `example.org`; company addresses from `CompanyEmailGenerator`
+keep the company-derived label, cut to the 63 characters a label may hold, under the reserved
+`.test` top-level domain (for example `jsmith@acme.test`). None of these can reach a real mailbox.
+Local parts are always lowercase ASCII: Latin-script names lose their diacritics (German umlauts
+expand to `ae`/`oe`/`ue`), Cyrillic and Greek names are transliterated, and names in other scripts
+are replaced by romanized names for the locale's language.
+
+The same rule holds when an object has related fields. A generated email takes the domain of a
+sibling such as `domain` or `url` only if that domain is reserved or was set through an override, and
+a domain derived from `companyName` ends in `.test` (`hello@acmelabs.test`), with a label of the name's
+ASCII letters and digits, cut to the 63 characters a label may hold. An `@Email` field uses
+`example.com`, `example.net` or `example.org`, or a `.test` domain when its `@Size` rules those out.
+The policy covers only domains a generator chooses: values from your own overrides, rules and
+randomizers, and domains in an `@Email` `regexp` or a `@Pattern`, are used as written.
+
+Every address a generator builds on its own passes Hibernate Validator's `@Email`, in every supported
+locale and under each email-domain and network-safety policy. An `@Email` field takes a value from
+its `regexp` or a `@Pattern` only in the shape Hibernate Validator accepts for a dot-atom address. The
+local part has at most 64 characters: letters, digits, non-ASCII characters and the symbols
+``!#$%&'*+/=?^_`{|}~-``, with a dot only between two of them. The domain is labels of the same
+characters, with a dash only inside a label, joined by single dots, at most 63 characters a label and
+255 in all once converted to ASCII. As in Hibernate Validator, the domain needs no dot. A quoted local
+part or an address literal, such as `a@[192.0.2.1]`, which Hibernate Validator also accepts, is drawn
+again.
+
+`EmailDomainPolicy.REALISTIC_UNCLASSIFIED` restores the popular mailbox-provider domains
+(`gmail.com`, `yahoo.com`, …) and realistic company top-level domains for isolated fixtures that
+never send mail. The free-provider methods (`generateFreeEmail`, `getFreeEmailProvider`,
+`generateFreeEmailDomain`) require that opt-in and fail closed otherwise. A domain passed
+explicitly, such as `generate("corp.test")`, is always used verbatim. The selected policy is
+recorded in portable generation recipes as `email.domain-policy`.
+
+## Network contract
+
+`NetworkSafetyPolicy.TEST_SAFE_RESERVED` is the default for every network destination a generator
+chooses on its own. The promise is a reserved fixture destination, not transport isolation: nothing assigns these
+addresses and names to a real public host, but a network can still route them or resolve them
+privately, so keep integration tests away from them when that matters.
+
+- IPv4 addresses are the `.1` to `.254` hosts of the [RFC 5737](https://www.rfc-editor.org/rfc/rfc5737)
+  documentation blocks `192.0.2.0/24`, `198.51.100.0/24`, and `203.0.113.0/24`, 762 addresses in all.
+- IPv6 addresses are inside the [RFC 3849](https://www.rfc-editor.org/rfc/rfc3849) documentation prefix
+  `2001:db8::/32`.
+- `generateCidr()` stays entirely inside those blocks, with a prefix of 24 to 30 for IPv4 and 32 to 128
+  for IPv6. It is an address and a prefix length, so its host bits are not cleared.
+- Domains, hostnames, URLs, URIs, company URLs, avatar URLs, and social links use names under the
+  [RFC 2606](https://www.rfc-editor.org/rfc/rfc2606) / [RFC 6761](https://www.rfc-editor.org/rfc/rfc6761)
+  `.test` top-level domain, with their usual labels and shape: `digital.test`, `m.digital.test`,
+  `https://www.digital.test/files?id=525`, `https://api.dicebear.test/8.x/identicon/svg?seed=vsmith553`,
+  and `https://github.test/vsmith553`.
+- MAC addresses have the locally administered bit set and the multicast bit clear, so a value cannot
+  collide with a vendor's prefix.
+
+The same holds for the object engine, JSON Schema formats, and providers. A generated `url`, `website`,
+`domain`, or `companyUrl` takes the domain of a sibling only if that domain is reserved or was set
+through an override of a `domain`, `url`, or `companyUrl` member, and a domain derived from `companyName`
+ends in `.test`, under a label of at most 63 characters. An object's `URI` and `URL` members are reserved
+too.
+
+An explicit argument is used verbatim: `generate("com")` ends in `.com`, and `generateWithDomain` and
+the `domain` of `URLOptions` name the destination. A supplied username, subdomain, scheme, path, company
+name, or size does not, and a URL built from one stays under `.test`: a scheme or subdomain that would
+end the host, such as `real.com/`, fails with `IllegalArgumentException`. A company URL built from a supplied
+name, as `CompanyUrlGenerator.generateFromCompanyName(String)` builds it, keeps the name's ASCII letters and
+digits as its label, cut to the 63 characters a label may hold. Values from your own overrides,
+rules, and randomizers are used as written. A top-level domain or a label alone is vocabulary rather than
+a destination, so `getTLD()`, `generateTld()`, `getPopularTLD()`, and `generateName()` draw as usual.
+`generatePublic()` and `generatePrivate()` return addresses that can identify real hosts and internal
+services, so they require `REALISTIC_UNCLASSIFIED` and otherwise fail with `IllegalStateException`.
+
+A unique generator never leaves these addresses: `Generators.unique(Generators.ofIPv4(config))` and a
+requested unique member fail when the addresses run out. Their retries are bounded, by 10,000 draws for
+each value and by `objectUniquenessMaxAttempts` for a member, so they can fail before every address has
+been used. For an exhaustive allocation, put the addresses in a `FinitePoolGenerator`, which emits each
+one once. A unique `domain`, `url`, or `companyUrl` that the coherence pass derives numbers a subdomain,
+such as `https://n1.www.acme.test`, so it stays reserved too.
+
+`NetworkSafetyPolicy.REALISTIC_UNCLASSIFIED` restores random public addresses, realistic top-level
+domains, and real avatar and social-network hosts, without a safety claim. It suits isolated fixtures that never
+connect to what they generate. User-agent strings are outside this contract: they describe a client
+rather than a destination, and the crawler ones name their vendors' pages as real crawlers do. The
+selected policy is recorded in portable generation recipes as `network.safety-policy`.
+
+## Regular-expression contract
+
+`RegexGenerator` generates from `java.util.regex` syntax, and `Generators.ofRegex`, `regexify`,
+`@Pattern`, `@Email(regexp = ...)`, and a JSON Schema `pattern` all use it. For any pattern, either
+every generated value satisfies `Pattern.compile(pattern).matcher(value).matches()`, or the
+constructor throws `IllegalArgumentException`. A malformed pattern fails with `java.util.regex`'s own
+error, and a valid pattern that cannot be honoured fails with a message naming the construct and its
+position. A value never silently fails to match.
+
+A value matches the whole pattern, so `^` and `$` add nothing to it: they hold at its start and end.
+It also passes an unanchored search, which is how JSON Schema reads `pattern`.
+
+Supported:
+
+- Literals, including supplementary characters. Escaped characters: a backslash before anything but
+  an ASCII letter or digit, plus `\t`, `\n`, `\r`, `\f`, `\a`, `\e`, `\xhh`, `\x{h...h}`, and `\uhhhh`.
+- Quoting with `\Q...\E`, or with `\Q` to the end of the pattern, read as `java.util.regex` reads it:
+  a quantifier after `\E` repeats the last quoted character, so `\Qab\E+` generates `ab`, `abb`, and
+  so on.
+- `.`, `\D`, `\W`, and `\S`, which draw from printable ASCII, and `\d`, `\w`, and `\s`, which draw
+  from ASCII.
+- Character properties: `\p{Name}` and its negation `\P{Name}` for the names in the table below, and
+  `\pL`, `\pN`, `\PL`, and `\PN`. A negated property draws from the printable ASCII characters outside
+  it, so `\P{ASCII}` and `\P{Print}`, which leave none, are rejected.
+- Character classes: `[abc]`, `[a-z]`, and `[^abc]`, with the escapes and properties above as members,
+  and the escapes as range ends, such as `[\w.-]`, `[\p{L}\d]`, and `[\x41-\x43]`. A negated class
+  draws from printable ASCII.
+- Quantifiers: `?`, `*`, `+`, `{n}`, `{n,}`, and `{n,m}`, and their lazy forms. A stated count above
+  10,000 is rejected.
+- Groups and alternation: `(a|b)`, `(?:a|b)`, `(?<name>a|b)`, and `|` at any level.
+- Case-insensitive matching: `(?i)` and `(?-i)`, which hold to the end of the enclosing group, and
+  `(?i:X)` and `(?-i:X)`, which hold inside it. As in `java.util.regex` without `UNICODE_CASE`, only
+  ASCII letters match their other case: a generated ASCII letter can take either case, and every other
+  character keeps the one written, so `(?i)ab` generates `ab`, `aB`, `Ab`, and `AB`, and `(?i)é` only
+  `é`. A negated class or property under `(?i)` leaves out both cases of each letter it excludes.
+- `^`, `\A`, `$`, `\Z`, `\z`, and `\b`, where they hold on every value the pattern can generate. That
+  is checked at construction: `\bfoo\b` and `\b(foo|bar)\b` are accepted, while `a^b`,
+  `\b[a-z -]+\b`, and `\b\w*\b`, whose values could start with a space or be empty, are rejected. A
+  non-ASCII character can count as a word character or not, so a `\b` beside one is rejected.
+
+| Property | Draws from |
+|---|---|
+| `Lower`, `Upper` | `a-z` and `A-Z` |
+| `Alpha`, `Digit`, `Alnum` | `a-zA-Z`, `0-9`, and both |
+| `Punct` | The 32 ASCII punctuation characters |
+| `Graph` | U+0021 to U+007E |
+| `Print`, `ASCII` | U+0020 to U+007E, printable ASCII |
+| `Blank` | Space and tab |
+| `Space` | Space, `\t`, `\n`, U+000B, `\f`, and `\r` |
+| `XDigit` | `0-9a-fA-F` |
+| `L`, `IsAlphabetic` | `A-Z`, `a-z`, the Latin-1 letters U+00C0 to U+00D6, U+00D8 to U+00F6, and U+00F8 to U+00FF, the Greek letters U+0391 to U+03A1, U+03A3 to U+03A9, and U+03B1 to U+03C9, and the Cyrillic letters U+0410 to U+044F |
+| `Lu` | The uppercase ones: `A-Z`, U+00C0 to U+00D6, U+00D8 to U+00DE, U+0391 to U+03A1, U+03A3 to U+03A9, and U+0410 to U+042F |
+| `Ll` | The lowercase ones: `a-z`, U+00DF to U+00F6, U+00F8 to U+00FF, U+03B1 to U+03C9, and U+0430 to U+044F |
+| `IsLatin` | `A-Z`, `a-z`, U+00C0 to U+00D6, U+00D8 to U+00F6, and U+00F8 to U+00FF |
+| `Nd`, `IsDigit` | `0-9`, the Arabic-Indic digits U+0660 to U+0669, and the Devanagari digits U+0966 to U+096F |
+| `N` | The `Nd` sample, and U+00B2, U+00B3, U+00B9, and U+00BC to U+00BE |
+
+The ASCII properties draw from everything they match, and the Unicode ones from these fixed samples.
+Names are spelled as in the table: any other property, including another spelling that
+`java.util.regex` accepts, such as `\p{IsLower}`, `\p{Islatin}`, or `\p{gc=Lu}`, is rejected with a
+message naming it.
+
+Rejected at construction:
+
+- Lookahead, lookbehind, atomic groups, and backreferences.
+- Inline flags other than `i`, such as `(?s)`, `(?u)`, and `(?-m)`, with a message naming each one.
+- Possessive quantifiers such as `a++`, and a quantifier with nothing to repeat such as `a{2}{3}` or
+  `(?i){2}`.
+- `\B`, `\G`, `\b{g}`, `\R`, `\X`, `\h`, `\H`, `\v`, `\V`, `\N`, `\c`, and octal `\0`.
+- In a character class: `&&` intersection, a nested class, a supplementary character, and negating
+  all of printable ASCII.
+- A surrogate on its own or in an escape. Write a supplementary character as itself or as
+  `\x{h...h}`.
+- A pattern too large to generate, as described below.
+
+`*`, `+`, and `{n,}` have no upper bound in a pattern, so generation gives them one: they repeat at
+most 10 times, or `n` times when that is more. A `GeneratorConfig` whose minimum string length is
+above 5 raises 10 to twice that length, up to 10,000, so that a generated string can reach it. A JSON
+Schema `minLength` or a `@Size` minimum does the same.
+
+With those repetitions, the constructor works out the longest value a pattern can generate and the
+most steps generating one can take. It rejects the pattern, naming it and the limit, if a value could
+be longer than 1,000,000 characters, counted as UTF-16 `char`s, or take more than 10,000,000 steps,
+where each element of the pattern, such as a character, class, assertion, group, or quantifier, counts
+one step each time it is generated. A value is built in one buffer, so these limits bound its memory as
+well as its time. `(a{1000}){1000}` generates 1,000,000 characters and is accepted, while
+`((a{10000}){10000}){10000}` is rejected rather than run out of memory, and
+`(((){10000}){10000}){10000}`, which generates nothing, rather than loop for hours. A raised repetition
+counts: `(a+){1000}` is accepted by default and with a minimum string length of up to 500, and rejected
+above that.
+
+The limits are fixed, and no setting raises them. A pattern over them has to repeat less, or, where a
+minimum string length raised the repetition, run under a smaller one. A JSON Schema `pattern` over them
+is rejected with its schema path, and a `@Pattern` over them is not a source, like any pattern outside
+the supported syntax.
+
+## UTC-offset contract
+
+`ZoneOffsetGenerator`, `OffsetTimeGenerator`, `OffsetDateTimeGenerator`, and the `ZoneOffset`,
+`OffsetTime`, and `OffsetDateTime` members of generated objects, including semantic fields such as
+`createdAt`, draw an offset from `-12:00` to `+14:00` in 15-minute steps.
+
+That range and grid are a fixture convention covering the offsets in actual use: every offset in the
+JDK's time-zone rules from 1980 on falls inside them. They are not a standard. RFC 3339 excludes
+seconds from an offset but imposes neither this range nor this grid, and JSON imposes nothing. They
+are not a list of observed offsets either: no zone's rules have used many of the steps, such as
+`+01:15`, since 1980.
+
+A drawn offset has no seconds, so its ISO-8601 text ends in `Z`, `+hh:mm`, or `-hh:mm`. Jackson 3 reads
+that text as a `java.util.Date`, and rejects an offset with seconds, such as `+07:17:55`.
+
+`OffsetDateTimeGenerator.between(start, end)` bounds the instant, whatever offsets the bounds have, and
+re-expresses the result at a drawn offset. `objectDateRange` bounds the local date of an `OffsetDateTime`
+member. Aligning `updatedAt` with `createdAt` afterwards keeps the instant, and reads it at UTC, or at the
+nearest offset under this rule that gives a date in the range: see
+[date ranges and coherence]({{ '/guides/object-generation/' | relative_url }}#date-ranges-and-coherence).
+
+Other values do not draw an offset, and keep the one they are given:
+
+- A `ZonedDateTime`, a `Calendar`, and `TimezoneGenerator.generateOffset()` use a random zone's rules,
+  so an old date can fall outside the convention. `Africa/Monrovia` is `-00:44:30` before 1972,
+  `Pacific/Kiritimati` is `-10:40` before October 1979, and in 1880 most zones have an offset with
+  seconds.
+- A value generated for `@Past`, `@Future`, or a similar constraint uses the configured clock's zone.
+
+## Instant contract
+
+`InstantGenerator` and the `Instant` members of generated objects are generated by drawing a UTC day
+and then a time within it, to the millisecond. The default range runs from `1970-01-01T00:00:00Z`
+through `2100-12-31T23:59:59.999Z`. A date range, from `new InstantGenerator(min, max)` or
+`objectDateRange`, runs from the start of its first UTC day through the end of its last, so a maximum
+date includes that whole day.
+
+This improves coverage: time-of-day logic gets exercised, and two instants on one day usually differ.
+It does not guarantee distinct instants. Request `objectUniqueField` when the values of a field must
+not repeat.
+
+The coherence pass can then replace a generated value. Milliseconds are the precision of
+`java.util.Date`, so aligning `updatedAt` with an `Instant` `createdAt` loses nothing in that type or in
+any finer one. An `updatedAt` that holds only a date, a `LocalDate` or a `java.sql.Date`, stays on or
+after `createdAt`'s UTC date, as it does beside a `LocalDateTime` `createdAt`, so its midnight can be
+before `createdAt`. The pass also writes midnight UTC: an `Instant` aligned with a sibling that holds
+only a date is at midnight, and so is a `birthDate` derived from a constrained or overridden `age`.
+
+A semantic `createdAt` or `updatedAt` with no configured range ends on the clock's date and includes
+that whole UTC day, as `LocalDateTime`, `Date`, and `Timestamp` fields do, so it can be later than a
+fixed clock's current time. An `Instant` generated for `@Past` stays before the clock, and one for
+`@PastOrPresent` does not pass it, in either semantic mode: where the coherence pass would give it such a
+value from a sibling, the sibling moves to it instead.
+
+## Fail-closed finance and identity contracts
+
+The following output families are `DISABLED` by default. Calling `generate()` without the matching
+explicit policy fails fast instead of silently producing a plausible external identifier.
+
+| Family | `GeneratorConfig` policy | Available explicit mode |
+|:---|:---|:---|
+| Banking: ABA routing, account, BBAN, BIC, IBAN, and bank payloads | `bankingSafetyPolicy` | `REALISTIC_UNCLASSIFIED` |
+| National IDs and CPF | `nationalIdSafetyPolicy` | `REALISTIC_UNCLASSIFIED` |
+| Passport and driving license | `identityDocumentSafetyPolicy` | `REALISTIC_UNCLASSIFIED` |
+| CNPJ and EIN | `businessTaxIdentifierSafetyPolicy` | `REALISTIC_UNCLASSIFIED` |
+| Cryptocurrency destination addresses | `cryptoAddressSafetyPolicy` | `REALISTIC_UNCLASSIFIED` |
+| ISIN and CUSIP | `securitiesIdentifierSafetyPolicy` | `REALISTIC_UNCLASSIFIED` |
+
+`REALISTIC_UNCLASSIFIED` supports isolated compatibility fixtures only. It is not a claim of
+non-routability, unassigned status, or safety for a production system. Phone numbers remain
+separately classified by `PhoneNumberSafetyPolicy`; the default is test-safe only where the
+generator documents an official allocation.
+
+Keep generated personal-looking values out of logs and failure reports, and use the external
+provider's official sandbox credentials, test instruments, or testnet for every integration test.

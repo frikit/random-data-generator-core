@@ -1,0 +1,25 @@
+Via
+Corso
+Piazza
+Viale
+Strada
+Largo
+Borgo
+Via Centrale
+Piazzale
+Rotonda
+Vicolo
+Calle
+Salita
+Lungomare
+Galleria
+Traversa
+Passaggio
+Circonvallazione
+Sottopassaggio
+Vialetto
+Stradone
+Vico
+Lungolago
+Lungotevere
+Riviera

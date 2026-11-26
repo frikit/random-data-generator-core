@@ -1,0 +1,207 @@
+name: tests + coverage
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+permissions:
+  contents: read
+
+# A newer push to a pull request cancels its superseded run; every push to main keeps its own run.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# Job timeouts are 4-5x the slowest successful runs observed in September 2026 (build 7 min,
+# native image 4.5 min, mutation 6 min, examples 6 min), so they only stop hung jobs. The API
+# compatibility job, added in November 2026, took 15 s locally from a clean build with cached
+# dependencies; its 10 minutes leave room for a cold dependency cache until CI runs are measured.
+jobs:
+  build:
+    name: Test & Coverage (Java ${{ matrix.java }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        java: [ '17', '21', '25' ]
+        include:
+          # Each entry runs the tests of the Java modules on its Java (-PtestJavaVersion; the build's
+          # toolchain is Java 21). Gradle needs Java 21 or later, so the Java 17 entry, the oldest Java
+          # those modules run on (javaMinimumVersion in gradle.properties), builds on Java 21.
+          - java: '17'
+            build-java: '21'
+            gradle-args: '-PtestJavaVersion=17'
+          - java: '21'
+            build-java: '21'
+          - java: '25'
+            build-java: '25'
+            gradle-args: '-PtestJavaVersion=25'
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+
+      # Set up before the build JDK, which stays JAVA_HOME; Gradle finds both as toolchains.
+      - name: Set up Java 17 (Temurin) for the tests
+        if: matrix.java == '17'
+        uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Set up Java ${{ matrix.build-java }} (Temurin)
+        uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        with:
+          java-version: ${{ matrix.build-java }}
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      - name: Verify documentation facts
+        run: ./scripts/verify_documentation_facts.sh
+
+      - name: Verify repository Markdown links
+        run: ./scripts/verify_markdown_links.sh
+
+      - name: Verify pinned build inputs
+        run: ./scripts/verify_build_input_pins.sh
+
+      - name: Build and verify
+        run: ./gradlew clean build check ${{ matrix.gradle-args }} --stacktrace --console=plain --max-workers=1 --no-daemon -x :benchmarks:test -x :benchmarks:check
+
+      - name: Verify module boundaries
+        run: ./scripts/verify_module_boundaries.sh
+
+      # CycloneDX attaches direct-BOM artifacts lazily. Keep SBOM generation in
+      # its own Gradle invocation so the build graph cannot consume that variant
+      # before the plugin wires its output artifacts.
+      - name: Generate and verify release SBOMs
+        run: ./gradlew verifyReleaseSboms --stacktrace --console=plain --max-workers=1 --no-daemon
+
+      - name: Upload coverage to Codecov
+        if: matrix.java == '21' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: core/build/jacoco/jacoco.xml
+          # Integration modules enforce their own line/branch floors; only core is gated at 100% and uploaded.
+          disable_search: true
+          fail_ci_if_error: false
+
+  # The build job's `check` runs the same check; this job reports it on its own, so a pull request
+  # that breaks the public API of the apiBaselineVersion release shows which declarations it breaks.
+  api-compatibility:
+    name: Public API Compatibility (Java 21)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+
+      - name: Set up Java 21 (Temurin)
+        uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      - name: Check the public API against the apiBaselineVersion release
+        run: ./gradlew checkApiCompatibility --continue --console=plain --max-workers=1 --no-daemon
+
+  native-image:
+    name: GraalVM Native Image Smoke (Java 25)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+
+      - name: Set up GraalVM with Native Image
+        uses: graalvm/setup-graalvm@60e76998d25690099182b796e99b8804da582d90 # v1.6.10
+        with:
+          java-version: '25'
+          distribution: graalvm
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cache: gradle
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      - name: Build and run native-image smoke fixture
+        env:
+          KRANDOM_REQUIRE_NATIVE_IMAGE: "true"
+        run: ./scripts/verify_native_image.sh
+
+  mutation-pilot:
+    name: Critical-path Mutation (Java 21)
+    runs-on: ubuntu-latest
+    # The object engine, GeneratorConfig and GenerationRecipe joined the mutation targets on
+    # 2026-09-27, roughly tripling the analysis (about 7 minutes locally); re-measure on CI.
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+
+      - name: Set up Java 21 (Temurin)
+        uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      - name: Measure critical-path mutation baseline
+        run: ./gradlew :core:pitest --console=plain --max-workers=1 --no-daemon
+
+  examples:
+    name: Examples (Local Maven Snapshot)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+
+      # For the Java 17 run of the Java + Gradle example; set up before Java 21, which stays JAVA_HOME.
+      - name: Set up Java 17 (Temurin)
+        uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Set up Java 21 (Temurin)
+        uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Make gradle wrappers executable
+        run: chmod +x gradlew examples/java-gradle/gradlew
+
+      - name: Verify examples against the locally published snapshot
+        env:
+          KRANDOM_REQUIRE_JAVA17: "true"
+        run: ./scripts/verify_examples_local.sh

@@ -1,0 +1,98 @@
+---
+layout: page
+title: Migration from easy-random
+permalink: /guides/migration-from-easy-random/
+---
+
+# Migration from easy-random
+
+Use this mapping to move Easy Random (`org.jeasy.random`) code to kRandom. Easy Random describes
+itself as maintenance-only; kRandom requires Java 17 or later from 3.1.0, and Java 21 before it. kRandom covers the common structural
+object-generation surface and adds native Bean Validation and semantic fixture generation, but it
+does not promise the same seeded object values.
+
+## Install
+
+```kotlin
+dependencies {
+    implementation("io.github.frikit:krandom-core:4.1.0")
+}
+```
+
+## API mapping
+
+| easy-random | kRandom equivalent |
+|---|---|
+| `new EasyRandom().nextObject(User.class)` | `Generators.ofObject(User.class).generate()` |
+| `easyRandom.objects(User.class, 10)` | `Generators.ofObject(User.class).generateList(10)` |
+| `easyRandom.objects(User.class, 10).stream()` | `Generators.ofObject(User.class).stream().limit(10)` |
+| `new EasyRandomParameters()` | `GeneratorConfig.builder()` |
+| `.seed(42L)` | `.seed(42L)` |
+| `.stringLengthRange(3, 16)` | `.stringLength(3, 16)` |
+| `.collectionSizeRange(1, 5)` | `.collectionSize(1, 5)` |
+| `.randomizationDepth(3)` | `.objectMaxDepth(3)` |
+| `.dateRange(min, max)` | `.objectDateRange(min, max)` |
+| `.randomize(String.class, randomizer)` | `.objectOverride(String.class, generator)` |
+| `.randomize(named("email"), randomizer)` | `.objectOverride(User.class, "email", generator)` or `.objectOverride(fieldPredicate, generator)` |
+| `.excludeField(named("password"))` | `.objectExcludeField("password")` or `.objectExclude(fieldPredicate)` |
+| `.excludeType(t -> ...)` | `.objectExcludeType(...)` |
+| `.scanClasspathForConcreteTypes(true)` | `.objectSubtype(declaredType, implementationType)` per abstract type |
+| `@org.jeasy.random.annotation.Randomizer` | `@io.github.frikit.krandom.generator.object.Randomizer` |
+| `@org.jeasy.random.annotation.Exclude` | `@io.github.frikit.krandom.generator.object.Exclude` |
+| `easy-random-bean-validation` module | built into `krandom-core` (21 Jakarta constraints honored) |
+
+## Before and after
+
+easy-random:
+
+```java
+EasyRandomParameters parameters = new EasyRandomParameters()
+    .seed(42L)
+    .randomize(FieldPredicates.named("email"), () -> "owner@example.test")
+    .excludeField(FieldPredicates.named("password"));
+
+User user = new EasyRandom(parameters).nextObject(User.class);
+```
+
+kRandom:
+
+```java
+GeneratorConfig config = GeneratorConfig.builder()
+    .seed(42L)
+    .objectOverride(User.class, "email", () -> "owner@example.test")
+    .objectExcludeField("password")
+    .build();
+
+User user = Generators.ofObject(User.class, config).generate();
+```
+
+## What kRandom does differently (on purpose)
+
+- **Semantic field values.** Where easy-random fills `firstName` with random
+  characters, kRandom resolves common field names to realistic values (real
+  names, valid emails, real cities) via the semantic field registry. Set
+  `objectSemanticRegistry` to extend or disable per project.
+- **Records and constructor-based classes** use safe constructors by default. A type factory is the
+  preferred migration for a class with no usable constructor; explicit
+  `UNSAFE_CONSTRUCTOR_BYPASS` preserves the old Objenesis behavior only as an opt-in compatibility
+  path.
+- **Cycle handling** uses an object pool rather than easy-random's depth
+  cutoff alone — circular references resolve to cached instances.
+- **[Unique fields]({{ '/guides/object-generation/' | relative_url }}#unique-fields).** A randomizer may
+  repeat its value on every object. Request a field with `objectUniqueField` when its values must not
+  repeat, and a randomizer that returns a constant for it then fails on the second object.
+
+## Honest gaps
+
+- **`scanClasspathForConcreteTypes(true)`**: kRandom does not scan the
+  classpath to pick implementations for abstract/interface fields. Map each
+  implementation explicitly instead:
+  `.objectSubtype(PaymentMethod.class, CardPayment.class)` — the mapped
+  implementation is then fully populated like any concrete type. A sealed type needs no
+  mapping: it is generated as one of its permitted subclasses, as in
+  [Sealed types]({{ '/guides/object-generation/' | relative_url }}#sealed-types).
+- **ServiceLoader randomizer SPI**: kRandom uses explicitly installed, configuration-scoped
+  `KRandomModule` contributions instead of classpath discovery.
+- **Setter-based population**: kRandom populates via field reflection, not
+  setters. Logic inside setters will not run during generation; use
+  `ObjectFaker.postProcess(...)` when you need it.

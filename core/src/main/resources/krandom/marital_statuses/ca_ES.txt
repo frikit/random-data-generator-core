@@ -1,0 +1,10 @@
+# Marital status values, one per line.
+Solter/a
+Casat/ada
+Divorciat/ada
+Vidu/vídua
+Separat/ada
+Parella de fet
+Matrimoni anul·lat
+Parella de fet dissolta
+Parella de fet supervivent

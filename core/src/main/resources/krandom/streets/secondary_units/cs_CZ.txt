@@ -1,0 +1,34 @@
+byt
+kancelář
+patro
+blok
+sekce
+vchod
+křídlo
+budova
+pokoj
+apartmán
+jednotka
+suterén
+podlaží
+přízemí
+mezipatro
+podkroví
+nadzemní podlaží
+podzemní podlaží
+schodiště
+dveře
+vrata
+brána
+hala
+garáž
+sklep
+balkon
+terasa
+loft
+mezonet
+ateliér
+provozovna
+číslo dveří
+číslo bytu
+číslo jednotky
