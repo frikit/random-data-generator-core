@@ -1,6 +1,6 @@
 # Benchmark Methodology
 
-krandom benchmarks answer separate questions rather than collapsing unlike workloads into one
+random-data-generator benchmarks answer separate questions rather than collapsing unlike workloads into one
 leaderboard:
 
 - **Scalar generation** measures one provider value per invocation.
@@ -17,7 +17,7 @@ does not contain an equivalent workload; it is not a zero score.
 ## Workload fairness
 
 Per-invocation benchmarks measure generation, not setup. Every library reuses state prepared once
-per JMH thread: krandom reuses its `ObjectGenerator`, DataFaker its `Faker`, Easy Random its
+per JMH thread: random-data-generator reuses its `ObjectGenerator`, DataFaker its `Faker`, Easy Random its
 `EasyRandom` instance, and Instancio a prebuilt `Model` created with `Instancio.of(type).toModel()`
 and passed to `Instancio.create(model)`. Instancio's `Instancio.create(type)` shortcut would rebuild
 its API specification on every call and is not used for per-object scores. Bulk benchmarks build

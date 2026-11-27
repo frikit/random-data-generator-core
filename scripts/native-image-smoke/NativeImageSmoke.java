@@ -1,16 +1,16 @@
 /*
- * Copyright (c) 2026 krandom contributors
+ * Copyright (c) 2026 random-data-generator contributors
  *
  * Licensed under the MIT License. See LICENSE in the project root for license information.
  */
-package io.github.frikit.krandom.smoke;
+package io.github.frikit.rdg.smoke;
 
-import io.github.frikit.krandom.generator.GeneratorConfig;
-import io.github.frikit.krandom.generator.Generators;
-import io.github.frikit.krandom.generator.extension.KRandomModule;
-import io.github.frikit.krandom.generator.extension.KRandomModuleContext;
-import io.github.frikit.krandom.generator.object.ObjectGenerator;
-import io.github.frikit.krandom.generator.provider.ProviderDescriptor;
+import io.github.frikit.rdg.generator.GeneratorConfig;
+import io.github.frikit.rdg.generator.Generators;
+import io.github.frikit.rdg.generator.extension.ExtensionModule;
+import io.github.frikit.rdg.generator.extension.ExtensionModuleContext;
+import io.github.frikit.rdg.generator.object.ObjectGenerator;
+import io.github.frikit.rdg.generator.provider.ProviderDescriptor;
 import java.util.Locale;
 
 /**
@@ -42,14 +42,14 @@ public final class NativeImageSmoke {
 
     private record Person(String name, int age) {}
 
-    private static final class SmokeModule implements KRandomModule {
+    private static final class SmokeModule implements ExtensionModule {
         @Override
         public String id() {
             return "native-image-smoke";
         }
 
         @Override
-        public void configure(KRandomModuleContext context) {
+        public void configure(ExtensionModuleContext context) {
             context.registerProvider(ProviderDescriptor.builder("smoke.provider", String.class, config -> "extension")
                     .build());
         }

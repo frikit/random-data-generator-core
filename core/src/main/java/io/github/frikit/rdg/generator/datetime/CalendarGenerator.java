@@ -1,0 +1,143 @@
+/*
+ * Copyright (c) 2026 random-data-generator contributors
+ *
+ * Licensed under the MIT License. See LICENSE in the project root for license information.
+ */
+package io.github.frikit.rdg.generator.datetime;
+
+import io.github.frikit.rdg.generator.Generator;
+import io.github.frikit.rdg.generator.GeneratorConfig;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.GregorianCalendar;
+import java.util.List;
+import java.util.Objects;
+import java.util.Random;
+
+/**
+ * Generates legacy {@link Calendar} values using the same default temporal range as modern
+ * date/time generators.
+ */
+public final class CalendarGenerator implements Generator<Calendar> {
+
+    private static final int MIN_YEAR = 1970;
+    private static final int MAX_YEAR = 2100;
+    private static final List<ZoneId> ZONE_IDS;
+
+    static {
+        List<ZoneId> zones = new ArrayList<>();
+        for (String id : ZoneId.getAvailableZoneIds()) {
+            zones.add(ZoneId.of(id));
+        }
+        zones.sort(Comparator.comparing(ZoneId::getId));
+        ZONE_IDS = Collections.unmodifiableList(zones);
+    }
+
+    private final Random random;
+    private final @org.jspecify.annotations.Nullable LocalDate rangeMin;
+    private final @org.jspecify.annotations.Nullable LocalDate rangeMax;
+
+    /**
+     * Creates a calendar generator with default configuration.
+     */
+    public CalendarGenerator() {
+        this(GeneratorConfig.defaults());
+    }
+
+    /**
+     * Creates a calendar generator with explicit configuration.
+     *
+     * @param config generator configuration
+     */
+    public CalendarGenerator(GeneratorConfig config) {
+        this(config, null, null);
+    }
+
+    /**
+     * Creates an unseeded calendar generator restricted to the given date range.
+     *
+     * <p>A date-time in a gap in the drawn zone's rules moves forward by the length of the gap. Where that
+     * passes {@code max}, the value is the drawn date-time in UTC instead: {@code Pacific/Apia} skipped
+     * {@code 2011-12-30}, and {@code America/Nuuk} skips 23:00 to midnight on {@code 2024-03-30}.
+     *
+     * @param min earliest date, inclusive
+     * @param max latest date, inclusive
+     */
+    public CalendarGenerator(LocalDate min, LocalDate max) {
+        this(GeneratorConfig.defaults(), min, max);
+    }
+
+    /**
+     * Creates a calendar generator restricted to the given date range.
+     *
+     * <p>A date-time in a gap in the drawn zone's rules moves forward by the length of the gap. Where that
+     * passes {@code max}, the value is the drawn date-time in UTC instead, as for
+     * {@link #CalendarGenerator(LocalDate, LocalDate)}.
+     *
+     * @param min    earliest date, inclusive
+     * @param max    latest date, inclusive
+     * @param config generator configuration
+     */
+    public CalendarGenerator(LocalDate min, LocalDate max, GeneratorConfig config) {
+        this(config, min, max);
+    }
+
+    private CalendarGenerator(
+            GeneratorConfig config,
+            @org.jspecify.annotations.Nullable LocalDate min,
+            @org.jspecify.annotations.Nullable LocalDate max) {
+        Objects.requireNonNull(config, "config must not be null");
+        if ((min == null) != (max == null)) {
+            throw new IllegalArgumentException("min and max must both be provided or both be null");
+        }
+        if (min != null && min.isAfter(max)) {
+            throw new IllegalArgumentException("min must be on or before max");
+        }
+        this.random = config.createRandom();
+        this.rangeMin = min;
+        this.rangeMax = max;
+    }
+
+    /**
+     * Generates a non-lenient {@link GregorianCalendar}.
+     *
+     * @return generated calendar
+     */
+    @Override
+    public Calendar generate() {
+        GregorianCalendar calendar = GregorianCalendar.from(generateZonedDateTime());
+        calendar.setLenient(false);
+        return calendar;
+    }
+
+    private ZonedDateTime generateZonedDateTime() {
+        LocalDate date = rangeMin == null ? generateDefaultDate() : generateRangeDate();
+        LocalTime time = LocalTime.of(random.nextInt(24), random.nextInt(60), random.nextInt(60));
+        LocalDateTime dateTime = LocalDateTime.of(date, time);
+        ZoneId zone = ZONE_IDS.get(random.nextInt(ZONE_IDS.size()));
+        ZonedDateTime zoned = ZonedDateTime.of(dateTime, zone);
+        // As in ZonedDateTimeGenerator, a gap in the zone's rules must not move a value past the range.
+        return rangeMax != null && zoned.toLocalDate().isAfter(rangeMax) ? dateTime.atZone(ZoneOffset.UTC) : zoned;
+    }
+
+    private LocalDate generateDefaultDate() {
+        int year = MIN_YEAR + random.nextInt(MAX_YEAR - MIN_YEAR + 1);
+        int month = 1 + random.nextInt(12);
+        int maxDay = LocalDate.of(year, month, 1).lengthOfMonth();
+        return LocalDate.of(year, month, 1 + random.nextInt(maxDay));
+    }
+
+    private LocalDate generateRangeDate() {
+        long lo = java.util.Objects.requireNonNull(rangeMin).toEpochDay();
+        long hi = java.util.Objects.requireNonNull(rangeMax).toEpochDay();
+        return LocalDate.ofEpochDay(lo + random.nextLong(hi - lo + 1));
+    }
+}

@@ -40,7 +40,7 @@ fi
 
 grep -Eq "^## \[${VERSION//./\\.}\] - [0-9]{4}-[0-9]{2}-[0-9]{2}$" "${CHANGELOG}" ||
     fail "CHANGELOG.md has no dated ${VERSION} release heading"
-grep -Fq "[Unreleased]: https://github.com/frikit/krandom/compare/v${VERSION}...HEAD" "${CHANGELOG}" ||
+grep -Fq "[Unreleased]: https://github.com/frikit/random-data-generator-core/compare/v${VERSION}...HEAD" "${CHANGELOG}" ||
     fail "CHANGELOG.md Unreleased link does not start at v${VERSION}"
 
 # The previous release is the next dated release heading below this one.
@@ -53,8 +53,14 @@ PREVIOUS_VERSION="$(awk -v heading="## [${VERSION}] - " '
         exit
     }
 ' "${CHANGELOG}")"
-[[ -n "${PREVIOUS_VERSION}" ]] || fail "CHANGELOG.md has no dated release heading below ${VERSION}"
-grep -Fq "[${VERSION}]: https://github.com/frikit/krandom/compare/v${PREVIOUS_VERSION}...v${VERSION}" "${CHANGELOG}" ||
+if [[ -z "${PREVIOUS_VERSION}" ]]; then
+    # The first release has no earlier heading: its link names its own tag instead of a comparison.
+    grep -Fq "[${VERSION}]: https://github.com/frikit/random-data-generator-core/releases/tag/v${VERSION}" "${CHANGELOG}" ||
+        fail "CHANGELOG.md has no dated release heading below ${VERSION}, and its ${VERSION} link does not name tag v${VERSION}"
+    echo "Release facts verified: ${VERSION}, the first release (${MODE} mode)."
+    exit 0
+fi
+grep -Fq "[${VERSION}]: https://github.com/frikit/random-data-generator-core/compare/v${PREVIOUS_VERSION}...v${VERSION}" "${CHANGELOG}" ||
     fail "CHANGELOG.md ${VERSION} link does not start at the previous release v${PREVIOUS_VERSION}"
 
 echo "Release facts verified: ${VERSION} after ${PREVIOUS_VERSION} (${MODE} mode)."

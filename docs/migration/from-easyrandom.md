@@ -1,12 +1,12 @@
-# Migrating From EasyRandom To krandom
+# Migrating From EasyRandom To random-data-generator
 
 Easy Random (`org.jeasy.random`) generates structural random object graphs and describes itself as
-maintenance-only. kRandom requires Java 17 or later from 3.1.0, and Java 21 before it, and adds semantic, locale-aware fixture values. Treat migration as a
+maintenance-only. random-data-generator requires Java 17 or later from 3.1.0, and Java 21 before it, and adds semantic, locale-aware fixture values. Treat migration as a
 behavior change rather than expecting identical seeded objects.
 
 > EasyRandom's `EasyRandomParameters` / `FieldPredicates` / `Randomizer` API is
 > the same surface as the k-random reference library. The exhaustive randomizer
-> mapping table in [`k-random-to-krandom.md`](./k-random-to-krandom.md) applies
+> mapping table in [`from-k-random.md`](./from-k-random.md) applies
 > here too — this guide covers the common cases.
 
 ## Why switch
@@ -20,13 +20,13 @@ schema export; Spring Boot / JUnit Jupiter / kotest.
 
 ```kotlin
 dependencies {
-    testImplementation("io.github.frikit:krandom-core:4.1.0")
+    testImplementation("io.github.frikit:random-data-generator-core:1.0.0")
 }
 ```
 
 ## Entry-point mapping
 
-| EasyRandom | krandom |
+| EasyRandom | random-data-generator |
 |---|---|
 | `new EasyRandom()` | `Generators.ofObject(X.class)` |
 | `new EasyRandom(params)` | `Generators.ofObject(X.class, config)` |
@@ -64,7 +64,7 @@ EasyRandomParameters params = new EasyRandomParameters()
 User user = new EasyRandom(params).nextObject(User.class);
 ```
 
-krandom (same shape, but `email`/`city`/… come out realistic, not `"asdlkfj"`):
+random-data-generator (same shape, but `email`/`city`/… come out realistic, not `"asdlkfj"`):
 
 ```java
 GeneratorConfig config = GeneratorConfig.builder()
@@ -78,13 +78,13 @@ User user = Generators.ofObject(User.class, config).generate();
 
 ## Defaults differ
 
-EasyRandom: string length `1..32`, collection size `1..100`. krandom: string
+EasyRandom: string length `1..32`, collection size `1..100`. random-data-generator: string
 length `5..20`, collection size `1..10`, bounded object depth. Set these
 explicitly during migration if your tests depended on the old defaults.
 
 ## Determinism
 
 A seed is scoped to its own library; EasyRandom's exact snapshots are not
-reproduced. The same krandom version + `GeneratorConfig` + call order is
-repeatable. See the full [`k-random mapping`](./k-random-to-krandom.md) and the
+reproduced. The same random-data-generator version + `GeneratorConfig` + call order is
+repeatable. See the full [`k-random mapping`](./from-k-random.md) and the
 [`product roadmap`](../development/market-leadership-roadmap.md) for tracked gaps.

@@ -105,7 +105,7 @@ address in Grand Rapids is in Michigan, with a Grand Rapids ZIP code. The bundle
 | `de_DE` | 115 cities, in all 16 Länder | the Land | the postal code of the city's administrative seat | Destatis Gemeindeverzeichnis, reuse with attribution |
 | `fr_FR` | 107 communes, in 14 régions | the région | up to ten postal codes of the commune | La Poste and Insee, Licence Ouverte 2.0 |
 
-The header of each table in `krandom/postal_places/` records its sources, licence, retrieval date, and
+The header of each table in `rdg/postal_places/` records its sources, licence, retrieval date, and
 checksums, and how its rows were chosen. The tables have these limits:
 
 - `en_GB` has no places in Northern Ireland, because OS Open Names covers Great Britain only, so its
@@ -128,16 +128,16 @@ native locales, for which no table of cities and postal codes from an openly lic
 yet, and the 15 fallback variants. A fallback variant's cities and regions come from another
 country's data, while its postal codes and country are its own: an `en_CA` address has a US city and state
 and a Canadian postal code. `StreetAddressGenerator.generateFullAddress()` names the locale's country in
-every locale. `Krandom.city()` and `Krandom.postalCode()` draw separately, and so do separate
+every locale. `RandomDataGenerator.city()` and `RandomDataGenerator.postalCode()` draw separately, and so do separate
 `address.city`, `address.state`, and `address.postal_code` schema columns; use `Generators.ofAddressInfo`
 or the `address.address_info` provider for an address whose parts belong together.
 
-For a city and a postal code that belong together without the rest of an address, `Krandom.postalLocality()`
+For a city and a postal code that belong together without the rest of an address, `RandomDataGenerator.postalLocality()`
 and `Generators.ofPostalLocality(...)` (since 3.2.0) give a `PostalLocality`: a city, its region and region
 code, and one of its postal codes, all from one place.
 
 ```java
-Krandom fake = Krandom.seeded("pins", Locale.US);
+RandomDataGenerator fake = RandomDataGenerator.seeded("pins", Locale.US);
 PostalLocality place = fake.postalLocality();  // Pasadena, Texas, TX, 77505
 String line = place.city() + ", " + place.regionCode() + " " + place.postalCode();
 ```
@@ -196,7 +196,7 @@ String street = new StreetAddressGenerator(de).generate();  // "Schlossanger 738
   `Rosenstrasse 9180`, `Hauptstr. 12`. The built-in data spells `Strasse` and `Muehl` without `ß` or
   umlauts, as before.
 - **What follows it.** `StreetAddressGenerator.generate()` and `generate(boolean)`, the street of
-  `generateFullAddress()`, and `AddressInfo.street()` and `address()`, and so `Krandom.streetAddress()`,
+  `generateFullAddress()`, and `AddressInfo.street()` and `address()`, and so `RandomDataGenerator.streetAddress()`,
   the `address.street_address` and `address.address_info` schema columns, and the object engine's
   street fields. `AddressInfo`'s `streetNumber`, `streetName` and `streetSuffix` keep their values, and
   the rest of a full address keeps its order (`…, München, Bayern 80313, Deutschland`).
@@ -204,7 +204,7 @@ String street = new StreetAddressGenerator(de).generate();  // "Schlossanger 738
   parts are laid out and nothing else.
 - **Recipes.** In 3.x a recipe records `setting.address.german-street-layout=true` while it is on, so it
   replays the same streets; a recipe without the setting replays with it off. From 4.0.0 a
-  `krandom-recipe/v2` recipe records it as `true` or `false`, and replay requires it.
+  `rdg-recipe/v2` recipe records it as `true` or `false`, and replay requires it.
 
 Other countries write the street first too, among them the Netherlands, Belgium, the Nordic countries,
 Poland, the Czech Republic, Italy and Spain. The option does not cover them, because their street data is

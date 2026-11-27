@@ -8,7 +8,7 @@ permalink: /guides/performance-and-observability/
 
 ## Benchmark suite
 
-kRandom ships a dedicated `benchmarks` module with JMH microbenchmarks and a macro profile runner.
+random-data-generator ships a dedicated `benchmarks` module with JMH microbenchmarks and a macro profile runner.
 
 Run the complete JMH suite:
 
@@ -36,7 +36,7 @@ profiles, and raw output. `./scripts/run_benchmarks.sh --quick` is only a local 
 The accepted report was generated on 2026-08-26 with JDK 21.0.12.1, JMH 1.37, three forks, three
 warmup iterations, five measurement iterations, one benchmark thread, and the GC profiler.
 
-| Scalar workload | kRandom | DataFaker | JavaFaker |
+| Scalar workload | random-data-generator | DataFaker | JavaFaker |
 |:---|---:|---:|---:|
 | first name | 103,289,329 ops/s | 6,249,732 ops/s | 592,885 ops/s |
 | email | 18,622,629 ops/s | 866,639 ops/s | 338,617 ops/s |
@@ -44,8 +44,8 @@ warmup iterations, five measurement iterations, one benchmark thread, and the GC
 
 Structural object generation and semantic fixture construction are different workloads. The
 accepted report keeps them separate rather than presenting a misleading single leaderboard. See
-the [benchmark dashboard](https://github.com/frikit/krandom/blob/main/docs/benchmarks/DASHBOARD.md)
-and [methodology](https://github.com/frikit/krandom/blob/main/docs/benchmarks/METHODOLOGY.md) for
+the [benchmark dashboard](https://github.com/frikit/random-data-generator-core/blob/main/docs/benchmarks/DASHBOARD.md)
+and [methodology](https://github.com/frikit/random-data-generator-core/blob/main/docs/benchmarks/METHODOLOGY.md) for
 object, bulk, schema, allocation, and raw-result details.
 
 ## Structural versus semantic object cost
@@ -95,7 +95,7 @@ A `GenerationReportListener`, set with `GeneratorConfig.Builder.generationReport
   `Optional`. A parent that an `ObjectFaker` rule builds for a member that generation left `null` is reported
   at that member's path, after the entry that left it `null`;
 - the `SeedSource`: the configuration's own seed, a stream derived from it by name, a replay recipe, or none;
-- the recipe format, `krandom-recipe/v1` in 3.x and `krandom-recipe/v2` from 4.0.0, when the configuration
+- the recipe format, `rdg-recipe/v1` in 3.x and `rdg-recipe/v2` from 4.0.0, when the configuration
   has a portable recipe, and the names of the
   recipe settings that shaped the value, such as `string.max` or `object.max-depth`;
 - the `GenerationStep` and generator that produced it, such as a semantic provider, a built-in type or an

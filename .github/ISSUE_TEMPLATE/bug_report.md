@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Report unexpected kRandom behavior
+about: Report unexpected random-data-generator behavior
 title: "[bug] "
 labels: bug
 ---
@@ -24,11 +24,11 @@ If the issue depends on a particular `GeneratorConfig`, seed, or
 
 ## Environment
 
-- kRandom version (`krandom-core`, plus any integration modules):
+- random-data-generator version (`random-data-generator-core`, plus any integration modules):
 - Java version (`java -version`):
 - OS / arch:
 - Build tool (Gradle / Maven / sbt / Mill) and version:
-- Spring Boot version (only if using `krandom-spring-boot-starter`):
+- Spring Boot version (only if using `random-data-generator-spring-boot-starter`):
 
 ## Logs / stack trace
 

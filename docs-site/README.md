@@ -1,6 +1,6 @@
 # docs-site
 
-Public GitHub Pages site for kRandom Java documentation.
+Public GitHub Pages site for random-data-generator Java documentation.
 
 ## Local preview (optional)
 

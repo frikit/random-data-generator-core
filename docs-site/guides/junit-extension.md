@@ -6,26 +6,26 @@ permalink: /guides/junit-extension/
 
 # JUnit Extension
 
-`krandom-junit` ships a JUnit Jupiter extension that fixes the kRandom seed per test and reports it
+`random-data-generator-junit` ships a JUnit Jupiter extension that fixes the random-data-generator seed per test and reports it
 when a test fails, so a failure caused by random data is always reproducible.
 
 ```kotlin
-testImplementation("io.github.frikit:krandom-junit:4.1.0")
+testImplementation("io.github.frikit:random-data-generator-junit:1.0.0")
 ```
 
-`krandom-junit` is built and tested against JUnit 6 (Jupiter 6.1) and exposes `junit-jupiter-api`
+`random-data-generator-junit` is built and tested against JUnit 6 (Jupiter 6.1) and exposes `junit-jupiter-api`
 as an API dependency; JUnit 5 is not supported. A project that stays on JUnit 5, for example
 through Spring Boot 3.5 dependency management, can still pass a seeded `GeneratorConfig` from
-`krandom-core` to its generators.
+`random-data-generator-core` to its generators.
 
 ## Seed reporting on failure
 
-Register the extension and inject a seeded `Krandom` session, the object that returns everyday
+Register the extension and inject a seeded `RandomDataGenerator` session, the object that returns everyday
 fixture values, into any test:
 
 ```java
-import io.github.frikit.krandom.generator.Krandom;
-import io.github.frikit.krandom.junit.KrandomExtension;
+import io.github.frikit.rdg.generator.RandomDataGenerator;
+import io.github.frikit.rdg.junit.KrandomExtension;
 
 @ExtendWith(KrandomExtension.class)
 class CheckoutTest {
@@ -33,12 +33,12 @@ class CheckoutTest {
     private Customer customer;
 
     @BeforeEach
-    void createCustomer(Krandom fake) {
+    void createCustomer(RandomDataGenerator fake) {
         customer = new Customer(fake.fullName(), fake.email());
     }
 
     @Test
-    void refusesAnotherEmail(Krandom fake) {
+    void refusesAnotherEmail(RandomDataGenerator fake) {
         // The session of createCustomer: this draws the next email, it does not start the stream again.
         assertFalse(checkout.accepts(customer, fake.email()));
     }
@@ -49,9 +49,9 @@ To generate objects, or to use a generator the session does not cover, inject th
 `GeneratorConfig` instead:
 
 ```java
-import io.github.frikit.krandom.generator.GeneratorConfig;
-import io.github.frikit.krandom.generator.Generators;
-import io.github.frikit.krandom.junit.KrandomExtension;
+import io.github.frikit.rdg.generator.GeneratorConfig;
+import io.github.frikit.rdg.generator.Generators;
+import io.github.frikit.rdg.junit.KrandomExtension;
 
 @ExtendWith(KrandomExtension.class)
 class OrderServiceTest {
@@ -74,10 +74,10 @@ Every test runs with a concrete per-test seed. When a test fails, the extension:
 ```text
 krandom: test 'totalsAreNonNegative(GeneratorConfig)' failed with seed 8155926046530546882. Annotate it with @KrandomSeed(8155926046530546882L) to reproduce this run.
 krandom: recipe clock 2026-09-27T08:25:06.360709Z (Europe/London) was read when the failure was reported; the test ran with a live clock, so time-relative data may not replay exactly. Set krandom.junit.snapshot-clock=true for time-sensitive tests.
-Replay with Gradle: KRANDOM_JUNIT_RECIPE=base64:... ./gradlew test --tests 'com.example.OrderServiceTest' --rerun
+Replay with Gradle: RDG_JUNIT_RECIPE=base64:... ./gradlew test --tests 'com.example.OrderServiceTest' --rerun
 Replay with Maven: mvn test -Dtest='com.example.OrderServiceTest' -Dkrandom.junit.recipe=base64:...
 Replay recipe:
-format=krandom-recipe
+format=rdg-recipe
 ...
 ```
 
@@ -100,10 +100,10 @@ where 3.1 printed:
 krandom: test '[2] "alice@example.com"' failed with pinned seed 8155926046530546882.
 ```
 
-A repetition is named the same way, `'retries(Krandom) [2]'` rather than `'repetition 2 of 5'`. Other
+A repetition is named the same way, `'retries(RandomDataGenerator) [2]'` rather than `'repetition 2 of 5'`. Other
 tests keep their display name. The report entries and the replay commands contain no display name,
 so they do not change, and no generated value changes. To print the display name as 3.1 did, set
-`krandom.junit.redact-invocation-names=false` (`KRANDOM_JUNIT_REDACT_INVOCATION_NAMES=false`); `true` is
+`krandom.junit.redact-invocation-names=false` (`RDG_JUNIT_REDACT_INVOCATION_NAMES=false`); `true` is
 the default, and other values are rejected.
 
 ## Replay without editing the test source
@@ -114,7 +114,7 @@ recipe as a shell-safe URL-safe Base64 value and select the failing test's top-l
 
 ```bash
 # Gradle: environment variables reach the forked test JVM; --rerun runs an up-to-date test task.
-KRANDOM_JUNIT_RECIPE=base64:PASTE_THE_REPORTED_VALUE ./gradlew test --tests 'com.example.OrderServiceTest' --rerun
+RDG_JUNIT_RECIPE=base64:PASTE_THE_REPORTED_VALUE ./gradlew test --tests 'com.example.OrderServiceTest' --rerun
 
 # Maven: Surefire forwards -D user properties to the forked test JVM.
 mvn test -Dtest='com.example.OrderServiceTest' -Dkrandom.junit.recipe=base64:PASTE_THE_REPORTED_VALUE
@@ -126,15 +126,15 @@ Gradle build, run the owning project's task (`./gradlew :orders:test --tests ...
 without a matching test do not fail the filter; in a multi-module Maven build, add
 `-pl <module>` or `-Dsurefire.failIfNoSpecifiedTests=false`.
 
-From 4.0.0 a replayed recipe must be `krandom-recipe/v2`. A `krandom-recipe/v1` recipe, printed by a
+From 4.0.0 a replayed recipe must be `rdg-recipe/v2`. A `rdg-recipe/v1` recipe, printed by a
 3.x release, is a configuration error that names the release that wrote it, such as
 `Invalid krandom.junit.recipe replay recipe: Unsupported recipe version: v1. ... This recipe records
-library-version 3.2.0: replay it with kRandom 3.2.0.`; replay it with that release.
+library-version 3.2.0: replay it with random-data-generator 3.2.0.`; replay it with that release.
 
 For a seed-only replay, use a decimal signed 64-bit value:
 
 ```bash
-KRANDOM_JUNIT_SEED=8155926046530546882 ./gradlew test --tests 'com.example.OrderServiceTest' --rerun
+RDG_JUNIT_SEED=8155926046530546882 ./gradlew test --tests 'com.example.OrderServiceTest' --rerun
 mvn test -Dtest='com.example.OrderServiceTest' -Dkrandom.junit.seed=8155926046530546882
 ```
 
@@ -142,12 +142,12 @@ A recipe or seed override also seeds the class-scoped configurations described
 [below](#test-method-and-class-scoped-configurations), which `@BeforeAll` methods and `@MethodSource`
 factories use. On its own it therefore gives a factory the test's seed, not the class-scoped seed of
 the failing run, and the factory may generate other arguments than it did then. When the failure
-output prints a `KRANDOM_JUNIT_CLASS_RECIPE` value, pass it too, as the printed commands do. A recipe
+output prints a `RDG_JUNIT_CLASS_RECIPE` value, pass it too, as the printed commands do. A recipe
 override that reaches a class-scoped configuration without a class recipe for that class prints a
 warning once for each class:
 
 ```text
-krandom: krandom.junit.recipe replays the class-scoped configuration of 'DiscountTest' (@BeforeAll/@AfterAll, PER_CLASS constructor and @MethodSource factory parameters) as well, so @MethodSource arguments and other data created there come from that recipe and may differ from the failing run. To replay them, also set KRANDOM_JUNIT_CLASS_RECIPE (Maven: -Dkrandom.junit.class-recipe) to the value that the failure output printed.
+krandom: krandom.junit.recipe replays the class-scoped configuration of 'DiscountTest' (@BeforeAll/@AfterAll, PER_CLASS constructor and @MethodSource factory parameters) as well, so @MethodSource arguments and other data created there come from that recipe and may differ from the failing run. To replay them, also set RDG_JUNIT_CLASS_RECIPE (Maven: -Dkrandom.junit.class-recipe) to the value that the failure output printed.
 ```
 
 A seed override prints no warning, because a build may keep one set for every run.
@@ -163,9 +163,9 @@ Platform configuration parameters, so any of these sources works:
 - a launcher configuration parameter, or
 - an entry in `src/test/resources/junit-platform.properties`.
 
-When none of them is set, the matching environment variable is used: `KRANDOM_JUNIT_RECIPE`,
-`KRANDOM_JUNIT_SEED`, `KRANDOM_JUNIT_CLASS_RECIPE`, `KRANDOM_JUNIT_SNAPSHOT_CLOCK`, or
-`KRANDOM_JUNIT_REDACT_INVOCATION_NAMES`. Configure
+When none of them is set, the matching environment variable is used: `RDG_JUNIT_RECIPE`,
+`RDG_JUNIT_SEED`, `RDG_JUNIT_CLASS_RECIPE`, `RDG_JUNIT_SNAPSHOT_CLOCK`, or
+`RDG_JUNIT_REDACT_INVOCATION_NAMES`. Configure
 only one effective replay value: a recipe and a seed together, from any sources, are a configuration
 error; a class recipe combines with either. Replay values override `@KrandomSeed`, so a CI runner
 can reproduce a failure without changing the test source.
@@ -181,7 +181,7 @@ its line breaks are represented as `\n`.
 extension by itself, so no separate `@ExtendWith` is needed:
 
 ```java
-import io.github.frikit.krandom.junit.KrandomSeed;
+import io.github.frikit.rdg.junit.KrandomSeed;
 
 @KrandomSeed(8155926046530546882L)
 @Test
@@ -218,7 +218,7 @@ Rules:
 
 | Parameter type | Resolves to |
 |:---|:---|
-| `Krandom` | The test's one session, built from its `GeneratorConfig` |
+| `RandomDataGenerator` | The test's one session, built from its `GeneratorConfig` |
 | `GeneratorConfig` | A config pre-seeded with the test's seed |
 | `GeneratorConfig.Builder` | A builder copied from the test's recipe/config, for adding locale or other options before `build()` |
 
@@ -226,8 +226,8 @@ All injections within one test share the same seed, so two injected configs gene
 sequences. `@KrandomSeed`, replay overrides and recipes therefore reach the session too, and the seed
 in a failure report reproduces the session's values.
 
-Every `Krandom` parameter of one test is the same instance, so its streams continue from one method
-to the next. `Krandom.of(config)` builds a new session, whose streams start again: it draws what the
+Every `RandomDataGenerator` parameter of one test is the same instance, so its streams continue from one method
+to the next. `RandomDataGenerator.of(config)` builds a new session, whose streams start again: it draws what the
 injected session drew, from the first value. Inject the session wherever a test needs it rather than
 building it again in a helper.
 
@@ -243,11 +243,11 @@ The injected session uses the test's configuration as it stands. For a session w
 build it once from the injected builder and keep it for the test:
 
 ```java
-private Krandom fake;
+private RandomDataGenerator fake;
 
 @BeforeEach
 void createSession(GeneratorConfig.Builder builder) {
-    fake = Krandom.of(builder.locale(Locale.UK).build());
+    fake = RandomDataGenerator.of(builder.locale(Locale.UK).build());
 }
 ```
 
@@ -268,12 +268,12 @@ methods and never leaks into a test method: every test resolves its own seed, so
 parameterized test as a whole, not for one invocation, so the factory takes the class-scoped
 configuration, as `@BeforeAll` does, and not the seed of an invocation. When a test fails, the
 failure output also lists the seed of every class-scoped configuration of its enclosing classes,
-and the replay commands restore them through `KRANDOM_JUNIT_CLASS_RECIPE` (Maven:
+and the replay commands restore them through `RDG_JUNIT_CLASS_RECIPE` (Maven:
 `-Dkrandom.junit.class-recipe`), so data created in `@BeforeAll` or a factory replays together
 with the test's own data:
 
 ```bash
-KRANDOM_JUNIT_CLASS_RECIPE='com.example.OrderServiceTest=base64:...' KRANDOM_JUNIT_RECIPE=base64:... ./gradlew test --tests 'com.example.OrderServiceTest' --rerun
+RDG_JUNIT_CLASS_RECIPE='com.example.OrderServiceTest=base64:...' RDG_JUNIT_RECIPE=base64:... ./gradlew test --tests 'com.example.OrderServiceTest' --rerun
 ```
 
 The value lists `<test class>=base64:<recipe>` entries separated by commas, one for each enclosing
@@ -285,7 +285,7 @@ test's own `@KrandomSeed`.
 
 ## Sessions in each scope
 
-A `Krandom` parameter receives a session built, when first injected, from the configuration that the
+A `RandomDataGenerator` parameter receives a session built, when first injected, from the configuration that the
 table above gives its declaration, and shared as follows:
 
 | Declared on | Receives |
@@ -319,8 +319,8 @@ unique constraint, derive a session with streams of its own there, or in the fac
 
 ```java
 @BeforeAll
-static void createSharedCustomer(Krandom fake) {
-    Krandom shared = Krandom.of(fake.streamConfig("shared-fixtures"));
+static void createSharedCustomer(RandomDataGenerator fake) {
+    RandomDataGenerator shared = RandomDataGenerator.of(fake.streamConfig("shared-fixtures"));
     sharedCustomer = new Customer(shared.fullName(), shared.email());
 }
 ```
@@ -341,16 +341,16 @@ A session is shared only if your code passes it on, and these uses are not safe:
   method and its `@BeforeEach` and `@AfterEach` methods have one session and dynamic tests get no other;
 - one session used from several threads that a test starts.
 
-Give each thread a session of its own instead, for example `Krandom.of(fake.streamConfig("worker-" + i))`.
+Give each thread a session of its own instead, for example `RandomDataGenerator.of(fake.streamConfig("worker-" + i))`.
 
 ## Composing with the Spring Boot starter
 
-JUnit extensions stack, so the extension combines with the starter's `@KrandomTest` slice: keep
+JUnit extensions stack, so the extension combines with the starter's `@RandomDataGeneratorTest` slice: keep
 the auto-configured beans for application wiring and use the injected `GeneratorConfig`
 parameter for per-test deterministic fixtures.
 
 ```java
-@KrandomTest
+@RandomDataGeneratorTest
 @ExtendWith(KrandomExtension.class)
 class UserFixtureTest {
 
@@ -386,7 +386,7 @@ krandom.junit.snapshot-clock=true
 ```
 
 or per build: Gradle `tasks.test { systemProperty("krandom.junit.snapshot-clock", "true") }`, Maven
-Surefire `systemPropertyVariables`, or the `KRANDOM_JUNIT_SNAPSHOT_CLOCK=true` environment variable.
+Surefire `systemPropertyVariables`, or the `RDG_JUNIT_SNAPSHOT_CLOCK=true` environment variable.
 
 The extension cannot track later edits to an injected builder. If you change its clock, rules,
 locale, or other settings, capture/report the resulting configuration yourself. A seed alone does

@@ -1,6 +1,6 @@
 # Dependency reproducibility
 
-The main kRandom build pins direct dependency versions and rejects non-reproducible dependency
+The main random-data-generator build pins direct dependency versions and rejects non-reproducible dependency
 selectors. Gradle wrapper distributions are checksum-verified and GitHub Actions are SHA-pinned.
 The repository tracks `gradle/verification-metadata.xml` with reviewed SHA-256 checksums for every
 resolved external artifact. Exact version selectors alone do not freeze artifact bytes; Gradle
@@ -20,7 +20,7 @@ when the configuration is resolved. The development project version may remain a
 because project dependencies do not download a changing external module.
 
 The standalone builds under `examples/` intentionally retain only `mavenLocal()` followed by Maven
-Central: they are consumer simulations that verify the locally published kRandom snapshot. They do
+Central: they are consumer simulations that verify the locally published random-data-generator snapshot. They do
 not participate in a release publication.
 
 ## Updating verification metadata
@@ -38,7 +38,7 @@ use with `--write-verification-metadata sha256`:
 
 | Invocation | Graph |
 | --- | --- |
-| `spotlessCheck build` | compilation, all tests (benchmarks and examples-e2e included), coverage, Javadoc, and the public API check (japicmp and the `apiBaselineVersion` jars) |
+| `spotlessCheck build` | compilation, all tests (benchmarks included), coverage, Javadoc, and the public API check (japicmp and the `apiBaselineVersion` jars) |
 | `verifyReleaseSboms` | CycloneDX, in its own invocation as in CI |
 | `:core:pitest` | PIT and its JUnit 5 plugin |
 | `nmcpZipAggregation` | publications for Maven Central and Maven local |
@@ -71,7 +71,7 @@ major updates arrive separately. For each such pull request:
 
 1. Run `./scripts/fix_dependabot_pr.sh <pull-request-number>` (it needs `gh` and `jq`). It checks the
    branch out into a temporary worktree, runs `update_verification_metadata.sh` under every JDK in
-   `KRANDOM_METADATA_JDKS` (set it to a JDK 21 and a JDK 25 directory, colon-separated: CI on
+   `RDG_METADATA_JDKS` (set it to a JDK 21 and a JDK 25 directory, colon-separated: CI on
    Linux/Java 25 resolves POM and Gradle-module entries that a Java 21 run can miss), commits the
    metadata on the branch, and prints the added components. Run it with `GRADLE_USER_HOME` set to a
    new, empty directory: with a warm cache Gradle can skip parent POMs that CI then resolves and

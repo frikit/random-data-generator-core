@@ -6,7 +6,7 @@ permalink: /generator-catalog/
 
 # Generator Catalog (Java)
 
-The main entry point is `io.github.frikit.krandom.generator.Generators`. Most
+The main entry point is `io.github.frikit.rdg.generator.Generators`. Most
 locale-aware factories accept a `Locale` or `GeneratorConfig`; use a shared
 `GeneratorConfig` when a fixture needs common locale, seed, clock, safety, or
 registry settings. Factories with a `long` overload provide a locally seeded
@@ -55,7 +55,7 @@ Drawn UTC offsets run from `-12:00` to `+14:00` in 15-minute steps; see the
   `ofGeohash`
 - `ofCompanyEmail`, `ofCompanyInfo`, `ofJobInfo`, `ofPersonInfo`, `ofSocialHandle`,
   `ofSocialProfile`
-- `ofUniversity` for configuration-scoped verified local data packs; kRandom ships no university
+- `ofUniversity` for configuration-scoped verified local data packs; random-data-generator ships no university
   data, so it needs a [local data pack]({{ '/guides/local-data-packs/' | relative_url }})
 - `ofProfession`, `ofIndustry`, `ofJobField`, `ofJobType`, `ofSeniority`,
   `ofPosition`, `ofEducationalAttainment`, `ofMaritalStatus`, `ofBloodType`,
@@ -119,9 +119,10 @@ fixtures; see [Finance and Identity]({{ '/guides/finance-and-identity/' | relati
   source gives, so their type argument may be nullable: `Generators.repeat(Generators.ofNullableBoolean(), 3)`
   is a `RepeatGenerator<@Nullable Boolean>`, which NullAway and Kotlin, as `RepeatGenerator<Boolean?>`,
   accept.
-- From 4.0.0, `pick` and `Krandom.pick(List)` take a list that holds `null` and may return the `null`:
+- From 4.0.0, `pick` and `RandomDataGenerator.pick(List)` take a list that holds `null` and may return the `null`:
   `Generators.pick(Arrays.asList("a", null))` is a `PickGenerator<@Nullable String>`. In Kotlin,
-  `krandom.pick(listOf("a", null))` then returns an element rather than the list itself.
+  `RandomDataGenerator.seeded("fixtures").pick(listOf("a", null))` then returns an element rather than the list
+  itself.
 
 ## Domain namespaces
 

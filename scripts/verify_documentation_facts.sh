@@ -42,9 +42,20 @@ LOCALE_VARIANT_COUNT="$(fact localeVariantCount)"
 BEAN_VALIDATION_CONSTRAINTS="$(fact beanValidationConstraints)"
 SCHEMA_EXPORT_FORMATS="$(fact schemaExportFormats)"
 
+# The version that installation docs show: the latest release, or before the first release the version that
+# the development line will release.
+DOCUMENTED_VERSION="${LATEST_GA_VERSION:-${DEVELOPMENT_VERSION%-SNAPSHOT}}"
+
+# Before the first release checkApiCompatibility has no baseline and checks nothing. Once the line has moved past a
+# release (the close-out commit after it), the public API of that release must be protected.
+API_BASELINE_VERSION="$(fact apiBaselineVersion)"
+if [[ -n "${LATEST_GA_VERSION}" && "${DEVELOPMENT_VERSION}" != "${LATEST_GA_VERSION}-SNAPSHOT" \
+    && -z "${API_BASELINE_VERSION}" ]]; then
+    fail "apiBaselineVersion is empty although ${LATEST_GA_VERSION} is released; set it to the release whose API ${DEVELOPMENT_VERSION} keeps"
+fi
+
 for value in \
     "${DEVELOPMENT_VERSION}" \
-    "${LATEST_GA_VERSION}" \
     "${JAVA_MINIMUM_VERSION}" \
     "${PUBLISHED_MODULES}" \
     "${NATIVE_LOCALE_COUNT}" \
@@ -55,7 +66,7 @@ for value in \
     [[ -n "${value}" ]] || fail "a required gradle.properties fact is empty"
 done
 
-SUPPORTED_LOCALE_FILE="${REPO_ROOT}/core/src/main/java/io/github/frikit/krandom/generator/locale/SupportedLocale.java"
+SUPPORTED_LOCALE_FILE="${REPO_ROOT}/core/src/main/java/io/github/frikit/rdg/generator/locale/SupportedLocale.java"
 # Count the enum constants, and those declared with more than the two native arguments (language and
 # country). Each declaration is joined before counting so the result does not depend on how the
 # formatter wraps the argument list.
@@ -76,7 +87,7 @@ ACTUAL_NATIVE="$(( ACTUAL_TOTAL - ACTUAL_FALLBACK ))"
 [[ "${ACTUAL_NATIVE}" == "${NATIVE_LOCALE_COUNT}" ]] || fail "SupportedLocale has ${ACTUAL_NATIVE} native variants, expected ${NATIVE_LOCALE_COUNT}"
 [[ "${ACTUAL_FALLBACK}" == "${FALLBACK_LOCALE_COUNT}" ]] || fail "SupportedLocale has ${ACTUAL_FALLBACK} fallback variants, expected ${FALLBACK_LOCALE_COUNT}"
 
-BEAN_VALIDATION_FILE="${REPO_ROOT}/core/src/main/java/io/github/frikit/krandom/generator/object/BeanValidationSupport.java"
+BEAN_VALIDATION_FILE="${REPO_ROOT}/core/src/main/java/io/github/frikit/rdg/generator/object/BeanValidationSupport.java"
 BEAN_VALIDATION_GUIDE="${REPO_ROOT}/docs-site/guides/bean-validation.md"
 IFS=',' read -r -a constraints <<< "${BEAN_VALIDATION_CONSTRAINTS}"
 for constraint in "${constraints[@]}"; do
@@ -86,7 +97,7 @@ done
 ACTUAL_CONSTRAINT_COUNT="$(grep -Ec '^import jakarta\.validation\.constraints\.' "${BEAN_VALIDATION_FILE}")"
 [[ "${ACTUAL_CONSTRAINT_COUNT}" == "${#constraints[@]}" ]] || fail "BeanValidationSupport imports ${ACTUAL_CONSTRAINT_COUNT} constraints, facts list ${#constraints[@]}"
 
-SCHEMA_FILE="${REPO_ROOT}/core/src/main/java/io/github/frikit/krandom/generator/schema/Schema.java"
+SCHEMA_FILE="${REPO_ROOT}/core/src/main/java/io/github/frikit/rdg/generator/schema/Schema.java"
 IFS=',' read -r -a schema_formats <<< "${SCHEMA_EXPORT_FORMATS}"
 for format in "${schema_formats[@]}"; do
     case "${format}" in
@@ -104,22 +115,26 @@ done
 
 IFS=',' read -r -a modules <<< "${PUBLISHED_MODULES}"
 for module in "${modules[@]}"; do
-    grep -Fq "krandom-${module}" "${REPO_ROOT}/README.md" || fail "README does not list krandom-${module}"
+    grep -Fq "random-data-generator-${module}" "${REPO_ROOT}/README.md" || fail "README does not list random-data-generator-${module}"
 done
 
-CORE_MODULE_NAME="io.github.frikit.krandom"
+CORE_MODULE_NAME="io.github.frikit.rdg"
 CORE_MODULE_DESCRIPTOR="${REPO_ROOT}/core/src/main/java/module-info.java"
 OBJECT_GENERATION_GUIDE="${REPO_ROOT}/docs-site/guides/object-generation.md"
 grep -Fq "module ${CORE_MODULE_NAME} {" "${CORE_MODULE_DESCRIPTOR}" || fail "core module descriptor name changed"
 grep -Fq "opens com.example.fixtures.model to ${CORE_MODULE_NAME};" "${OBJECT_GENERATION_GUIDE}" || fail "object guide is missing the qualified opens contract"
+# Palantir Java Format wraps a qualified `opens` directive after `to`, so collapse whitespace first.
+OPEN_CONSUMER_DESCRIPTOR="$(tr -s '[:space:]' ' ' < "${REPO_ROOT}/examples/java-jpms/open-consumer/src/main/java/module-info.java")"
+[[ "${OPEN_CONSUMER_DESCRIPTOR}" == *"opens io.github.frikit.rdg.examples.jpms.openconsumer to ${CORE_MODULE_NAME};"* ]] \
+    || fail "JPMS open consumer does not exercise the documented core module name"
 
-NATIVE_METADATA="${REPO_ROOT}/core/src/main/resources/META-INF/native-image/io.github.frikit/krandom/reachability-metadata.json"
+NATIVE_METADATA="${REPO_ROOT}/core/src/main/resources/META-INF/native-image/io.github.frikit/rdg/reachability-metadata.json"
 NATIVE_GUIDE="${REPO_ROOT}/docs-site/guides/native-image.md"
 DATA_PACK_GUIDE="${REPO_ROOT}/docs-site/guides/local-data-packs.md"
 [[ -f "${NATIVE_METADATA}" ]] || fail "native-image reachability metadata is missing"
 [[ -x "${REPO_ROOT}/scripts/verify_native_image.sh" ]] || fail "native-image smoke script is not executable"
 grep -Fq 'ObjectGenerator' "${NATIVE_METADATA}" || fail "native-image metadata lacks object-generator reflection"
-grep -Fq 'krandom/.*\\.txt' "${NATIVE_METADATA}" || fail "native-image metadata lacks classpath resource reachability"
+grep -Fq 'rdg/.*\\.txt' "${NATIVE_METADATA}" || fail "native-image metadata lacks classpath resource reachability"
 grep -Fq './scripts/verify_native_image.sh' "${NATIVE_GUIDE}" || fail "native-image guide lacks smoke command"
 grep -Fq 'allDeclaredConstructors' "${NATIVE_GUIDE}" || fail "native-image guide lacks consumer reflection guidance"
 grep -Fq 'university.sha256' "${DATA_PACK_GUIDE}" || fail "local data-pack guide lacks checksum contract"
@@ -134,36 +149,67 @@ grep -Fq 'coverageThreshold.set(98)' "${REPO_ROOT}/core/build.gradle.kts" || fai
 grep -Fq '85% mutation score' "${REPO_ROOT}/CONTRIBUTING.md" || fail "CONTRIBUTING does not document the mutation score gate"
 grep -Fq '98% mutated-class line coverage' "${REPO_ROOT}/CONTRIBUTING.md" || fail "CONTRIBUTING does not document the mutation coverage gate"
 
-grep -Fq "The latest released version is \`${LATEST_GA_VERSION}\`" "${REPO_ROOT}/README.md" || fail "README latest GA version is stale"
+if [[ -n "${LATEST_GA_VERSION}" ]]; then
+    grep -Fq "The latest released version is \`${LATEST_GA_VERSION}\`" "${REPO_ROOT}/README.md" || fail "README latest GA version is stale"
+    grep -Fq "The latest stable release is \`${LATEST_GA_VERSION}\`" "${REPO_ROOT}/VERSIONING.md" || fail "version policy latest GA is stale"
+    grep -Fq "The current version is \`${LATEST_GA_VERSION}\`" "${REPO_ROOT}/docs-site/getting-started.md" || fail "getting-started latest GA version is stale"
+else
+    grep -Fq "No version is released yet; the first release will be \`${DOCUMENTED_VERSION}\`" "${REPO_ROOT}/README.md" || fail "README does not say that ${DOCUMENTED_VERSION} is the first release"
+    grep -Fq "No stable release exists yet; the first will be \`${DOCUMENTED_VERSION}\`" "${REPO_ROOT}/VERSIONING.md" || fail "version policy does not say that ${DOCUMENTED_VERSION} is the first release"
+    grep -Fq "The first version will be \`${DOCUMENTED_VERSION}\`" "${REPO_ROOT}/docs-site/getting-started.md" || fail "getting-started does not say that ${DOCUMENTED_VERSION} is the first release"
+fi
 grep -Fq "current repository development line: \`${DEVELOPMENT_VERSION}\`" "${REPO_ROOT}/README.md" || fail "README development version is stale"
-grep -Fq "The latest stable release is \`${LATEST_GA_VERSION}\`" "${REPO_ROOT}/VERSIONING.md" || fail "version policy latest GA is stale"
 grep -Fq "The repository development line is \`${DEVELOPMENT_VERSION}\`" "${REPO_ROOT}/VERSIONING.md" || fail "version policy development line is stale"
-grep -Fq "The current version is \`${LATEST_GA_VERSION}\`" "${REPO_ROOT}/docs-site/getting-started.md" || fail "getting-started latest GA version is stale"
 # javaMinimumVersion is also the --release of the Java modules (build.gradle.kts).
 grep -Fq "toolkit for Java ${JAVA_MINIMUM_VERSION} and later" "${REPO_ROOT}/README.md" || fail "README Java minimum is stale"
 grep -Fq -- "- Java ${JAVA_MINIMUM_VERSION}+ for every module" "${REPO_ROOT}/docs-site/getting-started.md" || fail "getting-started Java minimum is stale"
 grep -Fq "| All modules | Java ${JAVA_MINIMUM_VERSION} or later" "${REPO_ROOT}/VERSIONING.md" || fail "version policy Java minimum is stale"
-grep -Fq "io.github.frikit:krandom-core:${LATEST_GA_VERSION}" "${REPO_ROOT}/README.md" || fail "README core coordinate is stale"
-grep -Fq "io.github.frikit:krandom-bom:${LATEST_GA_VERSION}" "${REPO_ROOT}/README.md" || fail "README BOM coordinate is stale"
-grep -Fq "io.github.frikit:krandom-bom:${LATEST_GA_VERSION}" "${REPO_ROOT}/docs-site/getting-started.md" || fail "getting-started BOM coordinate is stale"
+grep -Fq "io.github.frikit:random-data-generator-core:${DOCUMENTED_VERSION}" "${REPO_ROOT}/README.md" || fail "README core coordinate is stale"
+grep -Fq "io.github.frikit:random-data-generator-bom:${DOCUMENTED_VERSION}" "${REPO_ROOT}/README.md" || fail "README BOM coordinate is stale"
+grep -Fq "io.github.frikit:random-data-generator-bom:${DOCUMENTED_VERSION}" "${REPO_ROOT}/docs-site/getting-started.md" || fail "getting-started BOM coordinate is stale"
 grep -Fq "${NATIVE_LOCALE_COUNT} native locale datasets" "${REPO_ROOT}/docs-site/guides/locale-aware-data.md" || fail "native locale documentation is stale"
 grep -Fq "${FALLBACK_LOCALE_COUNT} curated fallback variants" "${REPO_ROOT}/docs-site/guides/locale-aware-data.md" || fail "fallback locale documentation is stale"
 grep -Fq "${LOCALE_VARIANT_COUNT} supported locale variants" "${REPO_ROOT}/docs-site/guides/locale-aware-data.md" || fail "total locale documentation is stale"
-grep -Fq 'krandom-junit` (from `1.2.0`)' "${REPO_ROOT}/docs-site/getting-started.md" || fail "JUnit module introduction version is stale"
 for term in 'Format-valid' 'Checksum-valid' 'Semantically plausible' 'Test-safe / non-routable'; do
     grep -Fq "${term}" "${REPO_ROOT}/docs-site/guides/data-validity-and-safety.md" || fail "data validity term is missing: ${term}"
 done
 for term in 'STRIPE_SANDBOX' 'bankingSafetyPolicy' 'nationalIdSafetyPolicy'; do
     grep -Fq "${term}" "${REPO_ROOT}/docs-site/guides/data-validity-and-safety.md" || fail "data validity guide is missing: ${term}"
 done
-reject_pattern "current installation/migration documentation contains stale or snapshot coordinates" \
-    'io\.github\.frikit:krandom-[^`" ]*:(1\.[0-9]+\.[0-9]+|[0-9]+\.[0-9]+\.[0-9]+-SNAPSHOT)|<version>(1\.[0-9]+\.[0-9]+|[0-9]+\.[0-9]+\.[0-9]+-SNAPSHOT)</version>' \
+reject_pattern "current installation/migration documentation contains snapshot coordinates" \
+    'io\.github\.frikit:random-data-generator-[^`" ]*:[0-9]+\.[0-9]+\.[0-9]+-SNAPSHOT|<version>[0-9]+\.[0-9]+\.[0-9]+-SNAPSHOT</version>' \
     "${REPO_ROOT}/README.md" \
     "${REPO_ROOT}/docs-site" \
     "${REPO_ROOT}/docs/migration"
+# Every versioned coordinate of a module this repository publishes, in the installation and migration docs, names
+# the documented version: as group:artifact:version, and as the <version> that follows its Maven <artifactId>.
+# Modules of the language repositories version on their own, so they are not checked here.
+STALE_COORDINATES="$(python3 -I - "${DOCUMENTED_VERSION}" "${PUBLISHED_MODULES}" \
+    "${REPO_ROOT}/README.md" "${REPO_ROOT}/docs-site" "${REPO_ROOT}/docs/migration" <<'PYTHON'
+import pathlib, re, sys
+version, modules, roots = sys.argv[1], sys.argv[2].split(","), sys.argv[3:]
+artifact = "random-data-generator-(?:" + "|".join(map(re.escape, modules)) + ")"
+patterns = [
+    re.compile(r"io\.github\.frikit:(" + artifact + r"):([0-9][0-9A-Za-z.-]*)"),
+    re.compile(r"<artifactId>(" + artifact + r")</artifactId>\s*<version>([^<]+)</version>"),
+]
+stale = set()
+for root in map(pathlib.Path, roots):
+    for file in [root] if root.is_file() else sorted(root.rglob("*.md")):
+        text = file.read_text(encoding="utf-8")
+        for pattern in patterns:
+            for name, found in pattern.findall(text):
+                if found != version:
+                    stale.add(f"{file.name}: {name}:{found}")
+print(", ".join(sorted(stale)))
+PYTHON
+)"
+[[ -z "${STALE_COORDINATES}" ]] || fail "documentation names coordinates other than ${DOCUMENTED_VERSION}: ${STALE_COORDINATES}"
 
 EXAMPLE_VERSION_FILES=(
     "examples/java-gradle/build.gradle.kts"
+    "examples/java-jpms/open-consumer/build.gradle.kts"
+    "examples/java-jpms/closed-consumer/build.gradle.kts"
     "examples/java-maven/pom.xml"
 )
 for example_file in "${EXAMPLE_VERSION_FILES[@]}"; do
@@ -180,9 +226,10 @@ reject_pattern "locale contribution guide still contains the obsolete flat resou
     '<locale>_(first_male|first_female|last|street_names|street_types_short|street_types_long|secondary_units)\.txt' \
     "${REPO_ROOT}/docs/locale-contribution-guide.md"
 
-# The contributor guides name files, classes and example commits so that a reader can open them. Each
-# name in backticks that looks like a repository path, a core path, a test class or a commit must still
-# exist, so a rename or deletion fails here instead of leaving the guides pointing at nothing.
+# The contributor guides name files and classes so that a reader can open them. Each name in backticks
+# that looks like a repository path, a core path or a test class must still exist, so a rename or deletion
+# fails here instead of leaving the guides pointing at nothing. Example commits from before the move are
+# links to kRandom's history, which this repository does not contain.
 CONTRIBUTOR_GUIDES=(
     "AGENTS.md"
     "docs/development/architecture.md"
@@ -190,8 +237,8 @@ CONTRIBUTOR_GUIDES=(
     "docs/development/adding-a-generator.md"
     "docs/development/testing.md"
 )
-CORE_MAIN="core/src/main/java/io/github/frikit/krandom"
-CORE_TEST="core/src/test/java/io/github/frikit/krandom"
+CORE_MAIN="core/src/main/java/io/github/frikit/rdg"
+CORE_TEST="core/src/test/java/io/github/frikit/rdg"
 SOURCE_CLASSES="$(find "${REPO_ROOT}" -path '*/build' -prune -o -path '*/src/*' \
     \( -name '*.java' -o -name '*.kt' \) -print | sed -E 's#.*/##; s#\.(java|kt)$##' | sort -u)"
 guide_names_exist() {
@@ -219,4 +266,4 @@ for module in "${modules[@]}"; do
     grep -Fq "\`${module}/\`" "${REPO_ROOT}/AGENTS.md" || fail "AGENTS.md repository layout does not list ${module}/"
 done
 
-echo "Documentation facts verified: ${LATEST_GA_VERSION} release docs, ${DEVELOPMENT_VERSION} development, ${#modules[@]} modules, ${ACTUAL_TOTAL} locale variants."
+echo "Documentation facts verified: ${DOCUMENTED_VERSION} release docs, ${DEVELOPMENT_VERSION} development, ${#modules[@]} modules, ${ACTUAL_TOTAL} locale variants."

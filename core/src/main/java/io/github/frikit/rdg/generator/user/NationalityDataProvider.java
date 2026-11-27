@@ -1,0 +1,32 @@
+/*
+ * Copyright (c) 2026 random-data-generator contributors
+ *
+ * Licensed under the MIT License. See LICENSE in the project root for license information.
+ */
+package io.github.frikit.rdg.generator.user;
+
+import io.github.frikit.rdg.generator.LocaleDataProvider;
+import java.util.List;
+import java.util.Locale;
+
+/**
+ * Contract for a locale-specific list of nationality demonyms.
+ *
+ * <p>Implement this interface and register an instance with
+ * {@link io.github.frikit.rdg.generator.DataRegistryContext.Builder#register(io.github.frikit.rdg.generator.Vocabulary, io.github.frikit.rdg.generator.LocaleDataProvider)}
+ * to add or override nationality vocabulary for one configuration.
+ * {@link NationalityDataRegistry} holds the built-in vocabulary served by
+ * {@link io.github.frikit.rdg.generator.DataRegistryContext#globalDefault()}.
+ */
+public interface NationalityDataProvider extends LocaleDataProvider {
+
+    /**
+     * The locale this provider supplies nationalities for.
+     */
+    Locale getLocale();
+
+    /**
+     * The localized nationality demonyms; must be non-empty.
+     */
+    List<String> getNationalities();
+}

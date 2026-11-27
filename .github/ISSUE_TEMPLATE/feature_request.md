@@ -8,7 +8,7 @@ labels: enhancement
 ## Use case
 
 What are you trying to do? Describe the problem before the solution — what
-fixture, dataset, or test scenario does kRandom not support today?
+fixture, dataset, or test scenario does random-data-generator not support today?
 
 ## Proposed API or behavior
 

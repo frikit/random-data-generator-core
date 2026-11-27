@@ -1,6 +1,6 @@
 # Determinism and compatibility
 
-kRandom makes two promises that most changes can break without a single test failing in the place
+random-data-generator makes two promises that most changes can break without a single test failing in the place
 you edited: **seeded output stays the same**, and **public API stays compatible**. This guide says
 what each promise covers, how changes break it by accident, and what to do when a change is meant to
 alter it. The user-facing policy is [VERSIONING.md](../../VERSIONING.md); this guide is how to keep it.
@@ -12,15 +12,15 @@ alter it. The user-facing policy is [VERSIONING.md](../../VERSIONING.md); this g
   documented contract (a value that fails its own Bean Validation constraint, a string that does not
   match its declared format). Such a fix is listed under `Fixed` in the changelog with the values it
   affects. A new generator, option or setting leaves existing output unchanged unless the user opts in.
-- **Recipes.** A release replays a `krandom-recipe/v2` recipe that an earlier release of its major line
+- **Recipes.** A release replays a `rdg-recipe/v2` recipe that an earlier release of its major line
   wrote. `GenerationRecipe` is the format; `GeneratorConfig.getGenerationRecipe()` writes it.
 - **String seeds.** `fnv1a64-v1`, the derivation of a seed from text, never changes.
-- **Public API.** The public types and members of the packages `krandom-core` exports, the packages of
+- **Public API.** The public types and members of the packages `random-data-generator-core` exports, the packages of
   the Java integration modules, the public declarations of the Kotlin modules, and the `krandom.*`
   Spring properties. A minor or patch release only adds; removals and incompatible changes wait for a
   major release, after a deprecation in a minor release that names the replacement.
 
-Anything in `io.github.frikit.krandom.internal`, or otherwise not exported, can change freely.
+Anything in `io.github.frikit.rdg.internal`, or otherwise not exported, can change freely.
 
 ## How seeded output changes by accident
 
@@ -31,7 +31,7 @@ order or meaning of those draws changes every value after it. The usual causes:
   rejects a value, an early return that skips a draw.
 - **Draws in a different order,** such as generating a field before another one it used to follow.
 - **Changed data.** Adding, removing or reordering entries in an existing resource file under
-  `core/src/main/resources/krandom/` changes which entry an index picks, for that locale and every
+  `core/src/main/resources/rdg/` changes which entry an index picks, for that locale and every
   locale that falls back to it.
 - **Changed stream names.** A child stream's seed comes from its name
   (`GeneratorConfig.forChildStream`), so renaming a stream, or moving a draw from the parent stream to
@@ -43,7 +43,7 @@ order or meaning of those draws changes every value after it. The usual causes:
 - **The hash.** FNV-1a is implemented in `GeneratorConfig`, `GenerationRecipe` and
   `internal/StreamSeeds.java`. A change to any one of them changes seeds everywhere.
 
-Some values depend on the Java runtime rather than on kRandom: time-zone and locale data (TZDB, CLDR),
+Some values depend on the Java runtime rather than on random-data-generator: time-zone and locale data (TZDB, CLDR),
 and the last bit of `Math` functions when `strictMathGaussian` is off. `VERSIONING.md` documents
 these; do not try to pin them in tests.
 
@@ -80,7 +80,7 @@ these; do not try to pin them in tests.
     `GenerationRecipe.toGeneratorConfig()` rejects a recipe that misses a required setting, so a new
     required key would stop every older recipe of the major line from replaying.
   - Pin both the off and the on values, as `SeedingDefaultsPinTest` does.
-  - Expose it where users configure kRandom: the Kotlin DSL's `config { }` and a `krandom.*` Spring
+  - Expose it where users configure random-data-generator: the Kotlin DSL's `config { }` and a `krandom.*` Spring
     property, if the other settings of its kind are there.
   - Turning it on by default is a change of output, so only a major release does it. The four seeding
     settings that were opt-ins in 3.2 and became defaults in 4.0 show that path; 4.0's new recipe

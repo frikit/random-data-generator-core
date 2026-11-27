@@ -1,6 +1,6 @@
 # Testing and the gate
 
-How kRandom is tested, what `scripts/pre_commit_check.sh` runs, and what to do when a step fails. The
+How random-data-generator is tested, what `scripts/pre_commit_check.sh` runs, and what to do when a step fails. The
 thresholds quoted in [CONTRIBUTING.md](../../CONTRIBUTING.md#code-quality-gates) are the rules; the
 build files are the source of truth for their values.
 
@@ -12,10 +12,11 @@ build files are the source of truth for their values.
 | `core/src/nullnessTest/java` | JUnit Jupiter, NullAway | with `:core:test` | Calls the public API as null-marked consumer code does; fails to compile if the API stops accepting what such code passes. |
 | `core/src/java21Test/java` | JUnit Jupiter | `:core:java21Test`, only on a Java 21+ test JVM | Tests that need Java 21, such as virtual threads. Outside coverage and PIT. |
 | `benchmarks/` | JMH | `scripts/run_benchmarks.sh` | Performance; CI skips its tests. |
-| `examples/` | each project's own | `scripts/verify_examples_local.sh` | Standalone Java consumer builds (Gradle, Maven) against the local snapshot. |
+| `examples/` | each project's own | `scripts/verify_examples_local.sh` | Standalone Java consumer builds (Gradle, Maven, JPMS) against the local snapshot. |
 
-Java tests use JUnit Jupiter's own `Assertions`; there is no AssertJ. **jqwik is forbidden**: property
-tests are written with Kotest in the Kotlin modules. Test classes end in `Test`, carry a class-level
+Java tests use JUnit Jupiter's own `Assertions`; there is no AssertJ. **jqwik is forbidden**: a property
+test of the core is a plain JUnit test that loops over cases from a fixed-seed `java.util.Random`, as
+`RegexGeneratorPropertyTest` does; Kotest property tests live in the Kotlin repository. Test classes end in `Test`, carry a class-level
 `@DisplayName` in sentence form, and pin and oracle tests state their contract in Javadoc.
 
 ## Coverage and mutation testing
@@ -23,8 +24,9 @@ tests are written with Kotest in the Kotlin modules. Test classes end in `Test`,
 - **Core coverage is exactly 100%** on instructions, lines, branches, complexity, methods and classes
   (JaCoCo rules in `core/build.gradle.kts`). There are no exclusions; reach it with tests through
   behaviour, not by excluding code or adding test-only branches.
-- **Integration modules** have line and branch floors in `integrationCoverageFloors` in the root
-  `build.gradle.kts`. Raise a floor when you add tests; never lower one without a changelog entry.
+- **Other published jar modules** would have line and branch floors in `integrationCoverageFloors` in the
+  root `build.gradle.kts`. This repository has none, so the map is empty; the language repositories keep the
+  floors of their integration modules.
 - **PIT** runs on a list of critical classes and tests (`pitest { targetClasses / targetTests }` in
   `core/build.gradle.kts`) with mutation-score and line-coverage thresholds. A new class on a
   deterministic, safety or schema path belongs in `targetClasses`, and a new test class that should kill
@@ -43,7 +45,7 @@ tests are written with Kotest in the Kotlin modules. Test classes end in `Test`,
 | Facade parity | `FacadeNamespaceParityTest` | You add a factory or a namespace method. |
 | Docs as tests | `DocumentationSnippetsTest`, `ProviderCatalogDocumentationTest` | You change a documented snippet or the provider catalog. |
 
-Paths are under `core/src/test/java/io/github/frikit/krandom/`.
+Paths are under `core/src/test/java/io/github/frikit/rdg/`.
 
 ## The gate
 

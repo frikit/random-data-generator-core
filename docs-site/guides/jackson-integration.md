@@ -6,11 +6,11 @@ permalink: /guides/jackson-integration/
 
 # Jackson Integration
 
-Use `krandom-jackson` when you want Jackson to understand kRandom schema definitions.
+Use `random-data-generator-jackson` when you want Jackson to understand random-data-generator schema definitions.
 
 ## Jackson 3
 
-`krandom-jackson` is built for **Jackson 3** (`tools.jackson.core:jackson-databind`, packages
+`random-data-generator-jackson` is built for **Jackson 3** (`tools.jackson.core:jackson-databind`, packages
 `tools.jackson.*`) and brings `jackson-databind` 3 transitively. Jackson 3 has no annotations module
 of its own: it uses the 2.x `com.fasterxml.jackson.core:jackson-annotations` (package
 `com.fasterxml.jackson.annotation`), and `jackson-databind` brings the matching version, `2.23` for
@@ -18,7 +18,7 @@ Jackson 3.3. Leave that version to Jackson. The artifact's `3.0-rc` versions are
 Jackson 3 does not use, although Maven Central lists `3.0-rc5` as its latest release.
 
 `KrandomJacksonModule` is a Jackson 3 module. It cannot be registered with a Jackson 2
-(`com.fasterxml.jackson.databind`) `ObjectMapper`: kRandom 2.10.0 is the last release built for
+(`com.fasterxml.jackson.databind`) `ObjectMapper`: random-data-generator 2.10.0 is the last release built for
 Jackson 2. On Jackson 2, either stay on that release or register a serializer of your own that writes
 `schema.toJsonSchema()`.
 
@@ -36,8 +36,8 @@ repositories {
 }
 
 dependencies {
-    implementation("io.github.frikit:krandom-core:4.1.0")
-    implementation("io.github.frikit:krandom-jackson:4.1.0")
+    implementation("io.github.frikit:random-data-generator-core:1.0.0")
+    implementation("io.github.frikit:random-data-generator-jackson:1.0.0")
 }
 ```
 
@@ -46,7 +46,7 @@ dependencies {
 Jackson 3 mappers are immutable, so add the module while the mapper is built:
 
 ```java
-import io.github.frikit.krandom.jackson.KrandomJacksonModule;
+import io.github.frikit.rdg.jackson.KrandomJacksonModule;
 import tools.jackson.databind.json.JsonMapper;
 
 JsonMapper mapper = JsonMapper.builder()
@@ -58,7 +58,7 @@ JsonMapper mapper = JsonMapper.builder()
 same builder, and `KrandomJackson.newJsonMapper()` is the shortest setup path:
 
 ```java
-import io.github.frikit.krandom.jackson.KrandomJackson;
+import io.github.frikit.rdg.jackson.KrandomJackson;
 
 JsonMapper configured = KrandomJackson.configure(JsonMapper.builder()).build();
 JsonMapper mapper = KrandomJackson.newJsonMapper();
@@ -70,11 +70,11 @@ Jackson 3 methods throw the unchecked `tools.jackson.core.JacksonException`, so 
 ## Serialize A Schema As JSON Schema
 
 ```java
-import io.github.frikit.krandom.generator.GeneratorConfig;
-import io.github.frikit.krandom.generator.schema.Field;
-import io.github.frikit.krandom.generator.schema.Schema;
-import io.github.frikit.krandom.generator.schema.SchemaValueProvider;
-import io.github.frikit.krandom.jackson.KrandomJackson;
+import io.github.frikit.rdg.generator.GeneratorConfig;
+import io.github.frikit.rdg.generator.schema.Field;
+import io.github.frikit.rdg.generator.schema.Schema;
+import io.github.frikit.rdg.generator.schema.SchemaValueProvider;
+import io.github.frikit.rdg.jackson.KrandomJackson;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 

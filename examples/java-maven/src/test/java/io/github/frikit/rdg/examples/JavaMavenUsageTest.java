@@ -1,0 +1,79 @@
+/*
+ * Copyright (c) 2026 random-data-generator contributors
+ *
+ * Licensed under the MIT License. See LICENSE in the project root for license information.
+ */
+package io.github.frikit.rdg.examples;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import io.github.frikit.rdg.generator.GeneratorConfig;
+import io.github.frikit.rdg.generator.Generators;
+import io.github.frikit.rdg.generator.object.ObjectModel;
+import java.util.Locale;
+import org.junit.jupiter.api.Test;
+
+class JavaMavenUsageTest {
+
+    @Test
+    void coreCanGenerateFixtureData() {
+        UserFixture fixture = new UserFixture(
+                Generators.ofFullName().generate(),
+                Generators.ofEmail().generate(),
+                Generators.ofCountry().generate());
+
+        assertNotNull(fixture.name());
+        assertTrue(fixture.email().contains("@"));
+        assertFalse(fixture.country().isBlank());
+    }
+
+    @Test
+    void publicTypedObjectModelApiCompilesAndGenerates() {
+        ObjectModel<UserFixture> model = ObjectModel.of(UserFixture.class)
+                .configure(faker -> faker.ruleFor(UserFixture::name, () -> "Ada Lovelace")
+                        .ruleFor(
+                                UserFixture::email,
+                                user -> user.name().toLowerCase(Locale.ROOT).replace(' ', '.') + "@example.com")
+                        .ruleFor(UserFixture::country, () -> "United Kingdom")
+                        .strict());
+
+        assertTrue(model.generate().email().endsWith("@example.com"));
+    }
+
+    @Test
+    void compatibleReplayAndFixtureOptionsWorkFromPublishedArtifacts() {
+        GeneratorConfig config = GeneratorConfig.builder()
+                .seed(42)
+                .objectSemanticMode(io.github.frikit.rdg.generator.object.ObjectGenerationSemanticMode.STRUCTURAL_ONLY)
+                .objectFieldStreamPolicy(io.github.frikit.rdg.generator.object.ObjectFieldStreamPolicy.INDEPENDENT)
+                .build()
+                .snapshotClock();
+        var expected =
+                new io.github.frikit.rdg.generator.object.ObjectGenerator<>(StreamFixture.class, config).generate();
+        var overridden = new io.github.frikit.rdg.generator.object.ObjectGenerator<>(
+                        StreamFixture.class,
+                        config.toBuilder()
+                                .objectOverride(StreamFixture.class, "name", () -> "fixed")
+                                .build())
+                .generate();
+        assertEquals(expected.age(), overridden.age());
+        assertEquals(
+                config.getClock(),
+                config.getGenerationRecipe().orElseThrow().toGeneratorConfig().getClock());
+        var faker = new io.github.frikit.rdg.generator.object.ObjectFaker<>(StreamFixture.class, config)
+                .profile("failed", f -> {
+                    f.ruleFor("name", () -> "partial");
+                    throw new IllegalStateException("failed");
+                });
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class, () -> faker.useProfile("failed"));
+        org.junit.jupiter.api.Assertions.assertNotEquals(
+                "partial", faker.generate().name(), "a failed profile must not leave its rule behind");
+        assertEquals(
+                "recovered", faker.ruleFor("name", () -> "recovered").generate().name());
+    }
+
+    public record StreamFixture(String name, int age) {}
+}

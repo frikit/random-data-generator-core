@@ -33,7 +33,7 @@ all pass for the exact release commit.
 **Success Criteria**: Maven Central, GitHub release assets and attestations, Central-only consumers,
 documentation deployment, and post-release version facts all succeed.
 **Tests**: Release workflow, asset integrity and attestation verification,
-`KRANDOM_VERSION=2.5.0 scripts/verify_examples_central.sh`, and post-release CI.
+`RDG_VERSION=2.5.0 scripts/verify_examples_central.sh`, and post-release CI.
 **Status**: Complete
 
 ## Publication evidence

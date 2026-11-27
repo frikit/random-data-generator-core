@@ -6,9 +6,9 @@ permalink: /guides/migration-from-instancio/
 
 # Migration from Instancio
 
-Use this mapping to move Instancio fixture code to kRandom. The two libraries
+Use this mapping to move Instancio fixture code to random-data-generator. The two libraries
 share the object-population core but differ in philosophy: Instancio is a
-fixture DSL with selectors and models; kRandom pairs reflection-based
+fixture DSL with selectors and models; random-data-generator pairs reflection-based
 population with semantic data and explicit rules. The common cases map
 directly; the honest-gaps section lists what does not (yet).
 
@@ -16,13 +16,13 @@ directly; the honest-gaps section lists what does not (yet).
 
 ```kotlin
 dependencies {
-    implementation("io.github.frikit:krandom-core:4.1.0")
+    implementation("io.github.frikit:random-data-generator-core:1.0.0")
 }
 ```
 
 ## API mapping
 
-| Instancio | kRandom equivalent |
+| Instancio | random-data-generator equivalent |
 |---|---|
 | `Instancio.create(User.class)` | `Generators.ofObject(User.class).generate()` |
 | `Instancio.ofList(User.class).size(10).create()` | `Generators.ofObject(User.class).generateList(10)` |
@@ -35,7 +35,7 @@ dependencies {
 | `.withMaxDepth(3)` | `.objectMaxDepth(3)` |
 | `Instancio.of(Model<T>)` | `ObjectModel<T>.faker()` / `.generate()`; compose models with `.and(...)` |
 | `generate(field(...), gen -> gen.ints().range(1, 10))` | `.ruleFor(User::getCount, Generators.ofInt(1, 10))` |
-| `@ExtendWith(InstancioExtension.class)` + `@Seed(42)` | `@ExtendWith(KrandomExtension.class)` + `@KrandomSeed(42L)` from `krandom-junit` — same failure-seed reporting; see the [JUnit Extension]({{ '/guides/junit-extension/' | relative_url }}) guide |
+| `@ExtendWith(InstancioExtension.class)` + `@Seed(42)` | `@ExtendWith(KrandomExtension.class)` + `@KrandomSeed(42L)` from `random-data-generator-junit` — same failure-seed reporting; see the [JUnit Extension]({{ '/guides/junit-extension/' | relative_url }}) guide |
 
 ## Before and after
 
@@ -49,7 +49,7 @@ User user = Instancio.of(User.class)
     .create();
 ```
 
-kRandom:
+random-data-generator:
 
 ```java
 GeneratorConfig config = GeneratorConfig.builder().seed(42L).build();
@@ -65,7 +65,7 @@ A rule may repeat its value on every object. To
 `objectUniqueField("email")` to the configuration, and the constant rule above then fails on a second
 object from the same faker.
 
-## What kRandom adds over Instancio
+## What random-data-generator adds over Instancio
 
 - **Semantic field values** — `firstName`, `email`, `city` resolve to
   realistic domain data, not arbitrary strings (this is the documented
@@ -86,6 +86,6 @@ object from the same faker.
   time; broad predicate rules remain configured through `GeneratorConfig` field predicates.
 - **JPA-specific constraints**: Bean Validation is native, but JPA metadata such as
   `@Column(length=...)` is not interpreted.
-- **JUnit generated-value injection and parameter sources**: kRandom reports and replays per-test
+- **JUnit generated-value injection and parameter sources**: random-data-generator reports and replays per-test
   seeds, but does not yet provide equivalents to Instancio's generated field/parameter injection
   and parameterized source APIs.

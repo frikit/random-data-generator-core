@@ -29,7 +29,7 @@ repeated portability checks and was faster in this workload. These results do no
 performance for large graphs, arbitrary callbacks, or different machines.
 
 Raw data: [2.2.0](baseline-2.2.0.json) and [candidate](candidate-2.3.0.json).
-Source: [FieldStreamsBenchmark](../../../benchmarks/src/main/java/io/github/frikit/krandom/benchmarks/FieldStreamsBenchmark.java).
+Source: [FieldStreamsBenchmark](../../../benchmarks/src/main/java/io/github/frikit/rdg/benchmarks/FieldStreamsBenchmark.java).
 
 JMH arguments: `FieldStreamsBenchmark -p customized=false,true -f 2 -wi 3 -i 5 -w 1s -r 1s
 -jvmArgs "-Xms256m -Xmx256m" -prof gc -rf json`. Use `-p policy=LEGACY` for 2.2.0 and

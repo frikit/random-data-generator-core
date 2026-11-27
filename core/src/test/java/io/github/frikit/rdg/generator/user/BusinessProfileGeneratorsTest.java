@@ -1,0 +1,147 @@
+/*
+ * Copyright (c) 2026 random-data-generator contributors
+ *
+ * Licensed under the MIT License. See LICENSE in the project root for license information.
+ */
+package io.github.frikit.rdg.generator.user;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import io.github.frikit.rdg.generator.GeneratorConfig;
+import io.github.frikit.rdg.generator.Generators;
+import java.util.Locale;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+@DisplayName("Business profile generators")
+class BusinessProfileGeneratorsTest {
+
+    @Test
+    @DisplayName("Industry generator returns non-empty values and supports seeding")
+    void industryGenerator() {
+        IndustryGenerator any =
+                new IndustryGenerator(GeneratorConfig.builder().seed(1L).build());
+        IndustryGenerator a =
+                new IndustryGenerator(GeneratorConfig.builder().seed(1L).build());
+        IndustryGenerator b =
+                new IndustryGenerator(GeneratorConfig.builder().seed(1L).build());
+        assertFalse(any.generate().isBlank());
+        assertEquals(a.generate(), b.generate());
+        assertThrows(NullPointerException.class, () -> new IndustryGenerator((GeneratorConfig) null));
+    }
+
+    @Test
+    @DisplayName("Company URL generator returns valid-looking URLs")
+    void companyUrlGenerator() {
+        assertNotNull(new CompanyUrlGenerator().generate());
+        CompanyUrlGenerator gen = new CompanyUrlGenerator(Locale.US);
+        CompanyUrlGenerator seededA =
+                new CompanyUrlGenerator(GeneratorConfig.builder().seed(12L).build());
+        CompanyUrlGenerator seededB =
+                new CompanyUrlGenerator(GeneratorConfig.builder().seed(12L).build());
+        String url = gen.generate();
+        String fromName = gen.generateFromCompanyName();
+        String fromBlankName = gen.generateFromCompanyName("___");
+        assertTrue(url.matches("https?://www\\.[a-z0-9]+(\\.[a-z]{2,})+"));
+        assertTrue(fromName.matches("https://www\\.[a-z0-9]+\\.[a-z]{2,}"));
+        assertTrue(fromBlankName.matches("https://www\\.company\\.[a-z]{2,}"));
+        assertEquals(seededA.generate(), seededB.generate());
+        assertThrows(NullPointerException.class, () -> new CompanyUrlGenerator((GeneratorConfig) null));
+        assertThrows(NullPointerException.class, () -> gen.generateFromCompanyName(null));
+    }
+
+    @Test
+    @DisplayName("a company URL keeps the first 63 letters and digits of the name, the most a host label holds")
+    void companyUrlFromLongNameKeepsAValidLabel() {
+        CompanyUrlGenerator gen = new CompanyUrlGenerator(Locale.US);
+        String sixtyThree = "a".repeat(30) + "1".repeat(33);
+        String sixtyFour = sixtyThree + "Z";
+
+        String exact = gen.generateFromCompanyName(sixtyThree);
+        String cut = gen.generateFromCompanyName("  " + sixtyFour + " & Sons, Ltd.");
+
+        assertEquals("https://www." + sixtyThree + ".test", exact);
+        assertEquals("https://www." + sixtyThree + ".test", cut);
+        for (String url : java.util.List.of(exact, cut)) {
+            String host = java.net.URI.create(url).getHost();
+            assertEquals(host, java.net.IDN.toASCII(host, java.net.IDN.USE_STD3_ASCII_RULES));
+        }
+        CompanyUrlGenerator realistic = new CompanyUrlGenerator(GeneratorConfig.builder()
+                .seed(4L)
+                .networkSafetyPolicy(io.github.frikit.rdg.generator.network.NetworkSafetyPolicy.REALISTIC_UNCLASSIFIED)
+                .build());
+        assertTrue(realistic.generateFromCompanyName(sixtyFour).startsWith("https://www." + sixtyThree + "."));
+    }
+
+    @Test
+    @DisplayName("Job and profile generators return non-empty values")
+    void jobAndProfileGenerators() {
+        assertNotNull(new JobFieldGenerator().generate());
+        assertNotNull(new JobTypeGenerator().generate());
+        assertNotNull(new SeniorityGenerator().generate());
+        assertNotNull(new PositionGenerator().generate());
+        assertNotNull(new EducationalAttainmentGenerator().generate());
+        assertNotNull(new MaritalStatusGenerator().generate());
+
+        JobFieldGenerator field =
+                new JobFieldGenerator(GeneratorConfig.builder().seed(2L).build());
+        JobTypeGenerator type =
+                new JobTypeGenerator(GeneratorConfig.builder().seed(22L).build());
+        SeniorityGenerator seniority =
+                new SeniorityGenerator(GeneratorConfig.builder().seed(3L).build());
+        PositionGenerator position =
+                new PositionGenerator(GeneratorConfig.builder().seed(4L).build());
+        EducationalAttainmentGenerator education = new EducationalAttainmentGenerator(
+                GeneratorConfig.builder().seed(5L).build());
+        MaritalStatusGenerator marital =
+                new MaritalStatusGenerator(GeneratorConfig.builder().seed(6L).build());
+
+        assertFalse(field.generate().isBlank());
+        assertFalse(type.generate().isBlank());
+        assertFalse(seniority.generate().isBlank());
+        assertFalse(position.generate().isBlank());
+        assertFalse(education.generate().isBlank());
+        assertFalse(marital.generate().isBlank());
+    }
+
+    @Test
+    @DisplayName("Null config validation on profile generators")
+    void nullConfigValidation() {
+        assertThrows(NullPointerException.class, () -> new JobFieldGenerator((GeneratorConfig) null));
+        assertThrows(NullPointerException.class, () -> new JobTypeGenerator((GeneratorConfig) null));
+        assertThrows(NullPointerException.class, () -> new JobTypeGenerator((Locale) null));
+        assertThrows(NullPointerException.class, () -> new SeniorityGenerator((GeneratorConfig) null));
+        assertThrows(NullPointerException.class, () -> new PositionGenerator((GeneratorConfig) null));
+        assertThrows(NullPointerException.class, () -> new EducationalAttainmentGenerator((GeneratorConfig) null));
+        assertThrows(NullPointerException.class, () -> new MaritalStatusGenerator((GeneratorConfig) null));
+    }
+
+    @Test
+    @DisplayName("Generators factory methods expose business/profile generators")
+    void generatorFactoryCoverage() {
+        assertNotNull(Generators.ofIndustry().generate());
+        assertNotNull(Generators.ofCompanyInfo().generate());
+        assertNotNull(Generators.ofCompanyUrl().generate());
+        assertNotNull(Generators.ofJobField().generate());
+        assertNotNull(Generators.ofJobType().generate());
+        assertNotNull(Generators.ofSeniority().generate());
+        assertNotNull(Generators.ofPosition().generate());
+        assertNotNull(Generators.ofEducationalAttainment().generate());
+        assertNotNull(Generators.ofMaritalStatus().generate());
+    }
+
+    @Test
+    @DisplayName("JobType generator supports locale-specific values")
+    void jobTypeLocaleSupport() {
+        JobTypeGenerator de = new JobTypeGenerator(Locale.GERMANY);
+        JobTypeGenerator ja = new JobTypeGenerator(Locale.JAPAN);
+        assertEquals(Locale.GERMANY, de.getLocale());
+        assertEquals(Locale.JAPAN, ja.getLocale());
+        assertNotNull(de.generate());
+        assertNotNull(ja.generate());
+    }
+}

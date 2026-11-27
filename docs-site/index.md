@@ -4,9 +4,9 @@ title: Home
 permalink: /
 ---
 
-# kRandom Java Documentation
+# random-data-generator Java Documentation
 
-kRandom is a Java random-data generation library built for test fixtures, seedable fake data, and
+random-data-generator is a Java random-data generation library built for test fixtures, seedable fake data, and
 object graph population. The latest stable release is 4.1.0, which is used by the public
 installation examples. Repository-local snapshots are intended for development verification.
 
@@ -27,7 +27,7 @@ This site is focused on the Java side only.
 - [Examples]({{ '/examples/' | relative_url }})
 - [Guides]({{ '/guides/' | relative_url }})
 - [FAQ]({{ '/faq/' | relative_url }})
-- [API Reference (Javadoc)](https://javadoc.io/doc/io.github.frikit/krandom-core)
+- [API Reference (Javadoc)](https://javadoc.io/doc/io.github.frikit/random-data-generator-core)
 
 ## Design direction (current)
 

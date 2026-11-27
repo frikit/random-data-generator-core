@@ -1,6 +1,6 @@
 # Java + Gradle Example (Test-based)
 
-Uses `io.github.frikit:krandom-core:4.2.0-SNAPSHOT` by default for repo-local verification.
+Uses `io.github.frikit:random-data-generator-core:1.0.0-SNAPSHOT` by default for repo-local verification.
 
 Use the embedded snapshot default only for repo-local Maven-local checks. For published versions, pass the target version explicitly.
 
@@ -30,11 +30,11 @@ cd examples/java-gradle
 To use a different artifact version:
 
 ```bash
-./gradlew -PkrandomVersion=<version> test
+./gradlew -PrdgVersion=<version> test
 ```
 
 The tests compile and run on Java 21. To run them on another Java, such as 17, the oldest that
-`krandom-core` runs on, name it; Gradle must detect a JDK of that version (`./gradlew javaToolchains`):
+`random-data-generator-core` runs on, name it; Gradle must detect a JDK of that version (`./gradlew javaToolchains`):
 
 ```bash
 ./gradlew -PjavaVersion=17 test

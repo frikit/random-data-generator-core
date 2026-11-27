@@ -6,7 +6,7 @@ permalink: /guides/kotlin-dsl/
 
 # Kotlin DSL
 
-Use `krandom-kotlin-dsl` when Kotlin tests need compact object-generation rules without dropping into Java builders.
+Use `random-data-generator-kotlin-dsl` when Kotlin tests need compact object-generation rules without dropping into Java builders.
 
 ## Dependency
 
@@ -16,19 +16,19 @@ repositories {
 }
 
 dependencies {
-    testImplementation("io.github.frikit:krandom-kotlin-dsl:4.1.0")
+    testImplementation("io.github.frikit:random-data-generator-kotlin-dsl:1.0.0")
 }
 ```
 
 From 3.1.0 the module is compiled for JVM target 17 and for Kotlin 2.2, so a Kotlin 2.1.0 or later compiler
 can read it, and Kotlin code compiled for JVM target 17, such as the unit tests of an Android module, can call
-`krandom<T>()` and its other inline functions. It runs on Java 17 or later, as `krandom-core` does from 3.1.0:
+`krandom<T>()` and its other inline functions. It runs on Java 17 or later, as `random-data-generator-core` does from 3.1.0:
 see [Android Unit Tests]({{ '/guides/android-unit-tests/' | relative_url }}).
 
 ## Generate One Object
 
 ```kotlin
-import io.github.frikit.krandom.dsl.krandom
+import io.github.frikit.rdg.dsl.krandom
 
 val user = krandom<UserDto> {
     config { seed(42L) }
@@ -70,9 +70,9 @@ non-null one fails generation.
 ## Generate Lists
 
 ```kotlin
-import io.github.frikit.krandom.dsl.krandomList
+import io.github.frikit.rdg.dsl.rdgList
 
-val users = krandomList<UserDto>(10) {
+val users = rdgList<UserDto>(10) {
     rule("country") { "United States" }
 }
 ```
@@ -80,9 +80,9 @@ val users = krandomList<UserDto>(10) {
 ## Reusable Generators
 
 ```kotlin
-import io.github.frikit.krandom.dsl.krandomGenerator
+import io.github.frikit.rdg.dsl.rdgGenerator
 
-val users = krandomGenerator<UserDto> {
+val users = rdgGenerator<UserDto> {
     ruleForType<String> { "fixed" }
 }
 
@@ -120,7 +120,7 @@ single place for complex fixture composition.
 
 ## Immutable Kotlin classes
 
-`krandom-kotlin-dsl` includes Kotlin reflection and constructs immutable Kotlin values through their
+`random-data-generator-kotlin-dsl` includes Kotlin reflection and constructs immutable Kotlin values through their
 primary constructor. No extra `kotlin-reflect` declaration is needed.
 
 ```kotlin
@@ -141,7 +141,7 @@ val user = krandom<UserFixture> {
 check(user.source == "test") // optional parameters retain their Kotlin default
 ```
 
-The primary-constructor adapter uses the normal kRandom resolver for each parameter, so field/type
+The primary-constructor adapter uses the normal random-data-generator resolver for each parameter, so field/type
 rules, nested generic containers, semantic values, deterministic seeds, and Jakarta Validation
 annotations all apply. The `@param:`, `@field:` and `@get:` constraint targets are recognized
 together, whether or not the class was compiled with `-java-parameters`: an argument meets the
@@ -155,13 +155,13 @@ The constructor fills its own parameters. A mutable property that it does not ta
 class body or inherited, is then filled through its field, as a Java class's fields are after its
 constructor runs: a rule replaces its initializer, and in the DSL so does a generated value. With
 `data class User(val id: Long) { var name = "old" }`, `rule(User::name) { "new" }` gives `"new"`. A
-field in a package that is not open to kRandom, such as one that an exception class inherits from
+field in a package that is not open to random-data-generator, such as one that an exception class inherits from
 `Throwable`, keeps what the constructor set.
 
 Kotlin `object` singletons return their one instance, and sealed types and value classes are generated
 as [below](#sealed-types-and-value-classes). An abstract class or interface that is not sealed is
 rejected before returning a value; use a concrete type or a `ruleForType`. A core-only application
-also rejects immutable Kotlin types with a message naming `krandom-kotlin-dsl`, rather than allocating
+also rejects immutable Kotlin types with a message naming `random-data-generator-kotlin-dsl`, rather than allocating
 an invalid instance.
 
 The adapter always invokes the primary constructor, whatever its visibility, as the object engine
@@ -267,7 +267,7 @@ val customer = krandom<Customer>()
 ## Standalone Configuration and Replay Recipes
 
 ```kotlin
-val config = krandomConfig {
+val config = rdgConfig {
     seed("checkout-fixtures")   // textual seeds use the shared derivation contract
     constructionPolicy(ObjectConstructionPolicy.SAFE)
 }
@@ -282,9 +282,9 @@ the Java API.
 ## Opt-in independent streams (2.3+)
 
 ```kotlin
-import io.github.frikit.krandom.generator.`object`.ObjectFieldStreamPolicy
+import io.github.frikit.rdg.generator.`object`.ObjectFieldStreamPolicy
 
-val users = krandomList<User>(5) {
+val users = rdgList<User>(5) {
     config {
         seed(42L)
         objectFieldStreamPolicy(ObjectFieldStreamPolicy.INDEPENDENT)
@@ -294,12 +294,12 @@ val users = krandomList<User>(5) {
 ```
 
 The Kotlin option uses the same core policy as Java. Object-field streams stay LEGACY unless you select INDEPENDENT. For direct configuration
-consumers, `krandomConfig { seed(42L) }.snapshotClock()` captures an explicit replay clock.
+consumers, `rdgConfig { seed(42L) }.snapshotClock()` captures an explicit replay clock.
 
 ## Seeding opt-ins that become the 4.0 defaults (3.2+)
 
 ```kotlin
-val config = krandomConfig {
+val config = rdgConfig {
     seed(42L)
     advancingConvenienceStreams(true)
     strictMathGaussian(true)
@@ -319,7 +319,7 @@ for what each one changes.
 on by default from 4.0.0, where `germanStreetLayout(false)` keeps the 3.x layout; see [Locale-Aware Data]({{ '/guides/locale-aware-data/' | relative_url }}#german-street-layout).
 
 ```kotlin
-val config = krandomConfig {
+val config = rdgConfig {
     seed(42L)
     locale(Locale.GERMANY)
     germanStreetLayout(true)

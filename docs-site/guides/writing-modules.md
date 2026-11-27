@@ -6,19 +6,19 @@ permalink: /guides/writing-modules/
 
 # Writing extension modules
 
-Use a `KRandomModule` when one domain provider must work consistently across provider lookup,
+Use a `ExtensionModule` when one domain provider must work consistently across provider lookup,
 schema generation, and semantic object generation. Modules are explicit and scoped to one
-`GeneratorConfig`: kRandom does not scan the classpath or mutate a process-wide registry.
+`GeneratorConfig`: random-data-generator does not scan the classpath or mutate a process-wide registry.
 
 ```java
-final class ShippingModule implements KRandomModule {
+final class ShippingModule implements ExtensionModule {
     @Override
     public String id() {
         return "acme.shipping";
     }
 
     @Override
-    public void configure(KRandomModuleContext context) {
+    public void configure(ExtensionModuleContext context) {
         context.registerProvider(
             ProviderDescriptor.builder("shipping.tracking", TrackingGenerator.class,
                                        TrackingGenerator::new)
@@ -55,7 +55,7 @@ The resulting configuration makes the contribution available through `ProviderHu
 - Treat conflicts as configuration errors. Duplicate module IDs, provider keys/aliases, schema
   references/aliases, and ambiguous semantic aliases fail during `build()`.
 - Do not perform network access during module configuration or generation unless the application
-  explicitly owns that behavior. First-party kRandom modules are local and offline by default.
+  explicitly owns that behavior. First-party random-data-generator modules are local and offline by default.
 
 Use direct `ProviderHub.register()` only for a short-lived, hub-local provider that does not need
 schema or object-generation integration. Use a module for reusable library or organization-wide

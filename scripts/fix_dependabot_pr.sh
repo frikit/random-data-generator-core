@@ -4,7 +4,7 @@
 # Dependabot cannot run scripts/update_verification_metadata.sh, so its Gradle updates fail
 # dependency verification until a maintainer records the new checksums. This script does the
 # mechanical part: it checks the pull request's branch out into a temporary git worktree, runs the
-# metadata update under every JDK in KRANDOM_METADATA_JDKS (CI on Linux/Java 25 resolves POM and
+# metadata update under every JDK in RDG_METADATA_JDKS (CI on Linux/Java 25 resolves POM and
 # Gradle-module entries that a Java 21 run can miss, so run both), commits the metadata change on
 # that branch, and prints what was added. Reviewing the diff against the checklist in
 # docs/development/dependency-reproducibility.md stays with the maintainer: push with --push once
@@ -13,7 +13,7 @@
 # Usage: ./scripts/fix_dependabot_pr.sh <pull-request-number> [--push] [--keep-worktree]
 #   --push            push the metadata commit to the pull request branch after the update
 #   --keep-worktree   keep the temporary worktree (its path is printed) instead of removing it
-#   KRANDOM_METADATA_JDKS   colon-separated JAVA_HOME directories to run in order, for example
+#   RDG_METADATA_JDKS   colon-separated JAVA_HOME directories to run in order, for example
 #                           "/path/to/jdk-21:/path/to/jdk-25"; defaults to JAVA_HOME alone.
 #
 # Exit code: 0 = metadata recorded (or already complete), non-zero = a step failed; the worktree is
@@ -55,9 +55,9 @@ command -v gh >/dev/null 2>&1 || { echo "gh (GitHub CLI) is required." >&2; exit
 command -v jq >/dev/null 2>&1 || { echo "jq is required." >&2; exit 1; }
 
 # JDKs to run, in order. Each must contain bin/java.
-IFS=':' read -r -a JDK_HOMES <<< "${KRANDOM_METADATA_JDKS:-${JAVA_HOME:-}}"
+IFS=':' read -r -a JDK_HOMES <<< "${RDG_METADATA_JDKS:-${JAVA_HOME:-}}"
 if (( ${#JDK_HOMES[@]} == 0 )) || [[ -z "${JDK_HOMES[0]}" ]]; then
-    echo "Set KRANDOM_METADATA_JDKS (colon-separated JAVA_HOME directories) or JAVA_HOME." >&2
+    echo "Set RDG_METADATA_JDKS (colon-separated JAVA_HOME directories) or JAVA_HOME." >&2
     exit 1
 fi
 for jdk in "${JDK_HOMES[@]}"; do
@@ -68,7 +68,7 @@ for jdk in "${JDK_HOMES[@]}"; do
 done
 if (( ${#JDK_HOMES[@]} == 1 )); then
     echo "WARNING: running under one JDK only; CI on Java 25 can resolve artifacts this run does not record." >&2
-    echo "         Set KRANDOM_METADATA_JDKS to a JDK 21 and a JDK 25 directory to cover both." >&2
+    echo "         Set RDG_METADATA_JDKS to a JDK 21 and a JDK 25 directory to cover both." >&2
 fi
 
 cd "${REPO_ROOT}"
@@ -111,7 +111,7 @@ if git show-ref --verify --quiet "refs/heads/${BRANCH}" \
     exit 1
 fi
 
-WORKTREE="$(mktemp -d "${TMPDIR:-/tmp}/krandom-pr-${PR_NUMBER}.XXXXXX")"
+WORKTREE="$(mktemp -d "${TMPDIR:-/tmp}/random-data-generator-pr-${PR_NUMBER}.XXXXXX")"
 echo "==> Worktree ${WORKTREE}"
 # -B creates the local branch at the fetched tip or fast-forwards it there (the guard above
 # rejected any branch that would lose commits).

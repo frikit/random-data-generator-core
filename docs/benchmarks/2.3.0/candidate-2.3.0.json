@@ -1,7 +1,7 @@
 [
     {
         "jmhVersion" : "1.37",
-        "benchmark" : "io.github.frikit.krandom.benchmarks.FieldStreamsBenchmark.generate",
+        "benchmark" : "io.github.frikit.rdg.benchmarks.FieldStreamsBenchmark.generate",
         "mode" : "thrpt",
         "threads" : 1,
         "forks" : 2,
@@ -213,7 +213,7 @@
     },
     {
         "jmhVersion" : "1.37",
-        "benchmark" : "io.github.frikit.krandom.benchmarks.FieldStreamsBenchmark.generate",
+        "benchmark" : "io.github.frikit.rdg.benchmarks.FieldStreamsBenchmark.generate",
         "mode" : "thrpt",
         "threads" : 1,
         "forks" : 2,
@@ -425,7 +425,7 @@
     },
     {
         "jmhVersion" : "1.37",
-        "benchmark" : "io.github.frikit.krandom.benchmarks.FieldStreamsBenchmark.generate",
+        "benchmark" : "io.github.frikit.rdg.benchmarks.FieldStreamsBenchmark.generate",
         "mode" : "thrpt",
         "threads" : 1,
         "forks" : 2,
@@ -637,7 +637,7 @@
     },
     {
         "jmhVersion" : "1.37",
-        "benchmark" : "io.github.frikit.krandom.benchmarks.FieldStreamsBenchmark.generate",
+        "benchmark" : "io.github.frikit.rdg.benchmarks.FieldStreamsBenchmark.generate",
         "mode" : "thrpt",
         "threads" : 1,
         "forks" : 2,

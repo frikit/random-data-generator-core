@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2026 krandom contributors
+ * Copyright (c) 2026 random-data-generator contributors
  *
  * Licensed under the MIT License. See LICENSE in the project root for license information.
  */
@@ -7,18 +7,22 @@ package io.github.frikit.krandom.generator;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import io.github.frikit.krandom.generator.base.DigitGenerator;
-import io.github.frikit.krandom.generator.object.ObjectGenerator;
-import io.github.frikit.krandom.generator.schema.Schema;
-import io.github.frikit.krandom.generator.schema.SchemaValueProvider;
+import io.github.frikit.rdg.generator.GeneratorConfig;
+import io.github.frikit.rdg.generator.object.ObjectGenerator;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+/**
+ * kRandom 4.1.0 compatibility pin for object generation. A member's seeded stream is derived from its owner's
+ * fully qualified class name, so this test and its fixture keep the binary names they had in kRandom
+ * ({@code io.github.frikit.krandom.generator.GenerationRecipeGoldenStreamTest$GoldenPerson}). With them, the
+ * object golden stream of {@code io.github.frikit.rdg.generator.GenerationRecipeGoldenStreamTest} must still give
+ * the value kRandom 4.1.0 pinned.
+ */
+@DisplayName("kRandom 4.1.0 compatibility: the object golden stream under its kRandom class name")
 class GenerationRecipeGoldenStreamTest {
 
     private static final GeneratorConfig CONFIG = GeneratorConfig.builder()
@@ -29,25 +33,11 @@ class GenerationRecipeGoldenStreamTest {
             .build();
 
     @Test
-    void scalarGoldenStream() {
-        assertEquals(List.of("8", "6", "5", "6", "8", "0", "1", "7"), new DigitGenerator(CONFIG).generateList(8));
-    }
-
-    @Test
+    @DisplayName("the golden person is the one kRandom 4.1.0 pinned")
     void objectGoldenStream() {
         assertEquals(
                 new GoldenPerson("YyauCX", -1_007_300_327),
                 new ObjectGenerator<>(GoldenPerson.class, CONFIG).generate());
-    }
-
-    @Test
-    void schemaGoldenStream() {
-        Map<String, SchemaValueProvider> fields = new LinkedHashMap<>();
-        fields.put("id", context -> context.random().nextInt(1_000));
-        fields.put("active", context -> context.random().nextBoolean());
-        assertEquals(
-                List.of(Map.of("id", 515, "active", true), Map.of("id", 978, "active", false)),
-                new Schema(CONFIG, fields).nextRecords(2));
     }
 
     record GoldenPerson(String code, int score) {}

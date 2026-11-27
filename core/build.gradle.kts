@@ -64,7 +64,7 @@ tasks.withType<JavaCompile>().configureEach {
     options.errorprone {
         disableAllChecks.set(true)
         error("NullAway")
-        option("NullAway:AnnotatedPackages", "io.github.frikit.krandom")
+        option("NullAway:AnnotatedPackages", "io.github.frikit.rdg")
         option("NullAway:JSpecifyMode", "true")
     }
 }
@@ -82,7 +82,7 @@ tasks.compileTestJava {
 tasks.test {
     useJUnitPlatform()
     jvmArgs("-Xmx512m")
-    systemProperty("krandom.rootDir", rootProject.projectDir.absolutePath)
+    systemProperty("rdg.rootDir", rootProject.projectDir.absolutePath)
     finalizedBy(tasks.jacocoTestReport)
 }
 
@@ -121,65 +121,65 @@ val java21TestTask =
 pitest {
     targetClasses.set(
         setOf(
-            "io.github.frikit.krandom.generator.GenerationRecipe",
-            "io.github.frikit.krandom.generator.GenerationRecipe$*",
-            "io.github.frikit.krandom.generator.GeneratorConfig",
-            "io.github.frikit.krandom.generator.GeneratorConfig$*",
-            "io.github.frikit.krandom.generator.color.ColorGenerator",
-            "io.github.frikit.krandom.generator.finance.CryptoAddressGenerator",
-            "io.github.frikit.krandom.generator.identifier.UUIDGenerator",
-            "io.github.frikit.krandom.generator.schema.Schema",
-            "io.github.frikit.krandom.generator.schema.SchemaParser",
-            "io.github.frikit.krandom.generator.schema.SchemaValueProvider",
-            "io.github.frikit.krandom.generator.location.RegistryLookup",
-            "io.github.frikit.krandom.generator.object.BeanValidationSupport",
-            "io.github.frikit.krandom.generator.object.BuiltInProviderResolver",
-            "io.github.frikit.krandom.generator.object.EmailShape",
-            "io.github.frikit.krandom.generator.object.FieldGeneratorResolver",
-            "io.github.frikit.krandom.generator.object.FieldGeneratorResolver$*",
-            "io.github.frikit.krandom.generator.object.FixtureRuleAnalysis",
-            "io.github.frikit.krandom.generator.object.FixtureRuleAnalysis$*",
-            "io.github.frikit.krandom.generator.object.ObjectFaker",
-            "io.github.frikit.krandom.generator.object.ObjectFieldStreamPlanner",
-            "io.github.frikit.krandom.generator.object.ObjectGenerator",
-            "io.github.frikit.krandom.generator.object.ObjectModel",
-            "io.github.frikit.krandom.generator.object.PropertyPath",
-            "io.github.frikit.krandom.generator.object.SealedTypes",
-            "io.github.frikit.krandom.generator.object.SemanticCoherenceAdjuster",
-            "io.github.frikit.krandom.generator.object.SemanticCoherenceAdjuster$*",
-            "io.github.frikit.krandom.generator.text.NextWordGenerator",
-            "io.github.frikit.krandom.generator.user.EmailGenerator",
+            "io.github.frikit.rdg.generator.GenerationRecipe",
+            "io.github.frikit.rdg.generator.GenerationRecipe$*",
+            "io.github.frikit.rdg.generator.GeneratorConfig",
+            "io.github.frikit.rdg.generator.GeneratorConfig$*",
+            "io.github.frikit.rdg.generator.color.ColorGenerator",
+            "io.github.frikit.rdg.generator.finance.CryptoAddressGenerator",
+            "io.github.frikit.rdg.generator.identifier.UUIDGenerator",
+            "io.github.frikit.rdg.generator.schema.Schema",
+            "io.github.frikit.rdg.generator.schema.SchemaParser",
+            "io.github.frikit.rdg.generator.schema.SchemaValueProvider",
+            "io.github.frikit.rdg.generator.location.RegistryLookup",
+            "io.github.frikit.rdg.generator.object.BeanValidationSupport",
+            "io.github.frikit.rdg.generator.object.BuiltInProviderResolver",
+            "io.github.frikit.rdg.generator.object.EmailShape",
+            "io.github.frikit.rdg.generator.object.FieldGeneratorResolver",
+            "io.github.frikit.rdg.generator.object.FieldGeneratorResolver$*",
+            "io.github.frikit.rdg.generator.object.FixtureRuleAnalysis",
+            "io.github.frikit.rdg.generator.object.FixtureRuleAnalysis$*",
+            "io.github.frikit.rdg.generator.object.ObjectFaker",
+            "io.github.frikit.rdg.generator.object.ObjectFieldStreamPlanner",
+            "io.github.frikit.rdg.generator.object.ObjectGenerator",
+            "io.github.frikit.rdg.generator.object.ObjectModel",
+            "io.github.frikit.rdg.generator.object.PropertyPath",
+            "io.github.frikit.rdg.generator.object.SealedTypes",
+            "io.github.frikit.rdg.generator.object.SemanticCoherenceAdjuster",
+            "io.github.frikit.rdg.generator.object.SemanticCoherenceAdjuster$*",
+            "io.github.frikit.rdg.generator.text.NextWordGenerator",
+            "io.github.frikit.rdg.generator.user.EmailGenerator",
         ),
     )
     targetTests.set(
         setOf(
-            "io.github.frikit.krandom.generator.ChildStreamPolicyTest",
-            "io.github.frikit.krandom.generator.ClockSnapshotTest",
+            "io.github.frikit.rdg.generator.ChildStreamPolicyTest",
+            "io.github.frikit.rdg.generator.ClockSnapshotTest",
             // The seeded values of the four 4.0 default flips, each set explicitly off and on.
-            "io.github.frikit.krandom.generator.DefaultFlipPinsTest",
+            "io.github.frikit.rdg.generator.DefaultFlipPinsTest",
             // From 4.0.0 the four are on by default.
-            "io.github.frikit.krandom.generator.DefaultFlipsTest",
-            "io.github.frikit.krandom.generator.EnvironmentDeterminismTest",
-            "io.github.frikit.krandom.generator.GenerationRecipe*",
-            "io.github.frikit.krandom.generator.GeneratorConfigChildStreamTest",
-            "io.github.frikit.krandom.generator.GeneratorConfigTest",
-            "io.github.frikit.krandom.generator.GeneratorProfileTest",
-            "io.github.frikit.krandom.generator.RandomSourceContractTest",
-            "io.github.frikit.krandom.generator.SeedingDefaultsPinTest",
-            "io.github.frikit.krandom.generator.SeedingOptInsTest*",
-            "io.github.frikit.krandom.generator.color.ColorGeneratorTest",
-            "io.github.frikit.krandom.generator.finance.Phase3FinanceGeneratorsTest",
-            "io.github.frikit.krandom.generator.identifier.UUIDGeneratorTest",
-            "io.github.frikit.krandom.generator.schema.*",
-            "io.github.frikit.krandom.generator.location.RegistryLookupTest",
+            "io.github.frikit.rdg.generator.DefaultFlipsTest",
+            "io.github.frikit.rdg.generator.EnvironmentDeterminismTest",
+            "io.github.frikit.rdg.generator.GenerationRecipe*",
+            "io.github.frikit.rdg.generator.GeneratorConfigChildStreamTest",
+            "io.github.frikit.rdg.generator.GeneratorConfigTest",
+            "io.github.frikit.rdg.generator.GeneratorProfileTest",
+            "io.github.frikit.rdg.generator.RandomSourceContractTest",
+            "io.github.frikit.rdg.generator.SeedingDefaultsPinTest",
+            "io.github.frikit.rdg.generator.SeedingOptInsTest*",
+            "io.github.frikit.rdg.generator.color.ColorGeneratorTest",
+            "io.github.frikit.rdg.generator.finance.Phase3FinanceGeneratorsTest",
+            "io.github.frikit.rdg.generator.identifier.UUIDGeneratorTest",
+            "io.github.frikit.rdg.generator.schema.*",
+            "io.github.frikit.rdg.generator.location.RegistryLookupTest",
             // The German street layout's setting and its recipe entry.
-            "io.github.frikit.krandom.generator.location.GermanStreetLayoutTest",
-            "io.github.frikit.krandom.generator.object.*",
-            "io.github.frikit.krandom.generator.text.NextWordGeneratorTest",
-            "io.github.frikit.krandom.generator.user.EmailGeneratorTest",
+            "io.github.frikit.rdg.generator.location.GermanStreetLayoutTest",
+            "io.github.frikit.rdg.generator.object.*",
+            "io.github.frikit.rdg.generator.text.NextWordGeneratorTest",
+            "io.github.frikit.rdg.generator.user.EmailGeneratorTest",
             // The oracles of the per-column reseed in a seeded Schema (the second is also under schema.*).
-            "io.github.frikit.krandom.internal.ReseedAsBuiltTest",
-            "io.github.frikit.krandom.generator.schema.SchemaFreshBuildOracleTest",
+            "io.github.frikit.rdg.internal.ReseedAsBuiltTest",
+            "io.github.frikit.rdg.generator.schema.SchemaFreshBuildOracleTest",
         ),
     )
     pitestVersion.set(libs.versions.pitest.core)
@@ -198,7 +198,7 @@ tasks.register<JavaExec>("generateProviderCatalogDocumentation") {
     description = "Generates the built-in provider reference from ProviderCatalog."
     dependsOn(tasks.named("testClasses"))
     classpath = sourceSets.test.get().runtimeClasspath
-    mainClass.set("io.github.frikit.krandom.generator.provider.ProviderCatalogDocumentation")
+    mainClass.set("io.github.frikit.rdg.generator.provider.ProviderCatalogDocumentation")
     args(providerCatalogDocumentationFile.asFile.absolutePath)
 }
 

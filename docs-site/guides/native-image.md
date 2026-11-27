@@ -6,12 +6,12 @@ permalink: /guides/native-image/
 
 # GraalVM Native Image
 
-`krandom-core` ships experimental GraalVM reachability metadata for its bundled text resources
+`random-data-generator-core` ships experimental GraalVM reachability metadata for its bundled text resources
 and object-generation internals. Ordinary generators—including primitive, locale, HTTP-fixture,
 schema, and local data-pack generators—need no application-specific reflection configuration.
 
-Object generation is different: kRandom intentionally reflects over your model classes at runtime.
-GraalVM cannot discover arbitrary application types from the kRandom dependency alone. Add your
+Object generation is different: random-data-generator intentionally reflects over your model classes at runtime.
+GraalVM cannot discover arbitrary application types from the random-data-generator dependency alone. Add your
 model classes to your application's reachability metadata and keep their constructors and fields
 available for reflection.
 
@@ -35,9 +35,9 @@ Named-module applications still need the same qualified `opens` relationship as 
 
 ```java
 module com.example.fixtures {
-    requires io.github.frikit.krandom;
+    requires io.github.frikit.rdg;
 
-    opens com.example.fixtures.model to io.github.frikit.krandom;
+    opens com.example.fixtures.model to io.github.frikit.rdg;
 }
 ```
 

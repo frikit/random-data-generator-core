@@ -1,20 +1,20 @@
-# Migrating From DataFaker To krandom
+# Migrating From DataFaker To random-data-generator
 
-DataFaker is the actively-maintained realism leader. krandom gives you the same
+DataFaker is the actively-maintained realism leader. random-data-generator gives you the same
 realistic, locale-aware values **plus** one-call object-graph generation, so you
 stop hand-stitching "DataFaker for fields + Instancio/EasyRandom for structure."
 
 ## Why switch / trade-offs
 
-**Pros of krandom**
+**Pros of random-data-generator**
 - Realistic field data **and** full object/record graphs in one library.
 - 50 supported locale variants (35 native datasets and 15 curated fallbacks), national IDs for
   34 countries (checksum-valid where the identifier defines a check digit), schema output (JSONL/JSON/CSV/XML/SQL/YAML/TOML) and existing-object projection.
 - A DataFaker-expression adapter, so you can port `#{Provider.method}` strings as-is.
 
-**What DataFaker still has that krandom doesn't**
-- A broader set of locale tags; kRandom currently supports 50 documented variants.
-- Long-tail novelty, fandom, sport, food, and medical providers — krandom intentionally keeps
+**What DataFaker still has that random-data-generator doesn't**
+- A broader set of locale tags; random-data-generator currently supports 50 documented variants.
+- Long-tail novelty, fandom, sport, food, and medical providers — random-data-generator intentionally keeps
   these out of core. Keep DataFaker for those calls or supply a local, provenance-declared data
   pack when the domain is project-specific.
 
@@ -22,13 +22,13 @@ stop hand-stitching "DataFaker for fields + Instancio/EasyRandom for structure."
 
 ```kotlin
 dependencies {
-    testImplementation("io.github.frikit:krandom-core:4.1.0")
+    testImplementation("io.github.frikit:random-data-generator-core:1.0.0")
 }
 ```
 
 ## Entry-point mapping
 
-| DataFaker | krandom |
+| DataFaker | random-data-generator |
 |---|---|
 | `Faker faker = new Faker(Locale.US)` | `GeneratorConfig cfg = GeneratorConfig.builder().locale(Locale.US).seed(42L).build()` |
 | `faker.name().fullName()` | `Generators.ofFullName(cfg).generate()` / `Generators.person(cfg).fullName().generate()` |
@@ -54,7 +54,7 @@ u.setEmail(faker.internet().emailAddress());
 u.setCity(faker.address().city());
 ```
 
-krandom (one call fills the whole graph, realistically):
+random-data-generator (one call fills the whole graph, realistically):
 
 ```java
 GeneratorConfig cfg = GeneratorConfig.builder().locale(Locale.US).seed(42L).build();
@@ -72,9 +72,9 @@ User u = new ObjectFaker<>(User.class, cfg)
 
 ## Determinism
 
-Both seed their PRNG, but a seed is scoped to its own library: the same krandom
+Both seed their PRNG, but a seed is scoped to its own library: the same random-data-generator
 version + `GeneratorConfig` (seed, locale, sizes, overrides) + call order yields
-repeatable krandom output. DataFaker's exact strings are **not** reproduced.
+repeatable random-data-generator output. DataFaker's exact strings are **not** reproduced.
 
 ## Tracked gaps
 

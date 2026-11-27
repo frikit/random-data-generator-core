@@ -1,0 +1,307 @@
+/*
+ * Copyright (c) 2026 random-data-generator contributors
+ *
+ * Licensed under the MIT License. See LICENSE in the project root for license information.
+ */
+package io.github.frikit.rdg.generator.base;
+
+import io.github.frikit.rdg.generator.Generator;
+import io.github.frikit.rdg.generator.GeneratorConfig;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Random;
+import java.util.random.RandomGenerator;
+
+/**
+ * Generates random {@link Character} values drawn from a configurable character pool.
+ *
+ * <p>Use the {@link Builder} for standard character groups:
+ * <pre>{@code
+ *   CharGenerator letters = CharGenerator.builder().uppercase().lowercase().build();
+ *   CharGenerator digit   = CharGenerator.builder().digits().build();
+ *   CharGenerator all     = CharGenerator.builder().uppercase().lowercase().digits().special().build();
+ * }</pre>
+ *
+ * <p>Or use factory methods for common patterns:
+ * <pre>{@code
+ *   CharGenerator letters = CharGenerator.letters();       // A-Z, a-z
+ *   CharGenerator digits = CharGenerator.digits();         // 0-9
+ *   CharGenerator alphanum = CharGenerator.alphanumeric(); // A-Z, a-z, 0-9
+ * }</pre>
+ *
+ * <p>For custom character pools, use {@link #pool(String)} or {@link #pool(char...)}:
+ * <pre>{@code
+ *   CharGenerator vowels = CharGenerator.pool("aeiou");
+ *   CharGenerator hex = CharGenerator.pool("0123456789ABCDEF");
+ *   CharGenerator binary = CharGenerator.pool('0', '1');
+ * }</pre>
+ *
+ * <p>At least one character group must be enabled when using the builder;
+ * the builder enforces this at {@link Builder#build()}.
+ *
+ * <p>A pool is a list of whole characters, as code points: a supplementary character, one outside the Basic
+ * Multilingual Plane that UTF-16 writes as a surrogate pair, is one character of the pool, also when
+ * {@link #pool(char...)} is given its two halves side by side. A {@link Character} cannot hold such a
+ * character, so {@link #generate()} refuses a pool that holds one, and {@link StringGenerator} draws strings
+ * from it. A surrogate without its other half stays a character of its own.
+ */
+public final class CharGenerator implements Generator<Character> {
+
+    /** The characters of the pool, as code points, in the order given and with repeats kept. */
+    private final int[] pool;
+
+    /** The first supplementary character of the pool, or {@code -1} where it holds none. */
+    private final int firstSupplementary;
+
+    private final RandomGenerator random;
+
+    private CharGenerator(int[] pool, RandomGenerator random) {
+        this.pool = pool;
+        this.random = random;
+        int supplementary = -1;
+        for (int codePoint : pool) {
+            if (Character.isSupplementaryCodePoint(codePoint)) {
+                supplementary = codePoint;
+                break;
+            }
+        }
+        this.firstSupplementary = supplementary;
+    }
+
+    /**
+     * Uppercase + lowercase letters; no digits or special characters.
+     */
+    public static CharGenerator letters() {
+        return builder().uppercase().lowercase().build();
+    }
+
+    /**
+     * Uppercase + lowercase letters drawn with the configuration's random source, so a seeded
+     * configuration reproduces the same characters.
+     *
+     * @param config generator configuration; must not be {@code null}
+     * @return a letter generator backed by the configuration's random source
+     */
+    public static CharGenerator letters(GeneratorConfig config) {
+        return letters()
+                .withRandom(Objects.requireNonNull(config, "config must not be null")
+                        .createRandom());
+    }
+
+    /**
+     * Digits 0–9 only.
+     */
+    public static CharGenerator digits() {
+        return builder().digits().build();
+    }
+
+    // ── Factory ───────────────────────────────────────────────────────────────
+
+    /**
+     * Uppercase + lowercase + digits.
+     */
+    public static CharGenerator alphanumeric() {
+        return builder().uppercase().lowercase().digits().build();
+    }
+
+    /**
+     * All groups: letters, digits, and special characters.
+     */
+    public static CharGenerator all() {
+        return builder().uppercase().lowercase().digits().special().build();
+    }
+
+    /**
+     * Creates a generator that selects characters from a custom pool.
+     *
+     * <p>Examples:
+     * <pre>{@code
+     *   CharGenerator vowels = CharGenerator.pool("aeiou");
+     *   CharGenerator consonants = CharGenerator.pool("bcdfghjklmnpqrstvwxyz");
+     *   CharGenerator hex = CharGenerator.pool("0123456789ABCDEF");
+     *   CharGenerator custom = CharGenerator.pool('X', 'Y', 'Z');
+     * }</pre>
+     *
+     * @param characters custom character pool (must not be empty)
+     * @return a generator that selects from the given pool
+     * @throws IllegalArgumentException if characters is null or empty
+     */
+    public static CharGenerator pool(String characters) {
+        if (characters == null || characters.isEmpty()) {
+            throw new IllegalArgumentException("Character pool must not be null or empty");
+        }
+        return new CharGenerator(characters.codePoints().toArray(), new Random());
+    }
+
+    /**
+     * Creates a generator that selects characters from a custom pool.
+     *
+     * <p>Examples:
+     * <pre>{@code
+     *   CharGenerator binary = CharGenerator.pool('0', '1');
+     *   CharGenerator arrows = CharGenerator.pool('←', '↑', '→', '↓');
+     * }</pre>
+     *
+     * @param characters custom character pool (must not be empty)
+     * @return a generator that selects from the given pool
+     * @throws IllegalArgumentException if characters is null or empty
+     */
+    public static CharGenerator pool(char... characters) {
+        if (characters == null || characters.length == 0) {
+            throw new IllegalArgumentException("Character pool must not be null or empty");
+        }
+        return new CharGenerator(new String(characters).codePoints().toArray(), new Random());
+    }
+
+    /**
+     * Creates a seeded generator that selects characters from a custom pool.
+     *
+     * <p>Useful for deterministic testing with custom character sets.
+     *
+     * @param seed       the random seed
+     * @param characters custom character pool (must not be empty)
+     * @return a seeded generator that selects from the given pool
+     * @throws IllegalArgumentException if characters is null or empty
+     */
+    public static CharGenerator pool(long seed, String characters) {
+        if (characters == null || characters.isEmpty()) {
+            throw new IllegalArgumentException("Character pool must not be null or empty");
+        }
+        return new CharGenerator(characters.codePoints().toArray(), new Random(seed));
+    }
+
+    /**
+     * Creates a seeded generator that selects characters from a custom pool.
+     *
+     * @param seed       the random seed
+     * @param characters custom character pool (must not be empty)
+     * @return a seeded generator that selects from the given pool
+     * @throws IllegalArgumentException if characters is null or empty
+     */
+    public static CharGenerator pool(long seed, char... characters) {
+        if (characters == null || characters.length == 0) {
+            throw new IllegalArgumentException("Character pool must not be null or empty");
+        }
+        return new CharGenerator(new String(characters).codePoints().toArray(), new Random(seed));
+    }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    /**
+     * Draws one character of the pool.
+     *
+     * @return a character of the pool
+     * @throws IllegalStateException if the pool holds a supplementary character, which a {@link Character}
+     *     cannot hold; {@link StringGenerator} draws strings from such a pool
+     */
+    @Override
+    public Character generate() {
+        if (firstSupplementary >= 0) {
+            throw new IllegalStateException(String.format(
+                    "the pool holds U+%X, which a Character cannot hold; draw strings from it with StringGenerator",
+                    firstSupplementary));
+        }
+        return (char) generateCodePoint();
+    }
+
+    /** Draws one character of the pool as a code point, a supplementary character whole. */
+    int generateCodePoint() {
+        return pool[random.nextInt(pool.length)];
+    }
+
+    /**
+     * Returns a new generator with the same character pool and a deterministic seed.
+     *
+     * <p>This keeps the current pool intact while making output reproducible.
+     *
+     * @param seed the random seed
+     * @return a new generator with identical pool configuration and seeded randomness
+     */
+    public CharGenerator withSeed(long seed) {
+        return new CharGenerator(pool.clone(), new Random(seed));
+    }
+
+    CharGenerator withRandom(RandomGenerator randomSource) {
+        return new CharGenerator(pool.clone(), randomSource);
+    }
+
+    // ── Builder ───────────────────────────────────────────────────────────────
+
+    public static final class Builder {
+
+        private boolean includeUppercase = false;
+        private boolean includeLowercase = false;
+        private boolean includeDigits = false;
+        private boolean includeSpecial = false;
+        private @org.jspecify.annotations.Nullable Long seed = null;
+
+        /**
+         * Add uppercase ASCII letters A–Z.
+         */
+        public Builder uppercase() {
+            this.includeUppercase = true;
+            return this;
+        }
+
+        /**
+         * Add lowercase ASCII letters a–z.
+         */
+        public Builder lowercase() {
+            this.includeLowercase = true;
+            return this;
+        }
+
+        /**
+         * Add decimal digits 0–9.
+         */
+        public Builder digits() {
+            this.includeDigits = true;
+            return this;
+        }
+
+        /**
+         * Add printable special characters ({@code !@#$%^&*...}).
+         */
+        public Builder special() {
+            this.includeSpecial = true;
+            return this;
+        }
+
+        /**
+         * Fix the PRNG seed for reproducible output.
+         */
+        public Builder seed(long seed) {
+            this.seed = seed;
+            return this;
+        }
+
+        public CharGenerator build() {
+            List<Character> chars = new ArrayList<>();
+            if (includeUppercase) for (char c = 'A'; c <= 'Z'; c++) chars.add(c);
+            if (includeLowercase) for (char c = 'a'; c <= 'z'; c++) chars.add(c);
+            if (includeDigits) for (char c = '0'; c <= '9'; c++) chars.add(c);
+            if (includeSpecial) {
+                for (String s : new String[] {
+                    "!", "@", "#", "$", "%", "^", "&", "*",
+                    "(", ")", "-", "_", "=", "+", "[", "]",
+                    "{", "}", "|", ";", ":", ",", ".", "<",
+                    ">", "?", "/"
+                }) {
+                    chars.add(s.charAt(0));
+                }
+            }
+            if (chars.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "At least one character group must be enabled (uppercase, lowercase, digits, special)");
+            }
+            int[] pool = new int[chars.size()];
+            for (int i = 0; i < chars.size(); i++) pool[i] = chars.get(i);
+
+            RandomGenerator rng = seed != null ? new Random(seed) : new Random();
+            return new CharGenerator(pool, rng);
+        }
+    }
+}

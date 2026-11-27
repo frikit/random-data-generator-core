@@ -1,0 +1,59 @@
+/*
+ * Copyright (c) 2026 random-data-generator contributors
+ *
+ * Licensed under the MIT License. See LICENSE in the project root for license information.
+ */
+package io.github.frikit.rdg.generator.user;
+
+import io.github.frikit.rdg.generator.Generator;
+import io.github.frikit.rdg.generator.GeneratorConfig;
+import io.github.frikit.rdg.generator.location.StreetAddressGenerator;
+import java.util.Locale;
+import java.util.Objects;
+import java.util.Random;
+
+/**
+ * Generates locale-aware simple user profiles.
+ */
+public final class SimpleProfileGenerator implements Generator<SimpleProfile> {
+
+    private final Random random;
+    private final UsernameGenerator usernameGenerator;
+    private final FullNameGenerator fullNameGenerator;
+    private final StreetAddressGenerator addressGenerator;
+    private final EmailGenerator emailGenerator;
+    private final BirthdayGenerator birthdayGenerator;
+
+    public SimpleProfileGenerator() {
+        this(GeneratorConfig.defaults());
+    }
+
+    public SimpleProfileGenerator(Locale locale) {
+        this(GeneratorConfig.builder().locale(locale).build());
+    }
+
+    public SimpleProfileGenerator(GeneratorConfig config) {
+        GeneratorConfig effective = Objects.requireNonNull(config, "config must not be null");
+        this.random = effective.createRandom();
+        this.usernameGenerator = new UsernameGenerator(effective.forChildStream("username"));
+        this.fullNameGenerator = new FullNameGenerator(effective.forChildStream("fullName"));
+        this.addressGenerator = new StreetAddressGenerator(effective.forChildStream("streetAddress"));
+        this.emailGenerator = new EmailGenerator(effective.forChildStream("email"));
+        // The child configuration carries the seed, random source, and clock that birthdays follow.
+        this.birthdayGenerator = new BirthdayGenerator(effective.forChildStream("birthday"));
+    }
+
+    @Override
+    public SimpleProfile generate() {
+        Gender gender = random.nextBoolean() ? Gender.MALE : Gender.FEMALE;
+        String sex = gender == Gender.MALE ? "M" : "F";
+
+        return new SimpleProfile(
+                usernameGenerator.generate(),
+                fullNameGenerator.generate(gender),
+                sex,
+                addressGenerator.generateFullAddress(),
+                emailGenerator.generate(),
+                birthdayGenerator.generate());
+    }
+}

@@ -59,7 +59,7 @@ configure<com.diffplug.gradle.spotless.SpotlessExtension> {
 
 // Modules published to Maven Central, read from `publishedModules` in gradle.properties so the build,
 // scripts, and documentation checks share one list. Their POM, sources/javadoc jars, manifest,
-// and signing setup live in buildSrc/src/main/kotlin/krandom-publishing-conventions.gradle.kts.
+// and signing setup live in buildSrc/src/main/kotlin/rdg-publishing-conventions.gradle.kts.
 val publishedModules =
     providers
         .gradleProperty("publishedModules")
@@ -105,10 +105,14 @@ subprojects {
             includeBuildEnvironment.set(false)
             includeMetadataResolution.set(true)
             componentGroup.set(project.group.toString())
-            componentName.set("krandom-${project.name}")
+            componentName.set("random-data-generator-${project.name}")
             componentVersion.set(project.version.toString())
-            jsonOutput.set(rootProject.layout.buildDirectory.file("reports/sbom/krandom-${project.name}.cdx.json"))
-            xmlOutput.set(rootProject.layout.buildDirectory.file("reports/sbom/krandom-${project.name}.cdx.xml"))
+            jsonOutput.set(
+                rootProject.layout.buildDirectory.file("reports/sbom/random-data-generator-${project.name}.cdx.json"),
+            )
+            xmlOutput.set(
+                rootProject.layout.buildDirectory.file("reports/sbom/random-data-generator-${project.name}.cdx.xml"),
+            )
         }
     }
 }
@@ -131,8 +135,8 @@ tasks.register("verifyReleaseSboms") {
     inputs.files(
         publishedModules.flatMap { moduleName ->
             listOf(
-                layout.buildDirectory.file("reports/sbom/krandom-$moduleName.cdx.json"),
-                layout.buildDirectory.file("reports/sbom/krandom-$moduleName.cdx.xml"),
+                layout.buildDirectory.file("reports/sbom/random-data-generator-$moduleName.cdx.json"),
+                layout.buildDirectory.file("reports/sbom/random-data-generator-$moduleName.cdx.xml"),
             )
         },
     )
@@ -149,7 +153,7 @@ tasks.register("verifyReleaseSboms") {
                 .newXPath()
 
         publishedModules.forEach { moduleName ->
-            val expectedName = "krandom-$moduleName"
+            val expectedName = "random-data-generator-$moduleName"
             val expectedVersion = releaseModuleVersions.getValue(moduleName)
             val jsonFile = releaseSbomDirectory.get().file("$expectedName.cdx.json").asFile
             val xmlFile = releaseSbomDirectory.get().file("$expectedName.cdx.xml").asFile
@@ -198,16 +202,19 @@ tasks.register("verifyReleaseSboms") {
 // fails `checkApiCompatibility`, which `check` runs.
 // - Java modules: japicmp compares the jar with the released jar from Maven Central, together with the
 //   dependency classpath of each, limited to public and protected API in the public-API packages: the
-//   unqualified exports of the released krandom-core module descriptor and the one package of each
+//   unqualified exports of the released random-data-generator-core module descriptor and the one package of each
 //   integration module. The JPMS module name must stay, and so must the export of each of those packages.
 // - Kotlin modules: the Kotlin Gradle plugin dumps the ABI of the current code, leaving out `internal`
 //   declarations that are public in bytecode, and every declaration of the baseline dump committed as
 //   <module>/api/<module>-<apiBaselineVersion>.api must still be there with compatible modifiers.
 // During a major line each check subtracts the breaks that <module>/api/accepted-breaks-N.0.txt accepts
 // (see acceptedBreaksVerdict below).
-val apiBaselineVersion = providers.gradleProperty("apiBaselineVersion").get()
+// Before the first release apiBaselineVersion is empty: there is no released API to protect, so
+// checkApiCompatibility only says so, and the first release sets it (docs/release-runbook.md).
+val apiBaselineVersion = providers.gradleProperty("apiBaselineVersion").getOrElse("")
 val integrationApiPackages = emptyMap<String, String>()
 val javaApiModules = setOf("core") + integrationApiPackages.keys
+val apiBaselineModules = if (apiBaselineVersion.isEmpty()) emptySet() else javaApiModules
 val kotlinApiModules = emptySet<String>()
 check(javaApiModules + kotlinApiModules == jarModules) {
     "The API compatibility check must cover exactly the published jar modules: $jarModules"
@@ -296,7 +303,7 @@ fun acceptedBreaksVerdict(
         sections +=
             buildString {
                 appendLine(
-                    "krandom-$moduleName breaks the $apiBaselineVersion public API " +
+                    "random-data-generator-$moduleName breaks the $apiBaselineVersion public API " +
                         "(${plural(unlisted.size, "incompatible change")}" +
                         "${if (path == null) "" else " not listed in $path"}):",
                 )
@@ -315,7 +322,10 @@ fun acceptedBreaksVerdict(
         sections +=
             buildString {
                 appendLine(
-                    "$path lists ${plural(stale.size, "break")} that krandom-$moduleName no longer makes; " +
+                    "$path lists ${plural(
+                        stale.size,
+                        "break",
+                    )} that random-data-generator-$moduleName no longer makes; " +
                         "delete each line below, with its comment:",
                 )
                 stale.forEach { line -> appendLine("  $line") }
@@ -331,7 +341,7 @@ fun apiCompatibleLine(
     additions: Int,
     accepted: Int,
 ): String =
-    "krandom-$moduleName: compatible with the $apiBaselineVersion public API " +
+    "random-data-generator-$moduleName: compatible with the $apiBaselineVersion public API " +
         "($additions addition${if (additions == 1) "" else "s"}" +
         (
             if (accepted == 0) {
@@ -378,7 +388,7 @@ fun Configuration.requestJvmJars(usage: String) {
 // (java-api) and runtime graphs: JUnit publishes its org.apiguardian annotations only for
 // compilation, and implementation dependencies only at runtime. compileOnly dependencies are absent
 // from published metadata, yet japicmp must load the types they contribute to the API (the Spring
-// test meta-annotations on @KrandomTest). Keep this in sync with the module build files: a missing
+// test meta-annotations on @RandomDataGeneratorTest). Keep this in sync with the module build files: a missing
 // entry fails the check with "Could not load".
 val apiCompileOnlyDependencies = emptyMap<String, List<Provider<MinimalExternalModuleDependency>>>()
 
@@ -426,7 +436,8 @@ fun jarAndDependencyClasspath(
 
 fun isReleasedModule(moduleName: String): (ComponentIdentifier) -> Boolean =
     { id ->
-        id is ModuleComponentIdentifier && id.group == "io.github.frikit" && id.module == "krandom-$moduleName"
+        id is ModuleComponentIdentifier && id.group == "io.github.frikit" &&
+            id.module == "random-data-generator-$moduleName"
     }
 
 fun isProjectModule(moduleName: String): (ComponentIdentifier) -> Boolean =
@@ -479,7 +490,7 @@ fun xmlChildren(
         .filter { child -> child.tagName == tagName }
 
 // Describes the API element that owns a japicmp compatibility change, such as
-// `io.github.frikit.krandom.generator.GeneratorConfig#seed(long)` or `... superclass`.
+// `io.github.frikit.rdg.generator.GeneratorConfig#seed(long)` or `... superclass`.
 fun japicmpSubject(owner: org.w3c.dom.Element): String {
     fun parameters(member: org.w3c.dom.Element): String =
         xmlChildren(member, "parameters")
@@ -566,15 +577,16 @@ fun japicmpFindings(report: File): Pair<List<String>, Int> {
 }
 
 val javaApiCompatibilityTasks =
-    javaApiModules.map { moduleName ->
+    apiBaselineModules.map { moduleName ->
         val baselineGraphs =
-            apiGraphs(moduleName, "Baseline", "io.github.frikit:krandom-$moduleName:$apiBaselineVersion")
+            apiGraphs(moduleName, "Baseline", "io.github.frikit:random-data-generator-$moduleName:$apiBaselineVersion")
         val candidateGraphs = apiGraphs(moduleName, "Candidate", dependencies.project(":$moduleName"))
         val reportDirectory = layout.buildDirectory.dir("reports/api-compatibility/$moduleName")
 
         tasks.register<JavaExec>("check${apiTaskSuffix(moduleName)}ApiCompatibility") {
             group = "verification"
-            description = "Checks that krandom-$moduleName keeps the public API of $apiBaselineVersion (japicmp)."
+            description =
+                "Checks that random-data-generator-$moduleName keeps the public API of $apiBaselineVersion (japicmp)."
             dependsOn(":$moduleName:jar")
             inputs.files(baselineGraphs, candidateGraphs, acceptedBreaksFiles(moduleName))
             // No declared outputs: the check always runs, so every run prints its result line.
@@ -602,7 +614,9 @@ val javaApiCompatibilityTasks =
                 }
                 val apiPackages =
                     integrationApiPackages[moduleName]?.let(::setOf) ?: exportedPackages(oldJar).also { exported ->
-                        check(exported.isNotEmpty()) { "krandom-$moduleName $apiBaselineVersion exports no package" }
+                        check(
+                            exported.isNotEmpty(),
+                        ) { "random-data-generator-$moduleName $apiBaselineVersion exports no package" }
                     }
                 // An integration module is an automatic module that exports every package; an explicit
                 // descriptor added later must still export its public-API package.
@@ -645,7 +659,7 @@ val javaApiCompatibilityTasks =
                 val exitValue = executionResult.get().exitValue
                 if (!xmlReport.isFile) {
                     throw GradleException(
-                        "japicmp produced no report for krandom-$moduleName (exit $exitValue):\n" +
+                        "japicmp produced no report for random-data-generator-$moduleName (exit $exitValue):\n" +
                             japicmpOutput.toString(Charsets.UTF_8),
                     )
                 }
@@ -654,7 +668,7 @@ val javaApiCompatibilityTasks =
                 // japicmp exits non-zero for each incompatible change, accepted ones included.
                 if (problems.isEmpty() && exitValue != 0) {
                     throw GradleException(
-                        "japicmp failed for krandom-$moduleName (exit $exitValue):\n" +
+                        "japicmp failed for random-data-generator-$moduleName (exit $exitValue):\n" +
                             japicmpOutput.toString(Charsets.UTF_8),
                     )
                 }
@@ -877,7 +891,7 @@ val kotlinApiCompatibilityTasks =
         tasks.register("check${apiTaskSuffix(moduleName)}ApiCompatibility") {
             group = "verification"
             description =
-                "Checks that krandom-$moduleName keeps the public API of $apiBaselineVersion (Kotlin ABI dump)."
+                "Checks that random-data-generator-$moduleName keeps the public API of $apiBaselineVersion (Kotlin ABI dump)."
             dependsOn(":$moduleName:updateKotlinAbi")
             inputs.files(baselineDump, currentDump, acceptedBreaksFiles(moduleName))
             // No declared outputs: the check always runs, so every run prints its result line.
@@ -885,7 +899,7 @@ val kotlinApiCompatibilityTasks =
             doLast {
                 if (!baselineDump.isFile) {
                     throw GradleException(
-                        "No $apiBaselineVersion API baseline for krandom-$moduleName at " +
+                        "No $apiBaselineVersion API baseline for random-data-generator-$moduleName at " +
                             "${baselineDump.relativeTo(rootDir)}: run ./gradlew updateKotlinApiBaseline on the " +
                             "$apiBaselineVersion release commit (docs/release-runbook.md).",
                     )
@@ -912,8 +926,15 @@ val kotlinApiCompatibilityTasks =
 
 tasks.register("checkApiCompatibility") {
     group = "verification"
-    description = "Checks that every published jar keeps the public API of $apiBaselineVersion."
-    dependsOn(javaApiCompatibilityTasks, kotlinApiCompatibilityTasks)
+    if (apiBaselineVersion.isEmpty()) {
+        description = "Reports that no release exists yet whose public API could be checked."
+        doLast {
+            logger.lifecycle("No released public API to check yet: the first release sets apiBaselineVersion.")
+        }
+    } else {
+        description = "Checks that every published jar keeps the public API of $apiBaselineVersion."
+        dependsOn(javaApiCompatibilityTasks, kotlinApiCompatibilityTasks)
+    }
 }
 
 // The Java modules run on javaMinimumVersion (gradle.properties) or later. The JDK 21 toolchain that runs
@@ -1063,7 +1084,7 @@ subprojects {
 subprojects {
     apply(plugin = "com.diffplug.spotless")
     if (name in publishedModules) {
-        apply(plugin = "krandom-publishing-conventions")
+        apply(plugin = "rdg-publishing-conventions")
     }
 
     afterEvaluate {

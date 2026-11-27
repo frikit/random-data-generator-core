@@ -6,7 +6,7 @@
 
 Safety metadata is conservative: `unclassified` means no claim. A configuration-dependent claim must be evaluated against the selected `GeneratorConfig` policy.
 
-A classified schema reference exports the same claims through its `x-krandom-safety` JSON Schema extension, including the selected policy value.
+A classified schema reference exports the same claims through its `x-rdg-safety` JSON Schema extension, including the selected policy value.
 
 ## Hub providers
 

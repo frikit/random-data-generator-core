@@ -1,0 +1,83 @@
+/*
+ * Copyright (c) 2026 random-data-generator contributors
+ *
+ * Licensed under the MIT License. See LICENSE in the project root for license information.
+ */
+package io.github.frikit.rdg.generator.object;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.lang.annotation.Annotation;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+@DisplayName("FieldPredicates")
+class FieldPredicatesTest {
+
+    @Test
+    @DisplayName("null guards throw for required parameters")
+    void nullGuardsThrow() {
+        assertThrows(NullPointerException.class, () -> FieldPredicates.named(null));
+        assertThrows(NullPointerException.class, () -> FieldPredicates.nameMatches(null));
+        assertThrows(NullPointerException.class, () -> FieldPredicates.ofType(null));
+        assertThrows(NullPointerException.class, () -> FieldPredicates.inClass(null));
+        assertThrows(
+                NullPointerException.class,
+                () -> FieldPredicates.isAnnotatedWith((Class<? extends Annotation>[]) null));
+        assertThrows(NullPointerException.class, () -> FieldPredicates.isAnnotatedWith(Marker.class, null));
+    }
+
+    @Test
+    @DisplayName("isAnnotatedWith() requires at least one annotation")
+    void isAnnotatedWithEmptyThrows() {
+        assertThrows(IllegalArgumentException.class, FieldPredicates::isAnnotatedWith);
+    }
+
+    @Test
+    @DisplayName("hasModifiers(0) throws IllegalArgumentException")
+    void hasModifiersZeroThrows() {
+        assertThrows(IllegalArgumentException.class, () -> FieldPredicates.hasModifiers(0));
+    }
+
+    @Test
+    @DisplayName("predicates match expected fields")
+    void predicatesMatchExpectedFields() throws NoSuchFieldException {
+        Field hidden = Sample.class.getDeclaredField("hidden");
+        Field visible = Sample.class.getDeclaredField("visible");
+
+        assertTrue(FieldPredicates.named("hidden").test(hidden));
+        assertTrue(FieldPredicates.nameMatches("hidd.*").test(hidden));
+        assertTrue(FieldPredicates.ofType(String.class).test(hidden));
+        assertTrue(FieldPredicates.inClass(Sample.class).test(hidden));
+        assertTrue(FieldPredicates.isAnnotatedWith(Marker.class).test(hidden));
+        assertTrue(
+                FieldPredicates.isAnnotatedWith(OtherMarker.class, Marker.class).test(hidden));
+        assertTrue(FieldPredicates.hasModifiers(Modifier.PRIVATE).test(hidden));
+        assertFalse(FieldPredicates.nameMatches("vis.*").test(hidden));
+        assertFalse(FieldPredicates.hasModifiers(Modifier.PRIVATE).test(visible));
+    }
+
+    static class Sample {
+
+        String visible;
+
+        @Marker
+        private String hidden;
+    }
+
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.FIELD)
+    @interface Marker {}
+
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.FIELD)
+    @interface OtherMarker {}
+}

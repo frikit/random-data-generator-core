@@ -20,7 +20,7 @@ val currentJava =
         .current()
 if (!currentJava.isCompatibleWith(org.gradle.api.JavaVersion.VERSION_21)) {
     throw org.gradle.api.GradleException(
-        "kRandom requires Java 21+ to build. Current runtime: " +
+        "random-data-generator requires Java 21+ to build. Current runtime: " +
             System.getProperty("java.version") +
             " at " +
             System.getProperty("java.home") +
@@ -28,7 +28,7 @@ if (!currentJava.isCompatibleWith(org.gradle.api.JavaVersion.VERSION_21)) {
     )
 }
 
-rootProject.name = "krandom"
+rootProject.name = "random-data-generator-core"
 
 include(":core")
 include(":bom")

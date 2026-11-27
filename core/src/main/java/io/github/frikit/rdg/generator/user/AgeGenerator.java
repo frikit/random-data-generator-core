@@ -1,0 +1,127 @@
+/*
+ * Copyright (c) 2026 random-data-generator contributors
+ *
+ * Licensed under the MIT License. See LICENSE in the project root for license information.
+ */
+package io.github.frikit.rdg.generator.user;
+
+import io.github.frikit.rdg.generator.Generator;
+import io.github.frikit.rdg.generator.GeneratorConfig;
+import java.util.Objects;
+import java.util.Random;
+
+/**
+ * Generates random ages as integers.
+ *
+ * <p>Supports type-based ranges via {@link AgeType} (child, teen, adult, senior),
+ * custom min/max bounds, or the full default range of 1–100.
+ *
+ * <pre>{@code
+ * GeneratorConfig seeded = GeneratorConfig.builder().seed(99L).build();
+ * int age    = new AgeGenerator().generate();                        // 1–100
+ * int adult  = new AgeGenerator(AgeType.ADULT).generate();          // 18–65
+ * int child  = new AgeGenerator(AgeType.CHILD, seeded).generate();  // 1–12, seeded
+ * int custom = new AgeGenerator(21, 30).generate();                 // 21–30
+ * }</pre>
+ */
+public final class AgeGenerator implements Generator<Integer> {
+
+    private static final int DEFAULT_MIN = 1;
+    private static final int DEFAULT_MAX = 100;
+
+    private final Random random;
+    private final int minAge;
+    private final int maxAge;
+
+    /**
+     * Generates ages in the full range [1, 100].
+     */
+    public AgeGenerator() {
+        this(DEFAULT_MIN, DEFAULT_MAX, new Random());
+    }
+
+    /**
+     * Generates ages in the full range [1, 100] using the provided root config.
+     */
+    public AgeGenerator(GeneratorConfig config) {
+        this(DEFAULT_MIN, DEFAULT_MAX, config);
+    }
+
+    /**
+     * Generates ages in the range defined by the given {@link AgeType}.
+     *
+     * @param type the age category; must not be {@code null}
+     */
+    public AgeGenerator(AgeType type) {
+        this(Objects.requireNonNull(type, "type must not be null").getMinAge(), type.getMaxAge(), new Random());
+    }
+
+    /**
+     * Generates ages in the range defined by the given {@link AgeType}, using the provided root config.
+     *
+     * @param type   the age category; must not be {@code null}
+     * @param config generator configuration; must not be {@code null}
+     */
+    public AgeGenerator(AgeType type, GeneratorConfig config) {
+        this(Objects.requireNonNull(type, "type must not be null").getMinAge(), type.getMaxAge(), config);
+    }
+
+    /**
+     * Generates ages in the given inclusive range.
+     *
+     * @param minAge minimum age (inclusive, must be ≥ 0)
+     * @param maxAge maximum age (inclusive, must be ≥ {@code minAge})
+     */
+    public AgeGenerator(int minAge, int maxAge) {
+        this(minAge, maxAge, new Random());
+    }
+
+    /**
+     * Generates ages in the given inclusive range using the provided root config.
+     *
+     * @param minAge minimum age (inclusive, must be ≥ 0)
+     * @param maxAge maximum age (inclusive, must be ≥ {@code minAge})
+     * @param config generator configuration; must not be {@code null}
+     */
+    public AgeGenerator(int minAge, int maxAge, GeneratorConfig config) {
+        this(
+                minAge,
+                maxAge,
+                Objects.requireNonNull(config, "config must not be null").createRandom());
+    }
+
+    private AgeGenerator(int minAge, int maxAge, Random random) {
+        if (minAge < 0) {
+            throw new IllegalArgumentException("minAge must be >= 0, got: " + minAge);
+        }
+        if (maxAge < minAge) {
+            throw new IllegalArgumentException(
+                    "maxAge must be >= minAge, got: minAge=" + minAge + ", maxAge=" + maxAge);
+        }
+        this.minAge = minAge;
+        this.maxAge = maxAge;
+        this.random = Objects.requireNonNull(random, "random must not be null");
+    }
+
+    @Override
+    public Integer generate() {
+        int width = maxAge - minAge;
+        // minAge >= 0, so only the full range [0, Integer.MAX_VALUE] overflows width + 1; an
+        // unsigned shift of one random int covers its 2^31 values uniformly.
+        return width == Integer.MAX_VALUE ? random.nextInt() >>> 1 : minAge + random.nextInt(width + 1);
+    }
+
+    /**
+     * Returns the minimum age (inclusive) this generator will produce.
+     */
+    public int getMinAge() {
+        return minAge;
+    }
+
+    /**
+     * Returns the maximum age (inclusive) this generator will produce.
+     */
+    public int getMaxAge() {
+        return maxAge;
+    }
+}

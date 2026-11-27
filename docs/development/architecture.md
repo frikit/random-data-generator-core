@@ -2,37 +2,37 @@
 
 A map of the code for contributors who are about to change it. It names the types that matter and
 where they live, so you can find the closest existing example before you write anything. Short paths
-such as `generator/Krandom.java` are relative to `core/src/main/java/io/github/frikit/krandom/`; paths
+such as `generator/RandomDataGenerator.java` are relative to `core/src/main/java/io/github/frikit/rdg/`; paths
 that start with a module name are relative to the repository root.
 
 ## Modules
 
 | Module | Artifact | Role |
 | --- | --- | --- |
-| `core` | `krandom-core` | Everything that generates data. The other modules only adapt it. |
-| `jackson` | `krandom-jackson` | Jackson 3 (`tools.jackson`) module: serializes a `Schema` as its JSON Schema. |
-| `junit` | `krandom-junit` | JUnit Jupiter extension: a seed per test, injection, replay commands on failure. |
-| `spring-boot-starter` | `krandom-spring-boot-starter` | Auto-configuration from `krandom.*` properties and a `@KrandomTest` slice. |
-| `kotest-extensions` | `krandom-kotest-extensions` | Kotest `Arb`s backed by seeded kRandom configurations. |
-| `kotlin-dsl` | `krandom-kotlin-dsl` | Kotlin builders (`krandom<T> { }`) and an adapter for Kotlin primary constructors. |
-| `bom` | `krandom-bom` | Version alignment only; no jar. |
+| `core` | `random-data-generator-core` | Everything that generates data. The other modules only adapt it. |
+| `jackson` | `random-data-generator-jackson` | Jackson 3 (`tools.jackson`) module: serializes a `Schema` as its JSON Schema. |
+| `junit` | `random-data-generator-junit` | JUnit Jupiter extension: a seed per test, injection, replay commands on failure. |
+| `spring-boot-starter` | `random-data-generator-spring-boot-starter` | Auto-configuration from `krandom.*` properties and a `@RandomDataGeneratorTest` slice. |
+| `kotest-extensions` | `random-data-generator-kotest-extensions` | Kotest `Arb`s backed by seeded random-data-generator configurations. |
+| `kotlin-dsl` | `random-data-generator-kotlin-dsl` | Kotlin builders (`krandom<T> { }`) and an adapter for Kotlin primary constructors. |
+| `bom` | `random-data-generator-bom` | Version alignment only; no jar. |
 
 The published modules are listed in `publishedModules` in `gradle.properties`. That list drives
 publishing, SBOMs, the API check, coverage floors and the module-boundary check, so adding a module
 means adding it there and to every list the build asserts against (see [testing](testing.md)).
 
-Only `core` has a `module-info.java`. It exports every `io.github.frikit.krandom.generator.*` package
-and does **not** export `io.github.frikit.krandom.internal`. The other jars carry an
-`Automatic-Module-Name` set in `buildSrc/src/main/kotlin/krandom-publishing-conventions.gradle.kts`, and
+Only `core` has a `module-info.java`. It exports every `io.github.frikit.rdg.generator.*` package
+and does **not** export `io.github.frikit.rdg.internal`. The other jars carry an
+`Automatic-Module-Name` set in `buildSrc/src/main/kotlin/rdg-publishing-conventions.gradle.kts`, and
 `scripts/verify_module_boundaries.sh` rejects packages split across jars.
 
 ## Entry points
 
-A user meets kRandom through one of these. All of them end in the same generators.
+A user meets random-data-generator through one of these. All of them end in the same generators.
 
 | Entry point | File | What it is |
 | --- | --- | --- |
-| `Krandom` | `generator/Krandom.java` | A session that returns plain values (`city()`, `intBetween(...)`). Created with `Krandom.seeded("text")` or `Krandom.of(config)`. Not thread-safe. |
+| `RandomDataGenerator` | `generator/RandomDataGenerator.java` | A session that returns plain values (`city()`, `intBetween(...)`). Created with `RandomDataGenerator.seeded("text")` or `RandomDataGenerator.of(config)`. Not thread-safe. |
 | `Generators` | `generator/Generators.java` | The static factory catalog: `ofX()`, `ofX(Locale)`, `ofX(GeneratorConfig)` for every generator, plus `ofObject`, `ofSchema`, `ofProviderHub`, `forType` and `threadLocal`. |
 | Fluent namespaces | `generator/namespace/*Generators.java` | `Generators.person()`, `.location()`, `.finance()` and others: the same factories grouped by domain, each holding a `GeneratorConfig`. |
 | `Generator<T>` | `generator/Generator.java` | The functional interface every generator implements: `generate()` plus `generateList`, `stream`, `map` and `filter`. |
@@ -54,7 +54,7 @@ takes in its constructor. Build it with `GeneratorConfig.builder()` or `toBuilde
   others). Most default to a test-safe or disabled value, so a generator for real-looking identifiers
   can throw until a policy enables it;
 - stream policies and seeding settings that control how child streams are derived;
-- object-engine settings and installed `KRandomModule`s.
+- object-engine settings and installed `ExtensionModule`s.
 
 A generator calls `config.createRandom()` for its random source (a fresh `Random(seed)` when seeded),
 reads locale data through `config.getRegistryContext()`, and gives each part of a composite value its
@@ -73,7 +73,7 @@ says what is guaranteed. The machinery:
 | --- | --- | --- |
 | String seeds | `GeneratorConfig` (`STRING_SEED_DERIVATION`, `deriveSeed`) | `fnv1a64-v1`: FNV-1a 64 over the UTF-8 bytes. A numeric seed wins over a string seed. |
 | Child streams | `GenerationRecipe.deriveChildSeed` | Derives a child seed from the parent seed's bytes and a stream name. `ChildStreamPolicy` chooses how. |
-| Recipes | `generator/GenerationRecipe.java` | The line-oriented `krandom-recipe/v2` format: every setting needed to replay a run. |
+| Recipes | `generator/GenerationRecipe.java` | The line-oriented `rdg-recipe/v2` format: every setting needed to replay a run. |
 | `internal.StreamSeeds` | `internal/StreamSeeds.java` | The same hash split into steps, so `Schema` derives per-cell seeds without building strings. |
 | `internal.Reseeding` | `internal/Reseeding.java` | A registry of package-private `reseedTo(long)` hooks, so `Schema` reuses one generator per column instead of building one per value. |
 | `internal.ConfigAccess` | `internal/ConfigAccess.java` | A cheap seed-replacing copy of a configuration for other packages. |
@@ -87,8 +87,8 @@ must stay identical: changing one changes seeds and breaks replay.
 Locale-specific values (names, cities, streets, professions, vocabularies) come from text files, not
 from code.
 
-- **Files** live under `core/src/main/resources/krandom/`, one entry per line, UTF-8, `#` comments.
-  `core/src/main/resources/krandom/README.md` states the naming rules and per-folder minimums.
+- **Files** live under `core/src/main/resources/rdg/`, one entry per line, UTF-8, `#` comments.
+  `core/src/main/resources/rdg/README.md` states the naming rules and per-folder minimums.
 - **`SupportedLocale`** (`generator/locale/SupportedLocale.java`) lists every built-in locale, native
   or curated fallback, and gives each its resource prefix (`resourcePrefix()`, such as `de_DE`). The
   order matters: a language-only lookup resolves to the first matching constant.
@@ -122,7 +122,7 @@ A typical generator:
 
 | Feature | Where | Notes |
 | --- | --- | --- |
-| Modules | `generator/extension/KRandomModule.java` | Installed per configuration with `GeneratorConfig.Builder.install`; never discovered from the classpath. `configure` can run again when a configuration is copied, so keep it free of side effects. |
+| Modules | `generator/extension/ExtensionModule.java` | Installed per configuration with `GeneratorConfig.Builder.install`; never discovered from the classpath. `configure` can run again when a configuration is copied, so keep it free of side effects. |
 | Provider hub | `generator/provider/` | `ProviderHub` maps names to generators. `ProviderCatalog` is the source of truth for built-ins and generates `docs/reference/provider-catalog.md`. |
 | Data packs | `generator/datapack/LocalDataPack.java` | Offline, checksum-verified local datasets; no network access. |
 | Schema | `generator/schema/` | `Schema` generates records with a child stream per record and column, and writes JSONL, JSON, CSV, XML, SQL, YAML and TOML; `SchemaParser` reads JSON Schema and OpenAPI. |
@@ -142,8 +142,8 @@ A typical generator:
 
 ## Things that surprise newcomers
 
-- `Krandom.intBetween` includes its upper bound; `Generators.ofInt(min, max)` excludes it.
-- `Krandom.seeded("42")` is a string seed, not the numeric seed `42`.
+- `RandomDataGenerator.intBetween` includes its upper bound; `Generators.ofInt(min, max)` excludes it.
+- `RandomDataGenerator.seeded("42")` is a string seed, not the numeric seed `42`.
 - The default charset is US-ASCII, and the default locale is `Locale.US`.
 - `childStreamPolicy` and `objectFieldStreamPolicy` have different defaults.
 - Locale fallback differs by generator: some throw `UnsupportedOperationException` for a locale

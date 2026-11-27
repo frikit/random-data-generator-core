@@ -6,7 +6,7 @@ permalink: /guides/migration-from-datafaker/
 
 # Migration from DataFaker
 
-Use this mapping to move DataFaker (or JavaFaker) code to kRandom. This is
+Use this mapping to move DataFaker (or JavaFaker) code to random-data-generator. This is
 feature-parity guidance, not source-compatible import replacement. JavaFaker users can use the
 same mappings: its original repository still documents the legacy `1.0.2` coordinate, while
 DataFaker is the actively developed successor.
@@ -15,13 +15,13 @@ DataFaker is the actively developed successor.
 
 ```kotlin
 dependencies {
-    implementation("io.github.frikit:krandom-core:4.1.0")
+    implementation("io.github.frikit:random-data-generator-core:1.0.0")
 }
 ```
 
 ## API mapping
 
-| DataFaker | kRandom equivalent |
+| DataFaker | random-data-generator equivalent |
 |---|---|
 | `new Faker()` | no instance needed — `Generators.of*()` statics or domain namespaces |
 | `new Faker(Locale.GERMANY)` | `Generators.ofCity(Locale.GERMANY)` per call, or `GeneratorConfig.builder().locale(...)` shared |
@@ -63,7 +63,7 @@ GeneratorConfig bankingConfig = GeneratorConfig.builder()
 
 DataFaker's string templates map directly:
 
-| DataFaker | kRandom equivalent |
+| DataFaker | random-data-generator equivalent |
 |---|---|
 | `faker.numerify("###-##")` | `Generators.ofTemplate("###-##").generate()` |
 | `faker.letterify("????")` | `Generators.ofTemplate("????").generate()` |
@@ -78,7 +78,7 @@ guide for the full token list.
 
 ## Bulk and structured output
 
-Both libraries have schema-based bulk output. kRandom's v2 schema API streams generated rows to
+Both libraries have schema-based bulk output. random-data-generator's v2 schema API streams generated rows to
 JSONL, JSON arrays, CSV, XML, SQL, YAML, and TOML, and exports JSON Schema. `SchemaProjection<T>`
 also transforms existing object sequences through those same formats without materializing a map
 batch. For generated row-style data use `Field` + `Schema`; for existing objects use
@@ -87,14 +87,14 @@ batch. For generated row-style data use `Field` + `Schema`; for existing objects
 
 ## Seeding differences
 
-DataFaker shares one `Random` across the whole faker instance. kRandom seeds
+DataFaker shares one `Random` across the whole faker instance. random-data-generator seeds
 per generator or per shared `GeneratorConfig`; string seeds are supported via
 a stable derivation (`GeneratorConfig.deriveSeed`, `fnv1a64-v1`). Tests
 should assert on shape, not exact values — see
-[VERSIONING.md](https://github.com/frikit/krandom/blob/main/VERSIONING.md)
+[VERSIONING.md](https://github.com/frikit/random-data-generator-core/blob/main/VERSIONING.md)
 for the seed-stability policy.
 
-`Krandom` is the closest match for one seeded `Faker` instance: `Krandom.seeded("name")` returns
+`RandomDataGenerator` is the closest match for one seeded `Faker` instance: `RandomDataGenerator.seeded("name")` returns
 plain values (`fake.firstName()`, `fake.city()`, `fake.dateBetween(from, to)`), and each method has
 its own stream, so a method's values are unaffected by calls of other methods.
 
@@ -104,10 +104,10 @@ its own stream, so a method's values are unaffected by calls of other methods.
   pop-culture catalogs): not shipped. If your tests depend on these, keep
   DataFaker for those calls or open an issue — domain packs are
   community-contributable.
-- **Locales**: kRandom supports 50 variants (35 native datasets and 15 curated fallbacks), while
+- **Locales**: random-data-generator supports 50 variants (35 native datasets and 15 curated fallbacks), while
   DataFaker maintains a broader locale surface. Check the exact locale you use against the
   [Locale-Aware Data]({{ '/guides/locale-aware-data/' | relative_url }}) guide.
-- **Local data packs**: DataFaker accepts YAML files and URLs. kRandom accepts a versioned,
+- **Local data packs**: DataFaker accepts YAML files and URLs. random-data-generator accepts a versioned,
   SHA-256-verified local University CSV pack with declared source and license; runtime network
   loading is intentionally excluded. See [Local Data Packs]({{ '/guides/local-data-packs/' | relative_url }}).
 - **`#{...}` expression syntax**: the common tokens work directly via
