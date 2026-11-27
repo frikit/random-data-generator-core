@@ -18,8 +18,8 @@ method. Finishing one of those means adding the missing entry points and their t
 
 | What it produces | Recipe | Example commit |
 | --- | --- | --- |
-| Values computed from rules or other generators (a checksum, a composite, a format) | [A plain generator](#a-plain-generator) | `e8efe14e` (postal locality) |
-| Words or phrases a reader sees, which differ by language (statuses, types, labels) | [A locale-aware vocabulary](#a-locale-aware-vocabulary) | `4c483f90` (address types and purposes) |
+| Values computed from rules or other generators (a checksum, a composite, a format) | [A plain generator](#a-plain-generator) | [kRandom `e8efe14e`](https://github.com/frikit/krandom/commit/e8efe14e) (postal locality) |
+| Words or phrases a reader sees, which differ by language (statuses, types, labels) | [A locale-aware vocabulary](#a-locale-aware-vocabulary) | [kRandom `4c483f90`](https://github.com/frikit/krandom/commit/4c483f90) (address types and purposes) |
 | Data for a new locale, or more entries for an existing dataset | [Locale contribution guide](../locale-contribution-guide.md) | |
 
 Language-specific vocabulary is **never** a hard-coded English array. Only values that are the same in
@@ -50,7 +50,7 @@ Brazil's CPF.
    arguments, determinism (the same seed gives the same values, two seeds differ), and every branch,
    because core coverage must stay at 100%. The catalog sweeps (`GeneratorCatalogEnvironmentTest`,
    `GeneratorCatalogNetworkSafetyTest`) call every `Generators` factory by themselves; if yours refuses
-   some locales by throwing, list those refusals in `GeneratorCatalogEnvironmentTest`, as `e8efe14e`
+   some locales by throwing, list those refusals in `GeneratorCatalogEnvironmentTest`, as [kRandom `e8efe14e`](https://github.com/frikit/krandom/commit/e8efe14e)
    did. Test the new namespace and `RandomDataGenerator` methods in `FluentNamespaceTest` and `RandomDataGeneratorTest`.
 5. **Reuse in `Schema` (optional).** If the generator is expensive to build and will be a schema column,
    register a package-private `reseedTo(long)` hook with `internal.Reseeding` in a static initializer, as
@@ -100,7 +100,7 @@ Mirror the address types (`generator/location/AddressType*.java`) exactly. For a
      only from its own data, and an `assertTranslated` call, which requires each locale's list to have
      no duplicates, at most a third of its entries equal to English ones and at least 90% of entries in
      the locale's script, and, when called as parallel, as many entries as English. Mirror what
-     `4c483f90` added there;
+     [kRandom `4c483f90`](https://github.com/frikit/krandom/commit/4c483f90) added there;
    - `ScopedVocabularyRegistryTest` and `VocabularyTest`;
    - `FluentNamespaceTest` and `RandomDataGeneratorTest` for the new methods.
 9. **Docs.** `docs-site/generator-catalog.md`, `docs-site/guides/locale-aware-data.md` where it lists

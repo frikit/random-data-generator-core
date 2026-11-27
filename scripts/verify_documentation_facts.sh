@@ -115,6 +115,10 @@ CORE_MODULE_DESCRIPTOR="${REPO_ROOT}/core/src/main/java/module-info.java"
 OBJECT_GENERATION_GUIDE="${REPO_ROOT}/docs-site/guides/object-generation.md"
 grep -Fq "module ${CORE_MODULE_NAME} {" "${CORE_MODULE_DESCRIPTOR}" || fail "core module descriptor name changed"
 grep -Fq "opens com.example.fixtures.model to ${CORE_MODULE_NAME};" "${OBJECT_GENERATION_GUIDE}" || fail "object guide is missing the qualified opens contract"
+# Palantir Java Format wraps a qualified `opens` directive after `to`, so collapse whitespace first.
+OPEN_CONSUMER_DESCRIPTOR="$(tr -s '[:space:]' ' ' < "${REPO_ROOT}/examples/java-jpms/open-consumer/src/main/java/module-info.java")"
+[[ "${OPEN_CONSUMER_DESCRIPTOR}" == *"opens io.github.frikit.rdg.examples.jpms.openconsumer to ${CORE_MODULE_NAME};"* ]] \
+    || fail "JPMS open consumer does not exercise the documented core module name"
 
 NATIVE_METADATA="${REPO_ROOT}/core/src/main/resources/META-INF/native-image/io.github.frikit/rdg/reachability-metadata.json"
 NATIVE_GUIDE="${REPO_ROOT}/docs-site/guides/native-image.md"
@@ -177,6 +181,8 @@ STALE_COORDINATES="$(grep -rhoEI 'io\.github\.frikit:random-data-generator-[a-z0
 
 EXAMPLE_VERSION_FILES=(
     "examples/java-gradle/build.gradle.kts"
+    "examples/java-jpms/open-consumer/build.gradle.kts"
+    "examples/java-jpms/closed-consumer/build.gradle.kts"
     "examples/java-maven/pom.xml"
 )
 for example_file in "${EXAMPLE_VERSION_FILES[@]}"; do
@@ -193,9 +199,10 @@ reject_pattern "locale contribution guide still contains the obsolete flat resou
     '<locale>_(first_male|first_female|last|street_names|street_types_short|street_types_long|secondary_units)\.txt' \
     "${REPO_ROOT}/docs/locale-contribution-guide.md"
 
-# The contributor guides name files, classes and example commits so that a reader can open them. Each
-# name in backticks that looks like a repository path, a core path, a test class or a commit must still
-# exist, so a rename or deletion fails here instead of leaving the guides pointing at nothing.
+# The contributor guides name files and classes so that a reader can open them. Each name in backticks
+# that looks like a repository path, a core path or a test class must still exist, so a rename or deletion
+# fails here instead of leaving the guides pointing at nothing. Example commits from before the move are
+# links to kRandom's history, which this repository does not contain.
 CONTRIBUTOR_GUIDES=(
     "AGENTS.md"
     "docs/development/architecture.md"

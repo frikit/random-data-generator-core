@@ -42,8 +42,8 @@ write_metadata() {
 
 TRUST_EXCEPTIONS_BEFORE="$(trust_exceptions)"
 
-# CI build job, release build, and pre-commit gate: Spotless, compilation, all tests (benchmarks and
-# examples-e2e included), core coverage, Javadoc, and the public API check that `check` runs (japicmp
+# CI build job, release build, and pre-commit gate: Spotless, compilation, all tests (benchmarks
+# included), core coverage, Javadoc, and the public API check that `check` runs (japicmp
 # and the apiBaselineVersion jars from Maven Central). Module-boundary and native-image checks reuse
 # these jars and runtime classpaths.
 write_metadata spotlessCheck build

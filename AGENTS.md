@@ -4,9 +4,9 @@ This file is for AI coding agents that change random-data-generator. Read it bef
 guide that matches your task from the table below. People follow the same rules through
 [CONTRIBUTING.md](CONTRIBUTING.md); this file adds what an agent needs to work without being told.
 
-random-data-generator is a library for seeded, locale-aware random test data on the JVM: a Java core with Jackson,
-JUnit, Spring Boot, Kotest and Kotlin DSL modules, published to Maven Central as
-`io.github.frikit:random-data-generator-*`. Its users rely on two promises above all: **the same seed and
+random-data-generator is a library for seeded, locale-aware random test data on the JVM, published to Maven Central
+as `io.github.frikit:random-data-generator-*`. This repository holds its Java core and bill of materials; the
+language and framework integrations live in their own repositories. Its users rely on two promises above all: **the same seed and
 configuration give the same values**, and **the public API stays compatible within a major line**.
 Most rules below exist to protect those two promises.
 
@@ -66,14 +66,14 @@ Most rules below exist to protect those two promises.
 | `bom/` | Bill of materials; no code |
 | `buildSrc/`, `build.gradle.kts`, `gradle/` | Build logic, version catalog, verification metadata |
 | `scripts/` | The gate and every check it runs, plus maintenance tools |
-| `examples/` | Standalone Java consumer projects (Gradle, Maven) run against the locally published snapshot |
+| `examples/` | Standalone Java consumer projects (Gradle, Maven, JPMS) run against the locally published snapshot |
 | `benchmarks/` | JMH benchmarks |
-
-The Java integrations (JUnit, Jackson, Spring Boot) and the Kotlin modules (DSL, Kotest) live in their own
-repositories, `random-data-generator-java` and `random-data-generator-kotlin`.
 | `docs/` | Maintainer docs: runbook, migration guides, these development guides |
 | `docs-site/` | The public documentation site |
 | `gradle.properties` | Versions, the published module list and documented facts the checks read |
+
+The Java integrations (JUnit, Jackson, Spring Boot) and the Kotlin modules (DSL, Kotest) live in their own
+repositories, `random-data-generator-java` and `random-data-generator-kotlin`.
 
 Where a number matters (versions, counts, thresholds), read it from `gradle.properties`,
 `gradle/libs.versions.toml` or the build files; do not trust a number copied into prose.

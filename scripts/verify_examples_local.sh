@@ -90,3 +90,6 @@ step "Verify Java + Maven example"
     cd "${REPO_ROOT}/examples/java-maven"
     mvn -q -Drdg.version="${VERSION}" test
 )
+
+step "Verify Java 21 named-module example"
+"${GRADLEW}" -p "${REPO_ROOT}/examples/java-jpms" -PrdgVersion="${VERSION}" verifyJpms --no-daemon --console=plain

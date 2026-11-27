@@ -20,7 +20,7 @@ java -version   # must report 21+
 ./gradlew --version
 ```
 
-The Java modules (`core`, `jackson`, `junit`, `spring-boot-starter`) run on Java 17 or later, so their
+The published modules (`core` and the `bom` that aligns it) run on Java 17 or later, so `core`'s
 main and test code keeps to the Java 17 API and language: the JDK 21 build compiles them with
 `--release 17`, which rejects anything newer, and CI runs their tests on Java 17. A core test that needs
 Java 21, such as one on virtual threads, goes in `core/src/java21Test/java`, which compiles with
@@ -54,12 +54,8 @@ and skips itself on an older test Java.
 
 - **Coverage**: `random-data-generator-core` enforces exact 100% line, branch, instruction, method, class, and
   complexity coverage via JaCoCo; its report is uploaded to Codecov. New core code must be covered
-  by tests. The integration modules (`jackson`, `junit`, `spring-boot-starter`, `kotest-extensions`,
-  and `kotlin-dsl`) generate JaCoCo reports in `<module>/build/reports/jacoco/test` and enforce
-  per-module line and branch floors (`integrationCoverageFloors` in the root `build.gradle.kts`,
-  set from the coverage measured when each floor was introduced or raised); the pre-commit summary
-  prints their line and branch coverage. Raise a module's floor when you add tests; new integration
-  code still needs behavior tests.
+  by tests. The integration modules, with their per-module line and branch floors, live in the
+  language repositories (`random-data-generator-java`, `random-data-generator-kotlin`).
 - **Mutation testing**: deterministic, safety-sensitive, object, and schema paths must retain at
   least an 85% mutation score and 98% mutated-class line coverage. Expand targets incrementally
   around meaningful branching, review survivors by behavior, and do not treat 100% as a goal when
@@ -115,7 +111,7 @@ These scripts are run by hand; none of them is part of the pre-commit gate.
 - `scripts/upgrade_latest_gradle.sh` moves the Gradle wrapper to the latest release with its pinned
   distribution checksum; Dependabot normally proposes wrapper updates.
 - `scripts/verify_examples_local.sh` publishes the snapshot to Maven local and runs the consumer
-  examples; `RDG_REQUIRE_SCALA_TOOLS=true` makes missing sbt or Mill an error.
+  examples; `RDG_REQUIRE_JAVA17=true` makes a missing JDK 17 an error.
 - `scripts/verify_native_image.sh` builds the native-image smoke fixture. It skips when
   `native-image` is missing unless `RDG_REQUIRE_NATIVE_IMAGE=true`, which CI sets.
 - `scripts/run_benchmarks.sh` runs JMH and regenerates the benchmark dashboard.

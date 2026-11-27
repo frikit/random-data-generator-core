@@ -281,10 +281,8 @@ rebuild them instead: a new build signs and describes other files than the ones 
 - Verify a downloaded jar, SBOM, or `aggregation.zip` with
   `gh attestation verify --repo frikit/random-data-generator-core <path>`.
 - Run the Central-only consumer gate after the coordinates are visible:
-  `RDG_VERSION=<version> ./scripts/verify_examples_central.sh`. It exercises a plain-Java
-  Maven/Gradle consumer and a Kotlin/Spring Maven consumer without Maven-local resolution, and the
-  Kotlin Android unit-test consumer when `ANDROID_HOME` or `ANDROID_SDK_ROOT` names an Android SDK
-  (`RDG_REQUIRE_ANDROID_SDK=true` makes a missing SDK an error).
+  `RDG_VERSION=<version> ./scripts/verify_examples_central.sh`. It exercises the plain-Java Maven and
+  Gradle consumers without Maven-local resolution.
 - Land a follow-up version-facts commit on `main`: set `developmentVersion` to
   the next `*-SNAPSHOT`, retain `latestGaVersion` at the release just
   published, and move the public API baseline to it. Set

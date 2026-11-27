@@ -1,10 +1,8 @@
-# random-data-generator Examples Monorepo
+# random-data-generator-core examples
 
-This folder contains test-based examples for each supported language/build-tool combination.
-
-Core examples verify direct `io.github.frikit:random-data-generator-core` consumption, including strong
-encapsulation from Java 21 named modules. Integration examples verify the published Jackson, JUnit,
-Spring Boot, Kotest, and Kotlin DSL artifacts from clean consumer builds.
+This folder contains test-based examples that consume `io.github.frikit:random-data-generator-core` directly,
+including strong encapsulation from Java 21 named modules. The Kotlin, Scala and integration-module examples live in
+the language repositories (`random-data-generator-java`, `-kotlin` and `-scala`).
 
 Default example version: `1.0.0-SNAPSHOT`
 
@@ -23,21 +21,16 @@ For repo-local verification, publish the current workspace artifact to Maven loc
 That script:
 
 - verifies Java 21+
-- publishes all current `random-data-generator-*` consumer artifacts to Maven local
+- publishes the `random-data-generator-*` artifacts of this repository to Maven local
 - runs the example test suites against the local artifact
-- runs the Java + Gradle example, and the Android example with Gradle, again on Java 17, the oldest
-  Java that random-data-generator runs on, when Gradle detects a JDK 17; it skips those runs otherwise, unless
-  `RDG_REQUIRE_JAVA17=true`, as CI sets
+- runs the Java + Gradle example again on Java 17, the oldest Java that random-data-generator runs on, when
+  Gradle detects a JDK 17; it skips that run otherwise, unless `RDG_REQUIRE_JAVA17=true`, as CI sets
 - verifies both successful qualified `opens` and actionable missing-`opens` behavior from named modules
-- runs the Android example only when `ANDROID_HOME` or `ANDROID_SDK_ROOT` names an Android SDK, and
-  otherwise skips it with a message; `RDG_REQUIRE_ANDROID_SDK=true`, which CI sets, makes a missing
-  SDK an error
 
 To point the examples at a different artifact version, set `RDG_VERSION` or the build-tool-specific property:
 
 - Gradle: `-PrdgVersion=<version>`
 - Maven: `-Drdg.version=<version>`
-- sbt / Mill: `-Drdg.version=<version>`
 
 ## Matrix
 
@@ -45,45 +38,14 @@ Each example's README lists what its tests show.
 
 - Java + Gradle: `examples/java-gradle` — the `Generators` factories, `ObjectModel`, scoped locale data,
   `ObjectFaker.strict()` fixture diagnostics, the generation report, and sealed interfaces
-- Java + Gradle integration modules: `examples/java-gradle-integrations` — `random-data-generator-jackson` on
-  Jackson 3, the Spring Boot starter and its `krandom.*` properties, and `random-data-generator-junit` replay of a
-  failing test and of a `@MethodSource` factory's arguments
 - Java + Maven: `examples/java-maven` — the `Generators` factories, `ObjectModel`,
   `ObjectFaker.strict()` fixture diagnostics, the generation report, and sealed interfaces
-- Java + Maven integration modules: `examples/java-maven-integrations` — the Gradle integration
-  example's checks, with the Maven replay commands
-- Java 21 + Gradle named modules: `examples/java-jpms` — qualified `opens` for object generation, the
-  failure without it, and named-module Jackson and JUnit consumers
-- Kotlin + Gradle: `examples/kotlin-gradle` — the `Generators` factories, a Kotest arbitrary, and the
-  Kotlin DSL with sealed classes, value classes, and the generation report
-- Kotlin + Maven: `examples/kotlin-maven` — `random-data-generator-core` alone from Kotlin, with
-  `ObjectFaker.strict()` fixture diagnostics on a mutable class
-- Kotlin + Maven integration modules: `examples/kotlin-maven-integrations` — a Kotest arbitrary, the
-  Kotlin DSL with sealed classes and value classes, the Spring Boot starter and its `krandom.*`
-  properties, and `random-data-generator-jackson` on Jackson 3
-- Kotlin + Android: `examples/kotlin-android` — local unit tests of Android library modules compiled for
-  JVM target 17 with the Kotlin 2.2.10 that the Android Gradle plugin 9.5.2 brings: `RandomDataGenerator`, the
-  `Generators` factories and the Kotlin DSL under JUnit 4, a rule for
-  `android.net.Uri`, and `random-data-generator-junit` on the JUnit Platform; the
-  [Android unit tests guide](../docs-site/guides/android-unit-tests.md) explains the setup
-- Scala + sbt: `examples/scala-sbt` — the `Generators` factories from Scala 3
-- Scala + Mill: `examples/scala-mill` — the `Generators` factories from Scala 3
+- Java 21 + Gradle named modules: `examples/java-jpms` — qualified `opens` for object generation, and the
+  failure without it
 
 ## Run commands
 
 ```bash
-# Verify the whole matrix against the locally published snapshot
+# Verify every example against the locally published snapshot
 ./scripts/verify_examples_local.sh
 ```
-
-## Notes for Scala callers
-
-random-data-generator's `Generator<T>` has a single abstract method, so Scala 3 converts a lambda such as
-`() => source.generate()` to a `Generator`. If a Scala helper is overloaded on both
-`Generator[String]` and `() => String`, a lambda argument can resolve to the `Generator` overload,
-and an overload that delegates to the other with a lambda then calls itself forever. Give such
-helpers distinct names.
-
-`RandomDataGenerator.pick` takes Java varargs, so `fake.pick(Seq("a", "b"))` passes the whole `Seq` as one
-value and returns it. Write `fake.pick("a", "b")`, or splice a collection with `fake.pick(values*)`
-(Scala 2.13: `fake.pick(values: _*)`).

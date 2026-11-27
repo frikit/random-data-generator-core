@@ -12,7 +12,7 @@ build files are the source of truth for their values.
 | `core/src/nullnessTest/java` | JUnit Jupiter, NullAway | with `:core:test` | Calls the public API as null-marked consumer code does; fails to compile if the API stops accepting what such code passes. |
 | `core/src/java21Test/java` | JUnit Jupiter | `:core:java21Test`, only on a Java 21+ test JVM | Tests that need Java 21, such as virtual threads. Outside coverage and PIT. |
 | `benchmarks/` | JMH | `scripts/run_benchmarks.sh` | Performance; CI skips its tests. |
-| `examples/` | each project's own | `scripts/verify_examples_local.sh` | Standalone Java consumer builds (Gradle, Maven) against the local snapshot. |
+| `examples/` | each project's own | `scripts/verify_examples_local.sh` | Standalone Java consumer builds (Gradle, Maven, JPMS) against the local snapshot. |
 
 Java tests use JUnit Jupiter's own `Assertions`; there is no AssertJ. **jqwik is forbidden**: property
 tests are written with Kotest in the Kotlin modules. Test classes end in `Test`, carry a class-level
@@ -23,8 +23,9 @@ tests are written with Kotest in the Kotlin modules. Test classes end in `Test`,
 - **Core coverage is exactly 100%** on instructions, lines, branches, complexity, methods and classes
   (JaCoCo rules in `core/build.gradle.kts`). There are no exclusions; reach it with tests through
   behaviour, not by excluding code or adding test-only branches.
-- **Integration modules** have line and branch floors in `integrationCoverageFloors` in the root
-  `build.gradle.kts`. Raise a floor when you add tests; never lower one without a changelog entry.
+- **Other published jar modules** would have line and branch floors in `integrationCoverageFloors` in the
+  root `build.gradle.kts`. This repository has none, so the map is empty; the language repositories keep the
+  floors of their integration modules.
 - **PIT** runs on a list of critical classes and tests (`pitest { targetClasses / targetTests }` in
   `core/build.gradle.kts`) with mutation-score and line-coverage thresholds. A new class on a
   deterministic, safety or schema path belongs in `targetClasses`, and a new test class that should kill

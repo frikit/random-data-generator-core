@@ -37,9 +37,8 @@ acknowledgement.
 
 In scope:
 
-- Code and metadata in this repository's published modules (`random-data-generator-bom`, `random-data-generator-core`,
-  `random-data-generator-jackson`, `random-data-generator-junit`, `random-data-generator-spring-boot-starter`,
-  `random-data-generator-kotest-extensions`, `random-data-generator-kotlin-dsl`).
+- Code and metadata in this repository's published modules (`random-data-generator-bom`,
+  `random-data-generator-core`). The integration modules are in scope of their own repositories.
 - Build and release tooling that ships in the repository
   (`scripts/`, `.github/workflows/`).
 
