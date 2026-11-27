@@ -153,26 +153,24 @@ pitest {
     )
     targetTests.set(
         setOf(
-            "io.github.frikit.rdg.generator.ChildStreamPolicyTest",
+            "io.github.frikit.rdg.generator.ChildStreamsTest",
             "io.github.frikit.rdg.generator.ClockSnapshotTest",
-            // The seeded values of the four 4.0 default flips, each set explicitly off and on.
-            "io.github.frikit.rdg.generator.DefaultFlipPinsTest",
-            // From 4.0.0 the four are on by default.
-            "io.github.frikit.rdg.generator.DefaultFlipsTest",
+            // Advancing convenience streams and StrictMath Gaussian draws, with nested groups.
+            "io.github.frikit.rdg.generator.ConvenienceStreamsAndGaussianTest*",
             "io.github.frikit.rdg.generator.EnvironmentDeterminismTest",
             "io.github.frikit.rdg.generator.GenerationRecipe*",
             "io.github.frikit.rdg.generator.GeneratorConfigChildStreamTest",
             "io.github.frikit.rdg.generator.GeneratorConfigTest",
             "io.github.frikit.rdg.generator.GeneratorProfileTest",
             "io.github.frikit.rdg.generator.RandomSourceContractTest",
-            "io.github.frikit.rdg.generator.SeedingDefaultsPinTest",
-            "io.github.frikit.rdg.generator.SeedingOptInsTest*",
+            // The seeded values of the child streams, the German street layout, randomizers and Gaussian draws.
+            "io.github.frikit.rdg.generator.DefaultFlipPinsTest",
             "io.github.frikit.rdg.generator.color.ColorGeneratorTest",
             "io.github.frikit.rdg.generator.finance.Phase3FinanceGeneratorsTest",
             "io.github.frikit.rdg.generator.identifier.UUIDGeneratorTest",
             "io.github.frikit.rdg.generator.schema.*",
             "io.github.frikit.rdg.generator.location.RegistryLookupTest",
-            // The German street layout's setting and its recipe entry.
+            // The German locales' street-first layout.
             "io.github.frikit.rdg.generator.location.GermanStreetLayoutTest",
             "io.github.frikit.rdg.generator.object.*",
             "io.github.frikit.rdg.generator.text.NextWordGeneratorTest",

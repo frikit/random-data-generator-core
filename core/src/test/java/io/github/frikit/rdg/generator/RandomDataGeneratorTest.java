@@ -120,22 +120,6 @@ class RandomDataGeneratorTest {
     }
 
     @Test
-    @DisplayName("each kind draws from its own derived stream, even under the legacy child-stream policy")
-    void kindsUseDerivedStreamsUnderLegacyPolicy() {
-        GeneratorConfig legacy = GeneratorConfig.builder()
-                .seed(42L)
-                .childStreamPolicy(ChildStreamPolicy.LEGACY)
-                .build();
-        RandomDataGenerator fake = RandomDataGenerator.of(legacy);
-
-        assertEquals(ChildStreamPolicy.LEGACY, legacy.getChildStreamPolicy());
-        assertEquals(
-                Generators.ofFirstName(fake.streamConfig("krandom.firstName")).generate(), fake.firstName());
-        assertEquals(
-                Generators.ofLastName(fake.streamConfig("krandom.lastName")).generate(), fake.lastName());
-    }
-
-    @Test
     @DisplayName("each country-code method draws from its own stream, and countryCodes keeps one country's codes")
     void countryCodesInEachFormat() {
         RandomDataGenerator fake = uk("fixtures");

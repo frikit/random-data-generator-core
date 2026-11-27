@@ -7,10 +7,8 @@ package io.github.frikit.rdg.generator.location;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.frikit.rdg.generator.ChildStreamPolicy;
 import io.github.frikit.rdg.generator.DataRegistryContext;
 import io.github.frikit.rdg.generator.GenerationRecipe;
 import io.github.frikit.rdg.generator.GeneratorConfig;
@@ -22,9 +20,7 @@ import io.github.frikit.rdg.generator.schema.SchemaValueProvider;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -33,42 +29,31 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-@DisplayName("the German street layout writes the street, then the house number, in the German locales only")
+@DisplayName("the German locales write the street, then the house number, and no other locale does")
 class GermanStreetLayoutTest {
 
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-07-10T12:00:00Z"), ZoneOffset.UTC);
 
     private static final Pattern GERMAN_LINE = Pattern.compile("\\S+ [1-9][0-9]{0,3}");
 
-    private static GeneratorConfig config(String tag, boolean germanLayout, ChildStreamPolicy policy) {
+    private static GeneratorConfig config(String tag) {
         return GeneratorConfig.builder()
                 .locale(Locale.forLanguageTag(tag))
                 .seed(42L)
                 .clock(CLOCK)
-                .childStreamPolicy(policy)
-                .germanStreetLayout(germanLayout)
                 .build();
-    }
-
-    @Test
-    @DisplayName("is on by default from 4.0.0, and false turns it off")
-    void isOnByDefault() {
-        assertTrue(GeneratorConfig.defaults().isGermanStreetLayout());
-        assertFalse(GeneratorConfig.builder().germanStreetLayout(false).build().isGermanStreetLayout());
-        assertTrue(GeneratorConfig.builder().germanStreetLayout(true).build().isGermanStreetLayout());
     }
 
     @Test
     @DisplayName("seeded with 42, the German street lines read as German writes them")
     void germanLinesAreAsGermanWritesThem() {
-        StreetAddressGenerator streets =
-                new StreetAddressGenerator(config("de-DE", true, ChildStreamPolicy.INDEPENDENT));
+        StreetAddressGenerator streets = new StreetAddressGenerator(config("de-DE"));
 
         assertEquals("Schlossanger 7389", streets.generate());
         assertEquals("Rosenstrasse 9180", streets.generate(false));
         assertEquals("Kantgart. 1014, Konstanz, Baden-Württemberg 78462, Deutschland", streets.generateFullAddress());
 
-        AddressInfo info = new AddressInfoGenerator(config("de-DE", true, ChildStreamPolicy.INDEPENDENT)).generate();
+        AddressInfo info = new AddressInfoGenerator(config("de-DE")).generate();
         assertEquals("Tulpenpfad 8680", info.street());
         assertEquals("Tulpenpfad 8680, Mönchengladbach, Nordrhein-Westfalen 41061, Deutschland", info.address());
         assertEquals("8680", info.streetNumber());
@@ -78,75 +63,60 @@ class GermanStreetLayoutTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"de", "de-DE", "de-AT", "de-CH", "de-LU"})
-    @DisplayName("each German locale lays out the same draws as without it, street first")
-    void eachGermanLocaleLaysOutTheSameDraws(String tag) {
-        for (ChildStreamPolicy policy : ChildStreamPolicy.values()) {
-            StreetAddressGenerator usLayout = new StreetAddressGenerator(config(tag, false, policy));
-            StreetAddressGenerator germanLayout = new StreetAddressGenerator(config(tag, true, policy));
-            for (int i = 0; i < 200; i++) {
-                boolean shortSuffix = i % 2 == 0;
-                String[] parts = usLayout.generate(shortSuffix).split(" ", 3);
-                String line = germanLayout.generate(shortSuffix);
-                assertEquals(german(parts[1], parts[2]) + " " + parts[0], line, tag);
-                assertTrue(GERMAN_LINE.matcher(line).matches(), line);
-            }
-            String usFull = usLayout.generateFullAddress();
-            String germanFull = germanLayout.generateFullAddress();
-            String[] usStreet = usFull.substring(0, usFull.indexOf(',')).split(" ", 3);
-            assertEquals(
-                    german(usStreet[1], usStreet[2]) + " " + usStreet[0] + usFull.substring(usFull.indexOf(',')),
-                    germanFull);
+    @DisplayName("each German locale lays out its draws street first")
+    void eachGermanLocaleLaysOutItsDrawsStreetFirst(String tag) {
+        StreetAddressGenerator germanLayout = new StreetAddressGenerator(config(tag));
+        StreetAddressGenerator parts = new StreetAddressGenerator(config(tag));
+        assertTrue(germanLayout.streetFirst(), tag);
+        for (int i = 0; i < 200; i++) {
+            boolean shortSuffix = i % 2 == 0;
+            String number = parts.generateStreetAddressNumber();
+            String name = parts.generateStreetName();
+            String suffix = parts.generateStreetSuffix(shortSuffix);
+            String line = germanLayout.generate(shortSuffix);
+            assertEquals(german(name, suffix) + " " + number, line, tag);
+            assertTrue(GERMAN_LINE.matcher(line).matches(), line);
+        }
+        String germanFull = germanLayout.generateFullAddress();
+        assertTrue(
+                GERMAN_LINE
+                        .matcher(germanFull.substring(0, germanFull.indexOf(',')))
+                        .matches(),
+                germanFull);
 
-            AddressInfoGenerator usInfo = new AddressInfoGenerator(config(tag, false, policy));
-            AddressInfoGenerator germanInfo = new AddressInfoGenerator(config(tag, true, policy));
-            for (int i = 0; i < 50; i++) {
-                AddressInfo us = usInfo.generate();
-                AddressInfo de = germanInfo.generate();
-                String street = german(us.streetName(), us.streetSuffix()) + " " + us.streetNumber();
-                assertEquals(street, de.street());
-                assertEquals(street + us.address().substring(us.street().length()), de.address());
-                assertEquals(us.streetUnit(), de.streetUnit());
-                assertEquals(us.zip(), de.zip());
-                assertEquals(us.city(), de.city());
-            }
+        AddressInfoGenerator germanInfo = new AddressInfoGenerator(config(tag));
+        for (int i = 0; i < 50; i++) {
+            AddressInfo de = germanInfo.generate();
+            String street = german(de.streetName(), de.streetSuffix()) + " " + de.streetNumber();
+            assertEquals(street, de.street());
+            assertTrue(de.address().startsWith(street + ", "), de.address());
         }
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"nl-NL", "nl-BE", "en-US", "en-DE", "fr-CH", "it-IT", "sv-SE"})
-    @DisplayName("leaves every other locale as it is")
-    void leavesOtherLocalesAsTheyAre(String tag) {
-        for (ChildStreamPolicy policy : ChildStreamPolicy.values()) {
-            StreetAddressGenerator off = new StreetAddressGenerator(config(tag, false, policy));
-            StreetAddressGenerator on = new StreetAddressGenerator(config(tag, true, policy));
-            AddressInfoGenerator infoOff = new AddressInfoGenerator(config(tag, false, policy));
-            AddressInfoGenerator infoOn = new AddressInfoGenerator(config(tag, true, policy));
-            for (int i = 0; i < 20; i++) {
-                assertEquals(off.generate(), on.generate());
-                assertEquals(off.generateFullAddress(), on.generateFullAddress());
-                assertEquals(infoOff.generate(), infoOn.generate());
-            }
+    @DisplayName("every other locale writes the house number first")
+    void otherLocalesWriteTheNumberFirst(String tag) {
+        StreetAddressGenerator streets = new StreetAddressGenerator(config(tag));
+        StreetAddressGenerator parts = new StreetAddressGenerator(config(tag));
+        assertFalse(streets.streetFirst(), tag);
+        for (int i = 0; i < 20; i++) {
+            String number = parts.generateStreetAddressNumber();
+            String name = parts.generateStreetName();
+            String suffix = parts.generateStreetSuffix(true);
+            assertEquals(number + " " + name + " " + suffix, streets.generate(), tag);
         }
-    }
-
-    @Test
-    @DisplayName("the pinned values of the Dutch and US locales do not change with it")
-    void pinnedOtherLocalesDoNotChange() {
-        List<String> others = List.of("nl-NL", "en-US");
-        String pinned = Arrays.stream(StreetAddressPinsTest.PINNED_VALUES.split("\n"))
-                .filter(line -> line.startsWith("nl-NL ") || line.startsWith("en-US "))
-                .reduce("", (joined, line) -> joined + line + "\n");
-
-        assertEquals(
-                pinned,
-                StreetAddressPinsTest.values(
-                        builder -> StreetAddressPinsTest.ALL_OFF.apply(builder).germanStreetLayout(true), others));
+        AddressInfoGenerator infos = new AddressInfoGenerator(config(tag));
+        for (int i = 0; i < 20; i++) {
+            AddressInfo info = infos.generate();
+            assertTrue(info.street().startsWith(info.streetNumber() + " " + info.streetName() + " "), info.toString());
+        }
     }
 
     @Test
     @DisplayName("the session, the schema columns and the object engine's address record follow it")
     void sessionAndSchemaFollowIt() {
-        GeneratorConfig config = config("de-DE", true, ChildStreamPolicy.INDEPENDENT);
+        GeneratorConfig config = config("de-DE");
         assertTrue(GERMAN_LINE
                 .matcher(RandomDataGenerator.of(config).streetAddress())
                 .matches());
@@ -166,48 +136,24 @@ class GermanStreetLayoutTest {
     }
 
     @Test
-    @DisplayName("a recipe records it on or off, and replays it")
-    void recipeRecordsAndReplaysIt() {
-        GeneratorConfig on = config("de-DE", true, ChildStreamPolicy.INDEPENDENT);
-        GenerationRecipe recipe = on.getGenerationRecipe().orElseThrow();
-        assertEquals("true", recipe.getSettings().get("address.german-street-layout"));
-
-        GeneratorConfig replay = GenerationRecipe.parse(recipe.serialize()).toGeneratorConfig();
-        assertTrue(replay.isGermanStreetLayout());
-        assertEquals(
-                recipe.serialize(), replay.getGenerationRecipe().orElseThrow().serialize());
-        StreetAddressGenerator original = new StreetAddressGenerator(on);
+    @DisplayName("a recipe replays it")
+    void recipeReplaysIt() {
+        GeneratorConfig config = config("de-DE");
+        GeneratorConfig replay = GenerationRecipe.parse(
+                        config.getGenerationRecipe().orElseThrow().serialize())
+                .toGeneratorConfig();
+        StreetAddressGenerator original = new StreetAddressGenerator(config);
         StreetAddressGenerator replayed = new StreetAddressGenerator(replay);
         for (int i = 0; i < 20; i++) {
             assertEquals(original.generate(), replayed.generate());
         }
-
-        GenerationRecipe off = config("de-DE", false, ChildStreamPolicy.INDEPENDENT)
-                .getGenerationRecipe()
-                .orElseThrow();
-        assertEquals("false", off.getSettings().get("address.german-street-layout"));
-        assertFalse(GenerationRecipe.parse(off.serialize()).toGeneratorConfig().isGermanStreetLayout());
-        // A rdg-recipe/v2 recipe without the line is rejected, rather than replayed with a default.
-        String without = off.serialize().replace("setting.address.german-street-layout=false\n", "");
-        assertFalse(without.contains("german-street-layout"));
-        assertEquals(
-                "Recipe requires setting: address.german-street-layout",
-                assertThrows(
-                                IllegalArgumentException.class,
-                                () -> GenerationRecipe.parse(without).toGeneratorConfig())
-                        .getMessage());
     }
 
     @Test
     @DisplayName("a child stream keeps it")
     void childStreamKeepsIt() {
-        for (ChildStreamPolicy policy : ChildStreamPolicy.values()) {
-            assertTrue(config("de-DE", true, policy).forChildStream("street").isGermanStreetLayout());
-            assertFalse(config("de-DE", false, policy).forChildStream("street").isGermanStreetLayout());
-        }
-        assertTrue(GeneratorConfig.builder().germanStreetLayout(true).build().toBuilder()
-                .build()
-                .isGermanStreetLayout());
+        assertTrue(new StreetAddressGenerator(config("de-DE").forChildStream("street")).streetFirst());
+        assertTrue(new StreetAddressGenerator(config("de-DE").toBuilder().build()).streetFirst());
     }
 
     @Test
@@ -240,7 +186,6 @@ class GermanStreetLayoutTest {
                         .isolated()
                         .register(Vocabulary.STREET_ADDRESS, streets)
                         .build())
-                .germanStreetLayout(true)
                 .seed(5L)
                 .build();
         StreetAddressGenerator generator = new StreetAddressGenerator(config);

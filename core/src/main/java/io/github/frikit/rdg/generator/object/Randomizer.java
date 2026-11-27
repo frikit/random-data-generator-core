@@ -25,11 +25,11 @@ import java.lang.annotation.Target;
  * stateful generator such as a sequence keeps its state across generated objects. In a seeded
  * configuration, generators implementing {@link io.github.frikit.rdg.generator.Seedable} are
  * reseeded for every object from that object's seeded stream, so they replay from the seed and its
- * recipe. Other generators control their own randomness, which seeded replay cannot reproduce. With
- * {@link io.github.frikit.rdg.generator.GeneratorConfig.Builder#objectReseedBuiltInRandomizers(boolean)}
- * on, as it is by default from 4.0.0, the built-in generators that are not {@code Seedable} but that a seed
- * can reset to a new build, such as {@code FirstNameGenerator} and {@code UUIDGenerator}, are reseeded the
- * same way; set it to {@code false} to leave them on their own source, as 3.x does.
+ * recipe. The built-in generators that are not {@code Seedable} but that a seed can reset to a new
+ * build, the ones a seeded {@code Schema} reseeds, such as {@code FirstNameGenerator},
+ * {@code EmailGenerator} and {@code UUIDGenerator}, are reseeded the same way. Other generators, such as
+ * {@code MiddleNameGenerator}, {@code CompanyEmailGenerator} or a custom one that is not {@code Seedable},
+ * control their own randomness, which seeded replay cannot reproduce.
  */
 @Target({ElementType.FIELD, ElementType.RECORD_COMPONENT})
 @Retention(RetentionPolicy.RUNTIME)

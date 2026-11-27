@@ -1688,19 +1688,17 @@ final class FieldGeneratorResolver {
 
     /**
      * Seedable randomizers follow the object's seeded stream like built-in generators. The seed is derived by
-     * name, so no other member's draws shift. With the opt-in, so do the built-ins that are not Seedable but whose
-     * reseed leaves them as a new build with that seed would be; without it they keep their own source.
+     * name, so no other member's draws shift. So do the built-ins that are not Seedable but whose reseed leaves
+     * them as a new build with that seed would be; any other randomizer keeps its own source.
      */
     private void reseedRandomizer(Generator<?> generator, long seed) {
         if (generator instanceof Seedable seedable) {
             seedable.reseed(seed);
             return;
         }
-        if (generatorConfig.isObjectReseedBuiltInRandomizers()) {
-            Reseeding.Reseeder<Generator<?>> reseeder = Reseeding.reseederOf(generator);
-            if (reseeder != null) {
-                reseeder.reseed(generator, seed);
-            }
+        Reseeding.Reseeder<Generator<?>> reseeder = Reseeding.reseederOf(generator);
+        if (reseeder != null) {
+            reseeder.reseed(generator, seed);
         }
     }
 

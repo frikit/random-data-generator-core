@@ -81,11 +81,7 @@ class RandomizerReplayTest {
     }
 
     private static GeneratorConfig reseedingBuiltIns(long seed) {
-        return GeneratorConfig.builder()
-                .seed(seed)
-                .clock(FIXED)
-                .objectReseedBuiltInRandomizers(true)
-                .build();
+        return GeneratorConfig.builder().seed(seed).clock(FIXED).build();
     }
 
     private static List<String> builtIns(GeneratorConfig config, int count, boolean randomizers) {
@@ -100,8 +96,8 @@ class RandomizerReplayTest {
     }
 
     @Test
-    @DisplayName("with the opt-in, a built-in randomizer that is not Seedable replays from the seed and the recipe")
-    void builtInRandomizersReplayWithTheOptIn() {
+    @DisplayName("a built-in randomizer that is not Seedable replays from the seed and the recipe")
+    void builtInRandomizersReplay() {
         GeneratorConfig config = reseedingBuiltIns(42L);
         List<String> original = builtIns(config, 6, true);
 
@@ -124,7 +120,7 @@ class RandomizerReplayTest {
     }
 
     @Test
-    @DisplayName("with the opt-in, built-in randomizers of collection elements replay, and the elements differ")
+    @DisplayName("built-in randomizers of collection elements replay, and the elements differ")
     void nestedBuiltInRandomizersReplay() {
         List<List<UUID>> first = new ArrayList<>();
         List<List<UUID>> second = new ArrayList<>();
@@ -142,29 +138,10 @@ class RandomizerReplayTest {
     }
 
     @Test
-    @DisplayName("the opt-in leaves the other fields, Seedable and stateful randomizers included, as they were")
-    void builtInRandomizerOptInKeepsOtherFields() {
-        GeneratorConfig off = notReseedingBuiltIns(42L);
-        assertEquals(builtIns(off, 6, false), builtIns(reseedingBuiltIns(42L), 6, false));
-        // Off, the built-in randomizers draw from their own unseeded sources.
-        assertNotEquals(builtIns(off, 3, true), builtIns(notReseedingBuiltIns(42L), 3, true));
-    }
-
-    @Test
-    @DisplayName("without a seed the setting reseeds nothing")
-    void builtInRandomizerOptInNeedsASeed() {
-        GeneratorConfig unseeded =
-                GeneratorConfig.builder().objectReseedBuiltInRandomizers(true).build();
+    @DisplayName("without a seed no built-in randomizer is reseeded")
+    void builtInRandomizersNeedASeed() {
+        GeneratorConfig unseeded = GeneratorConfig.defaults();
         assertNotEquals(builtIns(unseeded, 3, true), builtIns(unseeded, 3, true));
-    }
-
-    /** The 3.x behaviour: the setting is on by default from 4.0.0. */
-    private static GeneratorConfig notReseedingBuiltIns(long seed) {
-        return GeneratorConfig.builder()
-                .seed(seed)
-                .clock(FIXED)
-                .objectReseedBuiltInRandomizers(false)
-                .build();
     }
 
     private static GeneratorConfig seeded(long seed) {

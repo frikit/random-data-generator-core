@@ -17,11 +17,9 @@ import java.util.random.RandomGenerator;
  *
  * <p>Default parameters: mean = 0.0, standard deviation = 1.0 (standard normal distribution).
  *
- * <p>With {@link GeneratorConfig.Builder#strictMathGaussian(boolean)} on, as it is by default from 4.0.0,
- * the transform uses {@link StrictMath#log(double)}, {@link StrictMath#sin(double)} and
- * {@link StrictMath#cos(double)}, so a seed gives the same bits everywhere. With it off, as in 3.x, it uses
- * the {@link Math} forms, which Java lets differ in the last bit between platforms, so a seeded value can
- * differ in its last bit on another JVM or CPU.
+ * <p>The transform uses {@link StrictMath#log(double)}, {@link StrictMath#sin(double)} and
+ * {@link StrictMath#cos(double)} rather than the {@link Math} forms, which Java lets differ in the last bit
+ * between platforms, so a seed gives the same bits on every JVM and CPU.
  *
  * <pre>{@code
  *   // Standard normal distribution (mean=0, stdDev=1)
@@ -47,7 +45,6 @@ public final class NormalDistributionGenerator implements io.github.frikit.rdg.g
     private final RandomGenerator random;
     private final double mean;
     private final double standardDeviation;
-    private final boolean strictMath;
 
     // Box-Muller generates two values at once; cache the second for efficiency
     private @org.jspecify.annotations.Nullable Double cachedValue = null;
@@ -67,11 +64,7 @@ public final class NormalDistributionGenerator implements io.github.frikit.rdg.g
      * @param config generator configuration; must not be {@code null}
      */
     public NormalDistributionGenerator(GeneratorConfig config) {
-        this(
-                Objects.requireNonNull(config, "config must not be null").createRandom(),
-                0.0,
-                1.0,
-                config.isStrictMathGaussian());
+        this(Objects.requireNonNull(config, "config must not be null").createRandom(), 0.0, 1.0);
     }
 
     /**
@@ -95,22 +88,16 @@ public final class NormalDistributionGenerator implements io.github.frikit.rdg.g
      * @throws IllegalArgumentException if standardDeviation is negative or zero
      */
     public NormalDistributionGenerator(double mean, double standardDeviation, GeneratorConfig config) {
-        this(
-                Objects.requireNonNull(config, "config must not be null").createRandom(),
-                mean,
-                standardDeviation,
-                config.isStrictMathGaussian());
+        this(Objects.requireNonNull(config, "config must not be null").createRandom(), mean, standardDeviation);
     }
 
-    private NormalDistributionGenerator(
-            RandomGenerator random, double mean, double standardDeviation, boolean strictMath) {
+    private NormalDistributionGenerator(RandomGenerator random, double mean, double standardDeviation) {
         if (standardDeviation <= 0) {
             throw new IllegalArgumentException("Standard deviation must be positive, got: " + standardDeviation);
         }
         this.mean = mean;
         this.standardDeviation = standardDeviation;
         this.random = random;
-        this.strictMath = strictMath;
     }
 
     /**
@@ -142,20 +129,11 @@ public final class NormalDistributionGenerator implements io.github.frikit.rdg.g
         }
 
         // Box-Muller transform generates two independent standard normal values
-        // sqrt is correctly rounded in both classes; log, cos and sin are the ones Math may vary.
+        // StrictMath gives the same bits on every platform, where Math may vary log, cos and sin.
         double angle = 2.0 * Math.PI * u2;
-        double magnitude;
-        double z0;
-        double z1;
-        if (strictMath) {
-            magnitude = StrictMath.sqrt(-2.0 * StrictMath.log(u1));
-            z0 = magnitude * StrictMath.cos(angle);
-            z1 = magnitude * StrictMath.sin(angle);
-        } else {
-            magnitude = Math.sqrt(-2.0 * Math.log(u1));
-            z0 = magnitude * Math.cos(angle);
-            z1 = magnitude * Math.sin(angle);
-        }
+        double magnitude = StrictMath.sqrt(-2.0 * StrictMath.log(u1));
+        double z0 = magnitude * StrictMath.cos(angle);
+        double z1 = magnitude * StrictMath.sin(angle);
 
         // Transform from standard normal (mean=0, stdDev=1) to desired distribution
         cachedValue = mean + z1 * standardDeviation;

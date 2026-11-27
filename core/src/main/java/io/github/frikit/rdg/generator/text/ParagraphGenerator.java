@@ -22,9 +22,6 @@ public final class ParagraphGenerator implements Generator<String> {
         io.github.frikit.rdg.internal.Reseeding.register(ParagraphGenerator.class, ParagraphGenerator::reseedTo);
     }
 
-    /** The configuration this generator was built from, whose child-stream policy a reseed follows. */
-    private final GeneratorConfig config;
-
     private final Locale locale;
     private final Random random;
     private final SentenceGenerator sentenceGenerator;
@@ -42,7 +39,7 @@ public final class ParagraphGenerator implements Generator<String> {
      * @param config generator configuration; must not be null
      */
     public ParagraphGenerator(GeneratorConfig config) {
-        this.config = Objects.requireNonNull(config, "config must not be null");
+        Objects.requireNonNull(config, "config must not be null");
         this.locale = config.getLocale();
         this.random = config.createRandom();
         this.sentenceGenerator = new SentenceGenerator(config.forChildStream("sentence"));
@@ -54,7 +51,7 @@ public final class ParagraphGenerator implements Generator<String> {
      */
     void reseedTo(long seed) {
         random.setSeed(seed);
-        sentenceGenerator.reseedTo(io.github.frikit.rdg.internal.Reseeding.childSeed(config, seed, "sentence"));
+        sentenceGenerator.reseedTo(io.github.frikit.rdg.generator.GenerationRecipe.deriveChildSeed(seed, "sentence"));
     }
 
     /**

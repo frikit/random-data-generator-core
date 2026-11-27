@@ -5,9 +5,6 @@
  */
 package io.github.frikit.rdg.internal;
 
-import io.github.frikit.rdg.generator.ChildStreamPolicy;
-import io.github.frikit.rdg.generator.GenerationRecipe;
-import io.github.frikit.rdg.generator.GeneratorConfig;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -76,20 +73,5 @@ public final class Reseeding {
     /** The classes registered so far, for the test that checks each of them. */
     static java.util.Set<Class<?>> registered() {
         return java.util.Set.copyOf(RESEEDERS.keySet());
-    }
-
-    /**
-     * The seed of the child stream {@code streamName} of a configuration like {@code config} seeded {@code seed}:
-     * what {@code forChildStream} gives the child, its parent's seed under {@link ChildStreamPolicy#LEGACY}.
-     *
-     * @param config     configuration whose child-stream policy applies
-     * @param seed       seed of the parent
-     * @param streamName name of the child stream
-     * @return the child's seed
-     */
-    public static long childSeed(GeneratorConfig config, long seed, String streamName) {
-        return config.getChildStreamPolicy() == ChildStreamPolicy.LEGACY
-                ? seed
-                : GenerationRecipe.deriveChildSeed(seed, streamName);
     }
 }

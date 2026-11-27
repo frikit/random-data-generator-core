@@ -68,24 +68,6 @@ starter logs, fails at context startup with `Invalid krandom.recipe: Unsupported
 names the release that wrote it, such as `This recipe records library-version 3.2.0: replay it with random-data-generator
 3.2.0.`
 
-### Seeding settings (from 4.0.0)
-
-From 4.0.0 four `GeneratorConfig` settings that change seeded output are on by default. The starter has a
-property for each; set one to `false` to keep its 3.x values, and leave it unset to keep the default:
-
-```properties
-krandom.advancing-convenience-streams=false
-krandom.strict-math-gaussian=false
-krandom.object-reseed-built-in-randomizers=false
-krandom.german-street-layout=false
-```
-
-They map onto `GeneratorConfig.Builder.advancingConvenienceStreams`, `strictMathGaussian`,
-`objectReseedBuiltInRandomizers` and `germanStreetLayout`. With all four `false`, a seed gives what 3.2.0
-gives. A recipe records all four, so each of them is rejected next to `krandom.recipe` like the other
-properties, and the effective recipe the starter logs records the value in effect, such as
-`setting.gaussian.strict-math=false`.
-
 Invalid combinations fail at context startup with an actionable message: a recipe combined with any
 property it defines, a `krandom.clock-zone` without `krandom.clock`, or malformed recipe/clock
 values.
@@ -149,11 +131,8 @@ A named stream keeps every other setting and uses the child seed
 `GenerationRecipe.deriveChildSeed(seed, streamName)`, so the same name always reproduces the same
 sequence while different names are independent. An unseeded configuration ignores the name.
 
-Composite generators give each child generator its own stream by default (2.11+), as described in
+Composite generators give each child generator its own stream, as described in
 [composite child streams]({{ '/guides/primitives-and-determinism/' | relative_url }}#composite-child-streams).
-The starter has no property for that policy: to get the earlier child streams back, define your own
-`GeneratorConfig` bean with `childStreamPolicy(ChildStreamPolicy.LEGACY)`, or replay a `krandom.recipe`
-that records `setting.child-stream-policy=LEGACY`.
 
 ### Registering providers
 

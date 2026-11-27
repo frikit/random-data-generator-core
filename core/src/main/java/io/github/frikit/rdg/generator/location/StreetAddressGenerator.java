@@ -22,9 +22,12 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>The house number is drawn from [1, 9999]. Street names and short/long suffix lists come
  * from {@link StreetAddressDataRegistry} for the configured locale.
  *
- * <p>With {@link GeneratorConfig.Builder#germanStreetLayout(boolean)} on, the locales whose language is
- * German write the street first, as German does ({@code "Hauptstr. 12"}). It is on by default from 4.0.0;
- * {@code false} keeps the 3.x layout, the house number first.
+ * <p>The locales whose language is German ({@code de}, {@code de_DE}, {@code de_AT}, {@code de_CH} and any
+ * other {@code de_*}) write the street first, as German does: the first part of the name and the street type
+ * as one word, the type starting in lower case, then the house number, such as {@code "Rosenweg 5"} or
+ * {@code "Hauptstr. 12"}. Every other locale writes the house number first. The full address, the street and
+ * address of {@link AddressInfoGenerator}, and so the session, schema and object-engine values built on them,
+ * follow the same layout.
  */
 public final class StreetAddressGenerator implements Generator<String> {
 
@@ -41,24 +44,26 @@ public final class StreetAddressGenerator implements Generator<String> {
         random.setSeed(seed);
         CityGenerator city = cityGenerator;
         if (city != null) {
-            city.reseedTo(io.github.frikit.rdg.internal.Reseeding.childSeed(config, seed, "city"));
+            city.reseedTo(io.github.frikit.rdg.generator.GenerationRecipe.deriveChildSeed(seed, "city"));
         }
         StateGenerator state = stateGenerator;
         if (state != null) {
-            state.reseedTo(io.github.frikit.rdg.internal.Reseeding.childSeed(config, seed, "state"));
+            state.reseedTo(io.github.frikit.rdg.generator.GenerationRecipe.deriveChildSeed(seed, "state"));
         }
-        postalCodeGenerator.reseedTo(io.github.frikit.rdg.internal.Reseeding.childSeed(config, seed, "postalCode"));
+        postalCodeGenerator.reseedTo(
+                io.github.frikit.rdg.generator.GenerationRecipe.deriveChildSeed(seed, "postalCode"));
         PlaceDraws draws = placeDraws;
         if (draws != null) {
-            draws.random().setSeed(io.github.frikit.rdg.internal.Reseeding.childSeed(config, seed, "postalPlace"));
+            draws.random()
+                    .setSeed(io.github.frikit.rdg.generator.GenerationRecipe.deriveChildSeed(seed, "postalPlace"));
         }
         AddressCountry addressCountry = country;
         if (addressCountry != null) {
-            addressCountry.reseedTo(io.github.frikit.rdg.internal.Reseeding.childSeed(config, seed, "country"));
+            addressCountry.reseedTo(io.github.frikit.rdg.generator.GenerationRecipe.deriveChildSeed(seed, "country"));
         }
     }
 
-    /** The language whose locales the German street layout covers. */
+    /** The language whose locales write the street before the house number. */
     private static final String GERMAN = "de";
 
     private final GeneratorConfig config;
@@ -110,7 +115,7 @@ public final class StreetAddressGenerator implements Generator<String> {
         }
 
         this.random = config.createRandom();
-        this.streetFirst = config.isGermanStreetLayout() && GERMAN.equals(locale.getLanguage());
+        this.streetFirst = GERMAN.equals(locale.getLanguage());
 
         StreetAddressDataProvider provider =
                 java.util.Objects.requireNonNull(registryContext.provider(Vocabulary.STREET_ADDRESS, locale));
@@ -168,10 +173,9 @@ public final class StreetAddressGenerator implements Generator<String> {
     }
 
     /**
-     * Generates a random street address of the form {@code "<number> <streetName> <streetType>"}. With the
-     * {@linkplain GeneratorConfig#isGermanStreetLayout() German street layout} on, a German locale writes it
-     * {@code "<streetName><streetType> <number>"}, the type as part of the name and starting in lower case, from
-     * the same draws.
+     * Generates a random street address of the form {@code "<number> <streetName> <streetType>"}. A German locale
+     * writes it {@code "<streetName><streetType> <number>"}, the type as part of the name and starting in lower
+     * case, from the same draws.
      *
      * @param shortSuffix {@code true} for abbreviated suffixes ({@code "St"}, {@code "Ave"}),
      *                    {@code false} for full suffixes ({@code "Street"}, {@code "Avenue"})
@@ -185,8 +189,7 @@ public final class StreetAddressGenerator implements Generator<String> {
     }
 
     /**
-     * Whether this generator writes the street before the house number: the configuration's German street layout
-     * is on and the locale's language is German.
+     * Whether this generator writes the street before the house number: the locale's language is German.
      */
     boolean streetFirst() {
         return streetFirst;

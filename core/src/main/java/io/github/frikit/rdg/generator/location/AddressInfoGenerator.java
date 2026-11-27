@@ -26,9 +26,9 @@ import org.jspecify.annotations.Nullable;
  * <p>The country is the locale's country. A locale without one takes the country of its postal
  * places, and without those a random country.
  *
- * <p>With {@link GeneratorConfig.Builder#germanStreetLayout(boolean)} on, a German locale's
- * {@link AddressInfo#street()}, and so its address, puts the street before the house number, such as
- * {@code "Hauptstr. 12"}; the street's parts stay as they are.
+ * <p>A German locale's {@link AddressInfo#street()}, and so its address, puts the street before the house
+ * number, such as {@code "Hauptstr. 12"}, as {@link StreetAddressGenerator} does; the street's parts stay as
+ * they are.
  */
 public final class AddressInfoGenerator implements Generator<AddressInfo> {
 
@@ -44,9 +44,10 @@ public final class AddressInfoGenerator implements Generator<AddressInfo> {
     void reseedTo(long seed) {
         random.setSeed(seed);
         streetAddressGenerator.reseedTo(
-                io.github.frikit.rdg.internal.Reseeding.childSeed(config, seed, "streetAddress"));
-        postalCodeGenerator.reseedTo(io.github.frikit.rdg.internal.Reseeding.childSeed(config, seed, "postalCode"));
-        country.reseedTo(io.github.frikit.rdg.internal.Reseeding.childSeed(config, seed, "country"));
+                io.github.frikit.rdg.generator.GenerationRecipe.deriveChildSeed(seed, "streetAddress"));
+        postalCodeGenerator.reseedTo(
+                io.github.frikit.rdg.generator.GenerationRecipe.deriveChildSeed(seed, "postalCode"));
+        country.reseedTo(io.github.frikit.rdg.generator.GenerationRecipe.deriveChildSeed(seed, "country"));
     }
 
     private final GeneratorConfig config;

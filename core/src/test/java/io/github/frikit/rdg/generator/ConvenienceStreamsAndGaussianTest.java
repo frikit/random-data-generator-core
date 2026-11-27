@@ -6,9 +6,7 @@
 package io.github.frikit.rdg.generator;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.frikit.rdg.generator.base.NormalDistributionGenerator;
@@ -17,7 +15,6 @@ import io.github.frikit.rdg.generator.finance.MoneyGenerator;
 import io.github.frikit.rdg.generator.user.EmailGenerator;
 import io.github.frikit.rdg.generator.user.FullNameGenerator;
 import io.github.frikit.rdg.generator.user.Gender;
-import io.github.frikit.rdg.internal.ConfigAccess;
 import io.github.frikit.rdg.internal.Reseeding;
 import java.time.Clock;
 import java.time.Instant;
@@ -26,26 +23,23 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
-import java.util.function.UnaryOperator;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 /**
- * The seeding settings that 3.2 added as opt-ins and that are on by default from 4.0.0: advancing convenience
- * streams, {@link StrictMath} Gaussian draws and reseeded built-in randomizers (the last is also covered in
- * {@code RandomizerReplayTest}).
+ * Convenience methods that keep and advance their child stream, and {@link StrictMath} Gaussian draws. Reseeded
+ * built-in randomizers are covered in {@code RandomizerReplayTest}.
  */
-@DisplayName("the seeding settings that 3.2 added")
-class SeedingOptInsTest {
+@DisplayName("advancing convenience streams and StrictMath Gaussian draws")
+class ConvenienceStreamsAndGaussianTest {
 
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-07-10T12:00:00Z"), ZoneOffset.UTC);
 
-    private static GeneratorConfig seeded(long seed, UnaryOperator<GeneratorConfig.Builder> optIns) {
-        return optIns.apply(GeneratorConfig.builder().seed(seed).clock(CLOCK)).build();
+    private static GeneratorConfig seeded(long seed) {
+        return GeneratorConfig.builder().seed(seed).clock(CLOCK).build();
     }
 
     private static GeneratorConfig replayed(GeneratorConfig config) {
@@ -54,124 +48,13 @@ class SeedingOptInsTest {
     }
 
     @Nested
-    @DisplayName("configuration and recipe")
-    class Settings {
-
-        @Test
-        @DisplayName("each setting is on by default from 4.0.0 and off when set false, and a copy keeps it")
-        void onByDefaultAndCopied() {
-            GeneratorConfig defaults = GeneratorConfig.defaults();
-            assertTrue(defaults.isAdvancingConvenienceStreams());
-            assertTrue(defaults.isStrictMathGaussian());
-            assertTrue(defaults.isObjectReseedBuiltInRandomizers());
-
-            GeneratorConfig off = seeded(
-                    5L,
-                    builder -> builder.advancingConvenienceStreams(false)
-                            .strictMathGaussian(false)
-                            .objectReseedBuiltInRandomizers(false));
-            for (GeneratorConfig copy : List.of(
-                    off,
-                    off.toBuilder().build(),
-                    off.forChildStream("child"),
-                    ConfigAccess.withSeed(off, 9L),
-                    replayed(off))) {
-                assertFalse(copy.isAdvancingConvenienceStreams());
-                assertFalse(copy.isStrictMathGaussian());
-                assertFalse(copy.isObjectReseedBuiltInRandomizers());
-            }
-
-            GeneratorConfig on = off.toBuilder()
-                    .advancingConvenienceStreams(true)
-                    .strictMathGaussian(true)
-                    .objectReseedBuiltInRandomizers(true)
-                    .build();
-            assertTrue(on.isAdvancingConvenienceStreams());
-            assertTrue(on.isStrictMathGaussian());
-            assertTrue(on.isObjectReseedBuiltInRandomizers());
-        }
-
-        @Test
-        @DisplayName("a recipe records each setting, on or off, and replays it")
-        void recipeRecordsEachSetting() {
-            List<String> keys = List.of(
-                    "advancing-convenience-streams", "gaussian.strict-math", "object.reseed-built-in-randomizers");
-            UnaryOperator<GeneratorConfig.Builder> allOff = builder -> builder.advancingConvenienceStreams(false)
-                    .strictMathGaussian(false)
-                    .objectReseedBuiltInRandomizers(false);
-            Map<String, String> none =
-                    seeded(5L, allOff).getGenerationRecipe().orElseThrow().getSettings();
-            for (String key : keys) {
-                assertEquals("false", none.get(key), key);
-            }
-
-            List<UnaryOperator<GeneratorConfig.Builder>> each = List.of(
-                    builder -> allOff.apply(builder).advancingConvenienceStreams(true),
-                    builder -> allOff.apply(builder).strictMathGaussian(true),
-                    builder -> allOff.apply(builder).objectReseedBuiltInRandomizers(true));
-            for (int i = 0; i < each.size(); i++) {
-                GeneratorConfig config = seeded(5L, each.get(i));
-                GenerationRecipe recipe = config.getGenerationRecipe().orElseThrow();
-                for (String other : keys) {
-                    assertEquals(
-                            Boolean.toString(other.equals(keys.get(i))),
-                            recipe.getSettings().get(other),
-                            other);
-                }
-                assertTrue(recipe.serialize().contains("\nsetting." + keys.get(i) + "=true\n"), keys.get(i));
-                GeneratorConfig replay = replayed(config);
-                assertEquals(
-                        List.of(
-                                config.isAdvancingConvenienceStreams(),
-                                config.isStrictMathGaussian(),
-                                config.isObjectReseedBuiltInRandomizers()),
-                        List.of(
-                                replay.isAdvancingConvenienceStreams(),
-                                replay.isStrictMathGaussian(),
-                                replay.isObjectReseedBuiltInRandomizers()),
-                        keys.get(i));
-            }
-        }
-
-        @Test
-        @DisplayName("a recipe without a setting, or with a value other than true or false, is rejected")
-        void recipeValues() {
-            List<String> keys = List.of(
-                    "advancing-convenience-streams", "gaussian.strict-math", "object.reseed-built-in-randomizers");
-            String recorded = seeded(5L, builder -> builder)
-                    .getGenerationRecipe()
-                    .orElseThrow()
-                    .serialize();
-            String without = recorded;
-            for (String key : keys) {
-                assertTrue(without.contains("\nsetting." + key + "=true\n"), key);
-                without = without.replace("setting." + key + "=true\n", "");
-            }
-            GenerationRecipe missing = GenerationRecipe.parse(without);
-            assertEquals(
-                    "Recipe requires setting: " + keys.get(0),
-                    assertThrows(IllegalArgumentException.class, missing::toGeneratorConfig)
-                            .getMessage());
-
-            for (String key : keys) {
-                GenerationRecipe bad = GenerationRecipe.parse(recorded.replace(key + "=true", key + "=yes"));
-                IllegalArgumentException error = assertThrows(IllegalArgumentException.class, bad::toGeneratorConfig);
-                assertEquals("Recipe setting '" + key + "' must be true or false", error.getMessage());
-            }
-        }
-    }
-
-    @Nested
     @DisplayName("advancing convenience streams")
     class AdvancingConvenienceStreams {
 
-        private final UnaryOperator<GeneratorConfig.Builder> advancing =
-                builder -> builder.advancingConvenienceStreams(true);
-
         @Test
-        @DisplayName("generateCompanyEmail gives the next address on each call, starting from the one it repeated")
+        @DisplayName("generateCompanyEmail gives the next address on each call")
         void companyEmailAdvances() {
-            GeneratorConfig config = seeded(42L, advancing);
+            GeneratorConfig config = seeded(42L);
             List<String> values = companyEmails(new EmailGenerator(config), 6);
 
             assertEquals("aharris@advancedassociatesco.test", values.get(0));
@@ -183,22 +66,20 @@ class SeedingOptInsTest {
         @Test
         @DisplayName("a reseeded email generator starts its company addresses again, as a new build does")
         void companyEmailRestartsOnReseed() {
-            EmailGenerator reused = new EmailGenerator(seeded(1L, advancing));
+            EmailGenerator reused = new EmailGenerator(seeded(1L));
             companyEmails(reused, 3);
             Objects.requireNonNull(Reseeding.reseederOf(reused)).reseed(reused, 42L);
 
             assertEquals(
                     companyEmails(
-                            new EmailGenerator(
-                                    seeded(1L, advancing).toBuilder().seed(42L).build()),
-                            4),
+                            new EmailGenerator(seeded(1L).toBuilder().seed(42L).build()), 4),
                     companyEmails(reused, 4));
         }
 
         @Test
         @DisplayName("the middle-name methods draw the next middle name on each call, from one stream")
         void middleNameAdvances() {
-            GeneratorConfig config = seeded(42L, advancing);
+            GeneratorConfig config = seeded(42L);
             List<String> values = middleNames(new FullNameGenerator(config));
 
             assertEquals("Caroline Hazel Tran", values.get(0));
@@ -211,7 +92,7 @@ class SeedingOptInsTest {
         @Test
         @DisplayName("the middle-name methods share their stream with the middle names of generate(NameOptions)")
         void middleNameStreamIsShared() {
-            GeneratorConfig config = seeded(42L, advancing);
+            GeneratorConfig config = seeded(42L);
             FullNameGenerator mixed = new FullNameGenerator(config);
             FullNameGenerator options = new FullNameGenerator(config);
             FullNameGenerator.NameOptions middle =
@@ -224,9 +105,9 @@ class SeedingOptInsTest {
         }
 
         @Test
-        @DisplayName("generatePriceTag gives the next amount on each call, starting from the one it repeated")
+        @DisplayName("generatePriceTag gives the next amount on each call")
         void priceTagAdvances() {
-            GeneratorConfig config = seeded(42L, advancing);
+            GeneratorConfig config = seeded(42L);
             CurrencyGenerator currencies = new CurrencyGenerator(config);
             MoneyGenerator money = new MoneyGenerator(config.forChildStream("money"));
             List<String> expected = new ArrayList<>();
@@ -273,13 +154,11 @@ class SeedingOptInsTest {
     @DisplayName("StrictMath Gaussian draws")
     class StrictMathGaussian {
 
-        private final UnaryOperator<GeneratorConfig.Builder> strict = builder -> builder.strictMathGaussian(true);
-
         @Test
         @DisplayName("a seeded normal distribution draws Box-Muller with StrictMath")
         void gaussianUsesStrictMath() {
             for (long seed = 0; seed < 200; seed++) {
-                GeneratorConfig config = seeded(seed, strict);
+                GeneratorConfig config = seeded(seed);
                 assertEquals(
                         strictBoxMuller(seed, 0.0, 1.0, 6),
                         new NormalDistributionGenerator(config).generateList(6),
@@ -299,13 +178,13 @@ class SeedingOptInsTest {
                     List.of(
                             Double.doubleToRawLongBits(-0.0388436147345816),
                             Double.doubleToRawLongBits(0.7916654062154486)),
-                    bits(new NormalDistributionGenerator(seeded(10L, strict)).generateList(2)));
+                    bits(new NormalDistributionGenerator(seeded(10L)).generateList(2)));
             assertEquals(
                     List.of(
                             Double.doubleToRawLongBits(0.7299233329370594),
                             Double.doubleToRawLongBits(-0.31054186561011643)),
-                    bits(new NormalDistributionGenerator(seeded(14L, strict)).generateList(2)));
-            GeneratorConfig config = seeded(10L, strict);
+                    bits(new NormalDistributionGenerator(seeded(14L)).generateList(2)));
+            GeneratorConfig config = seeded(10L);
             assertEquals(
                     new NormalDistributionGenerator(config).generateList(6),
                     new NormalDistributionGenerator(replayed(config)).generateList(6));

@@ -43,16 +43,15 @@ order or meaning of those draws changes every value after it. The usual causes:
 - **The hash.** FNV-1a is implemented in `GeneratorConfig`, `GenerationRecipe` and
   `internal/StreamSeeds.java`. A change to any one of them changes seeds everywhere.
 
-Some values depend on the Java runtime rather than on random-data-generator: time-zone and locale data (TZDB, CLDR),
-and the last bit of `Math` functions when `strictMathGaussian` is off. `VERSIONING.md` documents
-these; do not try to pin them in tests.
+Some values depend on the Java runtime rather than on random-data-generator: time-zone and locale data (TZDB, CLDR).
+`VERSIONING.md` documents these; do not try to pin them in tests.
 
 ## How to check that you changed nothing
 
 1. **Before you edit,** find the tests that pin exact values for the code you are touching. Search
    for the generator's name together with a fixed seed (`seed(`, `seeded(`) in `core/src/test/`.
    Typical pin tests are `StreetAddressPinsTest`, `GenerationRecipeGoldenStreamTest`,
-   `DefaultFlipPinsTest` and `SeedingDefaultsPinTest`.
+   `DefaultFlipPinsTest` and `ChildStreamsTest`.
 2. **If nothing pins it,** add a pin test first, on the unchanged code: generate a handful of values
    for two or three seeds (and two locales for locale data) and assert them exactly. See it pass on the
    unchanged code before you make the change; it then shows that the values held. For values that also
@@ -79,12 +78,11 @@ these; do not try to pin them in tests.
     the old behaviour, the way `GenerationRecipe` reads `object.ignore-errors` with `applyBoolean`.
     `GenerationRecipe.toGeneratorConfig()` rejects a recipe that misses a required setting, so a new
     required key would stop every older recipe of the major line from replaying.
-  - Pin both the off and the on values, as `SeedingDefaultsPinTest` does.
+  - Pin both the off and the on values.
   - Expose it where users configure random-data-generator: the Kotlin DSL's `config { }` and a `krandom.*` Spring
     property, if the other settings of its kind are there.
-  - Turning it on by default is a change of output, so only a major release does it. The four seeding
-    settings that were opt-ins in 3.2 and became defaults in 4.0 show that path; 4.0's new recipe
-    version also made them required keys, which only a new recipe version may do.
+  - Turning it on by default is a change of output, so only a major release does it. Making it a
+    required recipe key is a change of the recipe format, which only a new recipe version may do.
 - **Data changes** to an existing dataset change output for that locale, so by the policy above they
   are a change of output. Ask before making one, unless it only fixes invalid entries.
 

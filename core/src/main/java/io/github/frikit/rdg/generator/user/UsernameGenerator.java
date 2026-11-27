@@ -26,8 +26,8 @@ public final class UsernameGenerator implements Generator<String> {
      */
     void reseedTo(long seed) {
         random.setSeed(seed);
-        firstNameGenerator.reseedTo(io.github.frikit.rdg.internal.Reseeding.childSeed(config, seed, "firstName"));
-        lastNameGenerator.reseedTo(io.github.frikit.rdg.internal.Reseeding.childSeed(config, seed, "lastName"));
+        firstNameGenerator.reseedTo(io.github.frikit.rdg.generator.GenerationRecipe.deriveChildSeed(seed, "firstName"));
+        lastNameGenerator.reseedTo(io.github.frikit.rdg.generator.GenerationRecipe.deriveChildSeed(seed, "lastName"));
     }
 
     private final GeneratorConfig config;

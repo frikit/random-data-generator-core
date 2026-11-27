@@ -128,9 +128,7 @@ public final class GeneratorConfig {
     private final DataRegistryContext registryContext;
     private final Clock clock;
     private final boolean secureRandom;
-    private final boolean germanStreetLayout;
     private final String generationProfile;
-    private final String safetyPolicy;
     private final PaymentCardSafetyPolicy paymentCardSafetyPolicy;
     private final BankingSafetyPolicy bankingSafetyPolicy;
     private final BusinessTaxIdentifierSafetyPolicy businessTaxIdentifierSafetyPolicy;
@@ -141,10 +139,6 @@ public final class GeneratorConfig {
     private final IdentityDocumentSafetyPolicy identityDocumentSafetyPolicy;
     private final EmailDomainPolicy emailDomainPolicy;
     private final NetworkSafetyPolicy networkSafetyPolicy;
-    private final ChildStreamPolicy childStreamPolicy;
-    private final boolean advancingConvenienceStreams;
-    private final boolean strictMathGaussian;
-    private final boolean objectReseedBuiltInRandomizers;
     private final String providerDatasetVersion;
     private final List<ExtensionModule> modules;
     private final ExtensionRegistry extensionRegistry;
@@ -201,9 +195,7 @@ public final class GeneratorConfig {
         this.registryContext = b.registryContext;
         this.clock = b.clock;
         this.secureRandom = b.secureRandom;
-        this.germanStreetLayout = b.germanStreetLayout;
         this.generationProfile = b.generationProfile;
-        this.safetyPolicy = b.safetyPolicy;
         this.paymentCardSafetyPolicy = b.paymentCardSafetyPolicy;
         this.bankingSafetyPolicy = b.bankingSafetyPolicy;
         this.businessTaxIdentifierSafetyPolicy = b.businessTaxIdentifierSafetyPolicy;
@@ -214,10 +206,6 @@ public final class GeneratorConfig {
         this.identityDocumentSafetyPolicy = b.identityDocumentSafetyPolicy;
         this.emailDomainPolicy = b.emailDomainPolicy;
         this.networkSafetyPolicy = b.networkSafetyPolicy;
-        this.childStreamPolicy = b.childStreamPolicy;
-        this.advancingConvenienceStreams = b.advancingConvenienceStreams;
-        this.strictMathGaussian = b.strictMathGaussian;
-        this.objectReseedBuiltInRandomizers = b.objectReseedBuiltInRandomizers;
         this.providerDatasetVersion = b.providerDatasetVersion;
     }
 
@@ -275,9 +263,7 @@ public final class GeneratorConfig {
         this.registryContext = parent.registryContext;
         this.clock = parent.clock;
         this.secureRandom = parent.secureRandom;
-        this.germanStreetLayout = parent.germanStreetLayout;
         this.generationProfile = parent.generationProfile;
-        this.safetyPolicy = parent.safetyPolicy;
         this.paymentCardSafetyPolicy = parent.paymentCardSafetyPolicy;
         this.bankingSafetyPolicy = parent.bankingSafetyPolicy;
         this.businessTaxIdentifierSafetyPolicy = parent.businessTaxIdentifierSafetyPolicy;
@@ -288,10 +274,6 @@ public final class GeneratorConfig {
         this.identityDocumentSafetyPolicy = parent.identityDocumentSafetyPolicy;
         this.emailDomainPolicy = parent.emailDomainPolicy;
         this.networkSafetyPolicy = parent.networkSafetyPolicy;
-        this.childStreamPolicy = parent.childStreamPolicy;
-        this.advancingConvenienceStreams = parent.advancingConvenienceStreams;
-        this.strictMathGaussian = parent.strictMathGaussian;
-        this.objectReseedBuiltInRandomizers = parent.objectReseedBuiltInRandomizers;
         this.providerDatasetVersion = parent.providerDatasetVersion;
     }
 
@@ -336,78 +318,28 @@ public final class GeneratorConfig {
     }
 
     /**
-     * Returns the child-stream policy used by composite generators. The default is
-     * {@link ChildStreamPolicy#INDEPENDENT}.
-     *
-     * @return configured child-stream policy
-     */
-    public ChildStreamPolicy getChildStreamPolicy() {
-        return childStreamPolicy;
-    }
-
-    /**
-     * Whether convenience methods that draw from a named child stream keep that stream and advance it, rather
-     * than start it again on every call. On by default from 4.0.0; {@code false} keeps the 3.x behaviour.
-     *
-     * @return {@code true} when the setting is on
-     * @see Builder#advancingConvenienceStreams(boolean)
-     */
-    public boolean isAdvancingConvenienceStreams() {
-        return advancingConvenienceStreams;
-    }
-
-    /**
-     * Whether Gaussian draws use {@link StrictMath}, so a seed gives the same bits on every platform. On by
-     * default from 4.0.0; {@code false} keeps the 3.x behaviour.
-     *
-     * @return {@code true} when the setting is on
-     * @see Builder#strictMathGaussian(boolean)
-     */
-    public boolean isStrictMathGaussian() {
-        return strictMathGaussian;
-    }
-
-    /**
-     * Whether object generation reseeds a built-in {@code @Randomizer} that is not {@link Seedable} from the
-     * object's seeded stream. On by default from 4.0.0; {@code false} keeps the 3.x behaviour.
-     *
-     * @return {@code true} when the setting is on
-     * @see Builder#objectReseedBuiltInRandomizers(boolean)
-     */
-    public boolean isObjectReseedBuiltInRandomizers() {
-        return objectReseedBuiltInRandomizers;
-    }
-
-    /**
      * Returns the configuration a composite generator passes to one named child generator.
      *
-     * <p>Under the default {@link ChildStreamPolicy#INDEPENDENT}, a configuration with a numeric or
-     * textual seed returns a copy whose numeric seed is
+     * <p>A configuration with a numeric or textual seed returns a copy whose numeric seed is
      * {@link GenerationRecipe#deriveChildSeed(long, String)} of this seed and {@code streamName}, so
-     * sibling children draw from independent streams that the seed reproduces. The copy keeps the
-     * policy, so nested composites derive their own children from it. Without a seed there is
+     * sibling children draw from independent streams that the seed reproduces. Nested composites
+     * derive their own children from the copy in the same way. Without a seed there is
      * nothing to derive from, and this configuration is returned unchanged: each child then takes
      * its own source from {@link #createRandom()}, which is a fresh unseeded {@link Random}, or a
      * fresh {@link SecureRandom} in secure mode, so siblings still draw from independent streams. A
      * caller-owned {@link Random} is shared by every child, and a random factory is called once for
-     * each child; neither is reseeded. Under {@link ChildStreamPolicy#LEGACY} this configuration is
-     * always returned unchanged, so the children of a seeded composite start in the same state as
-     * each other.
+     * each child; neither is reseeded.
      *
      * <p>Stream names are stable structural identifiers, unique among one parent's children.
-     * Separate generators built from one seeded configuration each start from this seed, whatever
-     * the policy, so they draw the same random sequence unless each receives its own child stream.
+     * Separate generators built from one seeded configuration each start from this seed, so they
+     * draw the same random sequence unless each receives its own child stream.
      *
      * @param streamName non-blank, single-line, stable name of the child stream
      * @return configuration for the child generator
-     * @throws IllegalArgumentException under {@link ChildStreamPolicy#INDEPENDENT}, seeded or not,
-     *     if {@code streamName} is blank or spans lines
+     * @throws IllegalArgumentException if {@code streamName} is blank or spans lines, seeded or not
      */
     public GeneratorConfig forChildStream(String streamName) {
         Objects.requireNonNull(streamName, "streamName must not be null");
-        if (childStreamPolicy == ChildStreamPolicy.LEGACY) {
-            return this;
-        }
         Builder.requireRecipeToken("streamIdentity", streamName);
         if (seed.isEmpty()) {
             return this;
@@ -455,16 +387,6 @@ public final class GeneratorConfig {
      */
     public String getGenerationProfile() {
         return generationProfile;
-    }
-
-    /**
-     * Requested output-safety policy label recorded in portable recipes.
-     *
-     * <p>The initial value is {@value GenerationRecipe#LEGACY_UNCLASSIFIED_SAFETY_POLICY}; the
-     * dedicated safety contract defines stricter policies without changing recipe shape.
-     */
-    public String getSafetyPolicy() {
-        return safetyPolicy;
     }
 
     /**
@@ -910,17 +832,6 @@ public final class GeneratorConfig {
     }
 
     /**
-     * Returns {@code true} when the German locales write a street address as German does, street first: see
-     * {@link Builder#germanStreetLayout(boolean)}. On by default from 4.0.0; {@code false} keeps the 3.x
-     * behaviour.
-     *
-     * @return whether the German street layout is on
-     */
-    public boolean isGermanStreetLayout() {
-        return germanStreetLayout;
-    }
-
-    /**
      * Obtains the configured random source.
      *
      * <p>The builder permits exactly one explicit source specification:
@@ -966,7 +877,6 @@ public final class GeneratorConfig {
                 .locale(locale)
                 .clock(clock.instant(), clock.getZone())
                 .profile(generationProfile)
-                .safetyPolicy(safetyPolicy)
                 .constructionPolicy(objectConstructionPolicy)
                 .providerDatasetVersion(providerDatasetVersion)
                 .setting("payment.card-safety-policy", paymentCardSafetyPolicy.name())
@@ -979,7 +889,6 @@ public final class GeneratorConfig {
                 .setting("identity-document.safety-policy", identityDocumentSafetyPolicy.name())
                 .setting("email.domain-policy", emailDomainPolicy.name())
                 .setting("network.safety-policy", networkSafetyPolicy.name())
-                .setting("child-stream-policy", childStreamPolicy.name())
                 .setting("charset", charset.name())
                 .setting("string.min", Integer.toString(minStringLength))
                 .setting("string.max", Integer.toString(maxStringLength))
@@ -1010,15 +919,6 @@ public final class GeneratorConfig {
         if (objectFieldStreamPolicy != ObjectFieldStreamPolicy.LEGACY) {
             recipe.setting("object.field-stream-policy", objectFieldStreamPolicy.name());
         }
-        // The four settings that 4.0.0 turns on are recorded on or off, so replay never depends on a default.
-        recipe.setting(
-                        GenerationRecipe.ADVANCING_CONVENIENCE_STREAMS_SETTING,
-                        Boolean.toString(advancingConvenienceStreams))
-                .setting(GenerationRecipe.STRICT_MATH_GAUSSIAN_SETTING, Boolean.toString(strictMathGaussian))
-                .setting(
-                        GenerationRecipe.OBJECT_RESEED_BUILT_IN_RANDOMIZERS_SETTING,
-                        Boolean.toString(objectReseedBuiltInRandomizers))
-                .setting(GenerationRecipe.GERMAN_STREET_LAYOUT_SETTING, Boolean.toString(germanStreetLayout));
         return Optional.of(recipe.build());
     }
 
@@ -1150,9 +1050,7 @@ public final class GeneratorConfig {
         private DataRegistryContext registryContext = DataRegistryContext.globalDefault();
         private Clock clock = Clock.systemDefaultZone();
         private boolean secureRandom;
-        private boolean germanStreetLayout = true;
         private String generationProfile = GenerationRecipe.CUSTOM_PROFILE;
-        private String safetyPolicy = GenerationRecipe.LEGACY_UNCLASSIFIED_SAFETY_POLICY;
         private PaymentCardSafetyPolicy paymentCardSafetyPolicy = PaymentCardSafetyPolicy.TEST_SAFE_NON_ROUTABLE;
         private BankingSafetyPolicy bankingSafetyPolicy = BankingSafetyPolicy.DISABLED;
         private BusinessTaxIdentifierSafetyPolicy businessTaxIdentifierSafetyPolicy =
@@ -1165,10 +1063,6 @@ public final class GeneratorConfig {
         private IdentityDocumentSafetyPolicy identityDocumentSafetyPolicy = IdentityDocumentSafetyPolicy.DISABLED;
         private EmailDomainPolicy emailDomainPolicy = EmailDomainPolicy.TEST_SAFE_RESERVED_DOMAINS;
         private NetworkSafetyPolicy networkSafetyPolicy = NetworkSafetyPolicy.TEST_SAFE_RESERVED;
-        private ChildStreamPolicy childStreamPolicy = ChildStreamPolicy.INDEPENDENT;
-        private boolean advancingConvenienceStreams = true;
-        private boolean strictMathGaussian = true;
-        private boolean objectReseedBuiltInRandomizers = true;
         private String providerDatasetVersion = GenerationRecipe.BUILTIN_PROVIDER_DATASET_VERSION;
         private final List<ExtensionModule> modules = new ArrayList<>();
 
@@ -1217,9 +1111,7 @@ public final class GeneratorConfig {
             this.registryContext = source.registryContext;
             this.clock = source.clock;
             this.secureRandom = source.secureRandom;
-            this.germanStreetLayout = source.germanStreetLayout;
             this.generationProfile = source.generationProfile;
-            this.safetyPolicy = source.safetyPolicy;
             this.paymentCardSafetyPolicy = source.paymentCardSafetyPolicy;
             this.bankingSafetyPolicy = source.bankingSafetyPolicy;
             this.businessTaxIdentifierSafetyPolicy = source.businessTaxIdentifierSafetyPolicy;
@@ -1230,10 +1122,6 @@ public final class GeneratorConfig {
             this.identityDocumentSafetyPolicy = source.identityDocumentSafetyPolicy;
             this.emailDomainPolicy = source.emailDomainPolicy;
             this.networkSafetyPolicy = source.networkSafetyPolicy;
-            this.childStreamPolicy = source.childStreamPolicy;
-            this.advancingConvenienceStreams = source.advancingConvenienceStreams;
-            this.strictMathGaussian = source.strictMathGaussian;
-            this.objectReseedBuiltInRandomizers = source.objectReseedBuiltInRandomizers;
             this.providerDatasetVersion = source.providerDatasetVersion;
             this.modules.addAll(source.modules);
         }
@@ -1329,28 +1217,6 @@ public final class GeneratorConfig {
          */
         public Builder secureRandom(boolean secureRandom) {
             this.secureRandom = secureRandom;
-            return this;
-        }
-
-        /**
-         * Writes the street addresses of the German locales as German does: the street, then the house number,
-         * such as {@code "Hauptstrasse 12"}, rather than {@code "12 Haupt Strasse"}. On by default from 4.0.0;
-         * {@code false} keeps the 3.x behaviour, the house number first.
-         *
-         * <p>It applies to every locale whose language is German ({@code de}, {@code de_DE}, {@code de_AT},
-         * {@code de_CH} and any other {@code de_*}), whose street data holds the first part of a name and street
-         * types to join it with. The name and the type become one word, the type starting in lower case, as in
-         * {@code "Rosenweg 5"} or {@code "Hauptstr. 12"}. Every other locale keeps the house number first.
-         * {@code StreetAddressGenerator.generate}, its full address, and the street and address of
-         * {@code AddressInfoGenerator}, and so the session, schema and object-engine values built on them,
-         * follow it. The same draws are made in the same order either way, so it changes only how the parts are
-         * laid out. A recipe records it, on or off.
-         *
-         * @param germanStreetLayout whether the German locales write the street first
-         * @return this builder
-         */
-        public Builder germanStreetLayout(boolean germanStreetLayout) {
-            this.germanStreetLayout = germanStreetLayout;
             return this;
         }
 
@@ -1552,91 +1418,6 @@ public final class GeneratorConfig {
          */
         public Builder objectFieldStreamPolicy(ObjectFieldStreamPolicy policy) {
             this.objectFieldStreamPolicy = Objects.requireNonNull(policy, "objectFieldStreamPolicy");
-            return this;
-        }
-
-        /**
-         * Chooses how composite generators seed their child generators.
-         *
-         * <p>The default {@link ChildStreamPolicy#INDEPENDENT} derives one named stream per child
-         * from a numeric or textual seed, so seeded sibling values (for example the payment,
-         * invoice, and order identifiers of one payment) are not correlated. Without a seed it
-         * derives nothing, and each child draws from its own unseeded source, as described in
-         * {@link GeneratorConfig#forChildStream(String)}. {@link ChildStreamPolicy#LEGACY} gives
-         * every child the parent's configuration and restores the seeded output of the releases
-         * before independent streams became the default. Portable recipes record either policy.
-         *
-         * @param policy non-null child-stream policy
-         * @return this builder
-         */
-        public Builder childStreamPolicy(ChildStreamPolicy policy) {
-            this.childStreamPolicy = Objects.requireNonNull(policy, "childStreamPolicy");
-            return this;
-        }
-
-        /**
-         * Makes convenience methods that draw from a named child stream keep that stream and advance it.
-         *
-         * <p>On by default from 4.0.0; {@code false} keeps the 3.x behaviour, the seeded output of earlier
-         * releases: each call of {@code EmailGenerator.generateCompanyEmail()}, of the {@code FullNameGenerator}
-         * methods with a middle name or initial, and of {@code CurrencyGenerator.generatePriceTag} builds its
-         * child generator again from the same child stream, so a seeded generator repeats one value. When on, the generator keeps
-         * that child and each call draws the next value; the first call gives what it gave before. Without a
-         * seed the values were not repeated, and only the reuse of the child changes. Portable recipes record
-         * the setting, on or off.
-         *
-         * @param advancing {@code true} to advance the child streams
-         * @return this builder
-         */
-        public Builder advancingConvenienceStreams(boolean advancing) {
-            this.advancingConvenienceStreams = advancing;
-            return this;
-        }
-
-        /**
-         * Makes Gaussian draws use {@link StrictMath} rather than {@link Math}.
-         *
-         * <p>On by default from 4.0.0. {@code false} keeps the 3.x behaviour, the seeded output of earlier
-         * releases: the Box-Muller transform
-         * of {@code NormalDistributionGenerator} uses {@link Math#log(double)}, {@link Math#sin(double)} and
-         * {@link Math#cos(double)}, which Java lets differ in the last bit between platforms. When on, it uses
-         * the {@link StrictMath} forms, which give the same bits everywhere, so a seed gives the same values on
-         * every JVM and CPU; the values can differ in their last bit from those {@link Math} gives on this one.
-         * Portable recipes record the setting, on or off.
-         *
-         * @param strict {@code true} to draw with {@link StrictMath}
-         * @return this builder
-         */
-        public Builder strictMathGaussian(boolean strict) {
-            this.strictMathGaussian = strict;
-            return this;
-        }
-
-        /**
-         * Makes object generation reseed a built-in {@code @Randomizer} that is not {@link Seedable} from the
-         * object's seeded stream.
-         *
-         * <p>In a seeded configuration, object generation reseeds a {@link Seedable} {@code @Randomizer} for
-         * every object from that object's stream, whatever this setting. On by default from 4.0.0;
-         * {@code false} keeps the 3.x behaviour, the output of earlier releases: a built-in generator that is not {@code Seedable}, such as
-         * {@code FirstNameGenerator}, {@code EmailGenerator} or {@code UUIDGenerator}, draws from its own
-         * unseeded source, so its values change from run to run. When on, such a generator, if the
-         * configuration's seed can reset it to a new build, is reseeded the same way and replays from the seed
-         * and its recipe; other fields keep their values. The built-ins it covers are those a seeded
-         * {@code Schema} reseeds: {@code FullNameGenerator}, {@code FirstNameGenerator},
-         * {@code LastNameGenerator}, {@code UsernameGenerator}, {@code EmailGenerator},
-         * {@code PhoneNumberGenerator}, {@code StreetAddressGenerator}, {@code AddressInfoGenerator},
-         * {@code CityGenerator}, {@code StateGenerator}, {@code PostalCodeGenerator}, {@code CountryGenerator},
-         * {@code CurrencyGenerator}, {@code MoneyGenerator}, {@code UUIDGenerator}, {@code WordGenerator},
-         * {@code SentenceGenerator} and {@code ParagraphGenerator}. Other built-ins that are not {@code Seedable},
-         * such as {@code MiddleNameGenerator} or {@code CompanyEmailGenerator}, keep their own source. Portable
-         * recipes record the setting, on or off.
-         *
-         * @param reseed {@code true} to reseed those built-in randomizers
-         * @return this builder
-         */
-        public Builder objectReseedBuiltInRandomizers(boolean reseed) {
-            this.objectReseedBuiltInRandomizers = reseed;
             return this;
         }
 
@@ -1867,14 +1648,6 @@ public final class GeneratorConfig {
          */
         public Builder generationProfile(String generationProfile) {
             this.generationProfile = requireRecipeToken("generationProfile", generationProfile);
-            return this;
-        }
-
-        /**
-         * Labels the requested output-safety policy for replay diagnostics.
-         */
-        public Builder safetyPolicy(String safetyPolicy) {
-            this.safetyPolicy = requireRecipeToken("safetyPolicy", safetyPolicy);
             return this;
         }
 

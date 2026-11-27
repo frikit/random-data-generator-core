@@ -295,33 +295,3 @@ val users = rdgList<User>(5) {
 
 The Kotlin option uses the same core policy as Java. Object-field streams stay LEGACY unless you select INDEPENDENT. For direct configuration
 consumers, `rdgConfig { seed(42L) }.snapshotClock()` captures an explicit replay clock.
-
-## Seeding opt-ins that become the 4.0 defaults (3.2+)
-
-```kotlin
-val config = rdgConfig {
-    seed(42L)
-    advancingConvenienceStreams(true)
-    strictMathGaussian(true)
-    objectReseedBuiltInRandomizers(true)
-}
-```
-
-Each switch sets the `GeneratorConfig` setting of the same name. They are off by default in 3.x, so
-seeded values stay as they were. From 4.0.0 each is on by default, and `false` keeps its 3.x values. See
-[seeding opt-ins]({{ '/guides/primitives-and-determinism/' | relative_url }}#seeding-opt-ins-that-become-the-40-defaults-32)
-for what each one changes.
-
-## German street layout (3.2+)
-
-`germanStreetLayout(true)` writes the street addresses of the German locales street first, such as
-`Schlossanger 7389`, as `GeneratorConfig.Builder.germanStreetLayout` does. It is off by default in 3.x and
-on by default from 4.0.0, where `germanStreetLayout(false)` keeps the 3.x layout; see [Locale-Aware Data]({{ '/guides/locale-aware-data/' | relative_url }}#german-street-layout).
-
-```kotlin
-val config = rdgConfig {
-    seed(42L)
-    locale(Locale.GERMANY)
-    germanStreetLayout(true)
-}
-```
