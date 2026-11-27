@@ -144,7 +144,7 @@ jobs:
 
       - name: Build and run native-image smoke fixture
         env:
-          KRANDOM_REQUIRE_NATIVE_IMAGE: "true"
+          RDG_REQUIRE_NATIVE_IMAGE: "true"
         run: ./scripts/verify_native_image.sh
 
   mutation-pilot:
@@ -203,5 +203,5 @@ jobs:
 
       - name: Verify examples against the locally published snapshot
         env:
-          KRANDOM_REQUIRE_JAVA17: "true"
+          RDG_REQUIRE_JAVA17: "true"
         run: ./scripts/verify_examples_local.sh

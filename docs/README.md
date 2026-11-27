@@ -3,7 +3,7 @@
 This directory contains maintained project documentation. Released implementation history is kept
 in Git and release tags instead of duplicated as completed plans and dated review snapshots.
 
-## Use kRandom
+## Use random-data-generator
 
 - [Public documentation site source](../docs-site/README.md)
 - [Release runbook](release-runbook.md)
@@ -14,12 +14,11 @@ in Git and release tags instead of duplicated as completed plans and dated revie
 
 ## Migrate
 
-- [kRandom 3.x to 4.0](migration/3.x-to-4.0.md)
-- [k-random to kRandom](migration/k-random-to-krandom.md)
-- [DataFaker to kRandom](migration/from-datafaker.md)
-- [Easy Random to kRandom](migration/from-easyrandom.md)
-- [Instancio to kRandom](migration/from-instancio.md)
-- [JavaFaker to kRandom](migration/from-javafaker.md)
+- [k-random to random-data-generator](migration/from-k-random.md)
+- [DataFaker to random-data-generator](migration/from-datafaker.md)
+- [Easy Random to random-data-generator](migration/from-easyrandom.md)
+- [Instancio to random-data-generator](migration/from-instancio.md)
+- [JavaFaker to random-data-generator](migration/from-javafaker.md)
 
 ## Develop and plan
 

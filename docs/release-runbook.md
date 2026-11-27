@@ -1,6 +1,6 @@
 # Release Runbook
 
-End-to-end process for publishing a kRandom version to Maven Central via
+End-to-end process for publishing a random-data-generator version to Maven Central via
 the Central Portal (<https://central.sonatype.com>).
 
 ## One-time setup
@@ -89,9 +89,9 @@ line, each module's reviewed list of the major release's intended breaks is subt
 
 - **Java modules** (`core`, `jackson`, `junit`, `spring-boot-starter`): japicmp compares each jar with
   the released jar from Maven Central and fails on any binary- or source-incompatible change to public
-  or protected API in the public-API packages: the packages that the released `krandom-core` module
-  descriptor exports, and `io.github.frikit.krandom.jackson`, `.junit`, and `.spring`. Packages that
-  `krandom-core` does not export are not checked. Each of these packages must stay exported, also if
+  or protected API in the public-API packages: the packages that the released `random-data-generator-core` module
+  descriptor exports, and `io.github.frikit.rdg.jackson`, `.junit`, and `.spring`. Packages that
+  `random-data-generator-core` does not export are not checked. Each of these packages must stay exported, also if
   an integration module, now an automatic module, gains a module descriptor, and each module keeps its
   JPMS name. The `krandom.*` properties bind through the setters of
   `KrandomProperties`, so a removed or retyped property fails too. The full reports are in
@@ -108,16 +108,16 @@ line, each module's reviewed list of the major release's intended breaks is subt
 A failure names each broken declaration on its own line:
 
 ```text
-krandom-core breaks the 3.0.0 public API (2 incompatible changes):
-  io.github.frikit.krandom.generator.color.ColorGenerator#generateColorName(): METHOD_RETURN_TYPE_CHANGED (breaks binary and source)
-  io.github.frikit.krandom.generator.color.ColorGenerator#generateSafeColorName(): METHOD_REMOVED (breaks binary and source)
+random-data-generator-core breaks the 3.0.0 public API (2 incompatible changes):
+  io.github.frikit.rdg.generator.color.ColorGenerator#generateColorName(): METHOD_RETURN_TYPE_CHANGED (breaks binary and source)
+  io.github.frikit.rdg.generator.color.ColorGenerator#generateSafeColorName(): METHOD_REMOVED (breaks binary and source)
 
-krandom-kotlin-dsl breaks the 3.0.0 public API (1 incompatible change):
-  io.github.frikit.krandom.dsl.ConfigScope: removed `public final fun seed (J)V`
+random-data-generator-kotlin-dsl breaks the 3.0.0 public API (1 incompatible change):
+  io.github.frikit.rdg.dsl.ConfigScope: removed `public final fun seed (J)V`
 ```
 
 During a major line, the first line of a failure also names the module's accepted-breaks file, as in
-`krandom-core breaks the 3.2.0 public API (1 incompatible change not listed in core/api/accepted-breaks-4.0.txt):`,
+`random-data-generator-core breaks the 3.2.0 public API (1 incompatible change not listed in core/api/accepted-breaks-4.0.txt):`,
 and the failure ends with how to list a break that the plan names.
 
 What to do:
@@ -148,8 +148,8 @@ What to do:
 The check does not cover:
 
 - Kotlin `inline` functions with `reified` type parameters: they compile to synthetic methods that
-  the ABI dump leaves out (`krandom`, `krandomList`, `krandomGenerator`, the reified
-  `KrandomBuilder.ruleForType`, and `krandomReplayObjectArb`). The `@PublishedApi` members they call
+  the ABI dump leaves out (`krandom`, `rdgList`, `rdgGenerator`, the reified
+  `KrandomBuilder.ruleForType`, and `rdgReplayObjectArb`). The `@PublishedApi` members they call
   are checked, so compiled callers keep working, but a change to their own signatures shows only in
   the module tests that call them; review such changes by hand.
 - Kotlin source details that a JVM signature does not carry: parameter names, nullability, default
@@ -161,7 +161,7 @@ The check does not cover:
   annotation, yet Kotlin and NullAway read them, and [VERSIONING.md](../VERSIONING.md) makes a widened
   class type-parameter bound a major-only change. The tests in `core/src/nullnessTest/java` cover some
   of them; review such changes by hand, with a Kotlin compile probe for what Kotlin callers see.
-- Behavior: seeded output, the recipe format (`krandom-recipe/v2` from 4.0.0), and the `fnv1a64-v1`
+- Behavior: seeded output, the recipe format (`rdg-recipe/v2` from 4.0.0), and the `fnv1a64-v1`
   derivation stay with
   the tests, such as `GenerationRecipeTest`.
 
@@ -176,8 +176,8 @@ baseline dumps; `updateKotlinApiBaseline` replaces only the `.api` files there. 
 the last release of the previous major line, and the check subtracts the breaks that the file lists:
 
 - Each line names one break exactly as the check prints it, such as
-  `io.github.frikit.krandom.generator.schema.Schema#loop(int): METHOD_REMOVED (breaks binary and source)`
-  or ``io.github.frikit.krandom.dsl.ConfigScope: removed `public final fun seed (Ljava/lang/String;)V` ``.
+  `io.github.frikit.rdg.generator.schema.Schema#loop(int): METHOD_REMOVED (breaks binary and source)`
+  or ``io.github.frikit.rdg.dsl.ConfigScope: removed `public final fun seed (Ljava/lang/String;)V` ``.
   For a Kotlin module, that is the dump line of a removed declaration, or the other forms the check
   prints for a changed one. Leading and trailing spaces are ignored, so the indented lines of a
   failure can be pasted as they are.
@@ -197,7 +197,7 @@ the last release of the previous major line, and the check subtracts the breaks 
 A pass names the accepted breaks:
 
 ```text
-krandom-core: compatible with the 3.2.0 public API (0 additions; 1 accepted break in core/api/accepted-breaks-4.0.txt).
+random-data-generator-core: compatible with the 3.2.0 public API (0 additions; 1 accepted break in core/api/accepted-breaks-4.0.txt).
 ```
 
 To add an entry:
@@ -263,9 +263,9 @@ rebuild them instead: a new build signs and describes other files than the ones 
   artifacts of the runs whose bundle Maven Central does not hold, then resume again.
 - **The kept assets fail a check, or `main` moved.** A network failure needs only another resumed
   run. Otherwise download the artifact of the run that uploaded to Maven Central with
-  `gh run download <run-id> --repo frikit/krandom --name release-assets-<version>`, verify each file
+  `gh run download <run-id> --repo frikit/random-data-generator-core --name release-assets-<version>`, verify each file
   with
-  `gh attestation verify --repo frikit/krandom --signer-workflow frikit/krandom/.github/workflows/release-maven-central.yml --source-digest <releaseCommit> <file>`,
+  `gh attestation verify --repo frikit/random-data-generator-core --signer-workflow frikit/random-data-generator-core/.github/workflows/release-maven-central.yml --source-digest <releaseCommit> <file>`,
   and create the tag and GitHub release at the recorded commit with those files.
 - **No kept assets remain**, for example because the artifact expired. Create the tag and GitHub
   release at the recorded commit with the module jars that Maven Central serves, after
@@ -274,17 +274,17 @@ rebuild them instead: a new build signs and describes other files than the ones 
 
 ## Post-release
 
-- Verify on Maven Central: `https://repo1.maven.org/maven2/io/github/frikit/krandom-core/<version>/`
+- Verify on Maven Central: `https://repo1.maven.org/maven2/io/github/frikit/rdg-core/<version>/`
   (allow up to ~30 minutes for index propagation).
-- Download each `krandom-<module>.cdx.json` release asset and confirm its
+- Download each `random-data-generator-<module>.cdx.json` release asset and confirm its
   metadata component version matches the release tag.
 - Verify a downloaded jar, SBOM, or `aggregation.zip` with
-  `gh attestation verify --repo frikit/krandom <path>`.
+  `gh attestation verify --repo frikit/random-data-generator-core <path>`.
 - Run the Central-only consumer gate after the coordinates are visible:
-  `KRANDOM_VERSION=<version> ./scripts/verify_examples_central.sh`. It exercises a plain-Java
+  `RDG_VERSION=<version> ./scripts/verify_examples_central.sh`. It exercises a plain-Java
   Maven/Gradle consumer and a Kotlin/Spring Maven consumer without Maven-local resolution, and the
   Kotlin Android unit-test consumer when `ANDROID_HOME` or `ANDROID_SDK_ROOT` names an Android SDK
-  (`KRANDOM_REQUIRE_ANDROID_SDK=true` makes a missing SDK an error).
+  (`RDG_REQUIRE_ANDROID_SDK=true` makes a missing SDK an error).
 - Land a follow-up version-facts commit on `main`: set `developmentVersion` to
   the next `*-SNAPSHOT`, retain `latestGaVersion` at the release just
   published, and move the public API baseline to it. Set
@@ -296,9 +296,9 @@ rebuild them instead: a new build signs and describes other files than the ones 
   over. The new baseline jars need checksums before strict verification
   accepts them: run `./scripts/update_verification_metadata.sh` under JDK 21
   and JDK 25, as [dependency reproducibility](development/dependency-reproducibility.md)
-  describes, check that it added only the `krandom-*` `<version>` jars and
+  describes, check that it added only the `random-data-generator-*` `<version>` jars and
   module files, and confirm each jar with
-  `gh attestation verify --repo frikit/krandom <jar>`. Then run
+  `gh attestation verify --repo frikit/random-data-generator-core <jar>`. Then run
   `./scripts/verify_documentation_facts.sh` and
   `./gradlew checkApiCompatibility`; the published install guidance stays
   unchanged.

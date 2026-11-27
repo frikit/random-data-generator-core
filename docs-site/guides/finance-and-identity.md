@@ -8,7 +8,7 @@ permalink: /guides/finance-and-identity/
 
 ## Synthetic-data safety
 
-kRandom produces test fixtures, never real credentials, payment instruments, or government
+random-data-generator produces test fixtures, never real credentials, payment instruments, or government
 identifiers. Format or checksum validity is not a claim that a value is safe for an external
 system. Keep generated values inside test-only boundaries and use the external system's documented
 sandbox credentials for payment, onboarding, KYC, account-creation, trading, or blockchain tests.
@@ -67,7 +67,7 @@ GeneratorConfig stripeConfig = GeneratorConfig.builder()
 String stripeTestNumber = new CreditCardGenerator(stripeConfig).generateNumber();
 ```
 
-`STRIPE_SANDBOX` maps kRandom card types to Stripe's published interactive test-card values. It is
+`STRIPE_SANDBOX` maps random-data-generator card types to Stripe's published interactive test-card values. It is
 not portable to another processor. For server-side Stripe tests, prefer Stripe's named
 `PaymentMethod` values where their documentation recommends them. Neither `CHECKSUM_VALID` nor
 `STRIPE_SANDBOX` is safe for a live payment API.

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2026 krandom contributors
+ * Copyright (c) 2026 random-data-generator contributors
  *
  * Licensed under the MIT License. See LICENSE in the project root for license information.
  */

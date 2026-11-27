@@ -1,0 +1,33 @@
+/*
+ * Copyright (c) 2026 random-data-generator contributors
+ *
+ * Licensed under the MIT License. See LICENSE in the project root for license information.
+ */
+package io.github.frikit.rdg.generator.user;
+
+import io.github.frikit.rdg.generator.LocaleDataProvider;
+import java.util.Locale;
+
+/**
+ * Contract for a locale-specific university fixture data source.
+ *
+ * <p>Implementations are normally supplied by a verified
+ * {@link io.github.frikit.rdg.generator.datapack.LocalDataPack} and registered on a
+ * configuration-scoped registry context.
+ */
+public interface UniversityDataProvider extends LocaleDataProvider {
+
+    /**
+     * Returns the locale supplied by this provider.
+     *
+     * @return provider locale
+     */
+    Locale getLocale();
+
+    /**
+     * Returns coherent university fixtures for the locale.
+     *
+     * @return non-empty fixture array
+     */
+    UniversityData[] getUniversities();
+}

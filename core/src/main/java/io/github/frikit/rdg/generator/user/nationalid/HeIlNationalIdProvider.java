@@ -1,0 +1,31 @@
+/*
+ * Copyright (c) 2026 random-data-generator contributors
+ *
+ * Licensed under the MIT License. See LICENSE in the project root for license information.
+ */
+package io.github.frikit.rdg.generator.user.nationalid;
+
+import java.util.Locale;
+import java.util.Random;
+
+/**
+ * Generates Israeli Teudat Zehut style identifiers — 9 digits.
+ *
+ * <p>All digits are random; no identity-number check digit is computed.
+ */
+public final class HeIlNationalIdProvider implements NationalIdProvider {
+
+    @Override
+    public Locale getLocale() {
+        return new Locale("he", "IL");
+    }
+
+    @Override
+    public String generate(Random random) {
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < 9; i++) {
+            builder.append(random.nextInt(10));
+        }
+        return builder.toString();
+    }
+}

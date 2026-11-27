@@ -5,7 +5,7 @@ set -euo pipefail
 
 if ! command -v java >/dev/null 2>&1; then
     echo "Java is not available on PATH."
-    echo "Install JDK 21+ and set JAVA_HOME before running kRandom build commands."
+    echo "Install JDK 21+ and set JAVA_HOME before running random-data-generator build commands."
     exit 1
 fi
 
@@ -22,12 +22,12 @@ fi
 
 if ! [[ "${JAVA_MAJOR}" =~ ^[0-9]+$ ]]; then
     echo "Unable to determine Java major version from: ${JAVA_SPEC_VERSION}"
-    echo "Set JAVA_HOME to a JDK 21 installation before running kRandom build commands."
+    echo "Set JAVA_HOME to a JDK 21 installation before running random-data-generator build commands."
     exit 1
 fi
 
 if [ "${JAVA_MAJOR}" -lt 21 ]; then
-    echo "kRandom requires Java 21+ for local development."
+    echo "random-data-generator requires Java 21+ for local development."
     echo "Detected Java: ${JAVA_SPEC_VERSION}"
     if [ -n "${JAVA_HOME:-}" ]; then
         echo "JAVA_HOME is currently: ${JAVA_HOME}"

@@ -13,7 +13,7 @@ stop hand-stitching "DataFaker for fields + Instancio/EasyRandom for structure."
 - A DataFaker-expression adapter, so you can port `#{Provider.method}` strings as-is.
 
 **What DataFaker still has that krandom doesn't**
-- A broader set of locale tags; kRandom currently supports 50 documented variants.
+- A broader set of locale tags; random-data-generator currently supports 50 documented variants.
 - Long-tail novelty, fandom, sport, food, and medical providers — krandom intentionally keeps
   these out of core. Keep DataFaker for those calls or supply a local, provenance-declared data
   pack when the domain is project-specific.
@@ -22,7 +22,7 @@ stop hand-stitching "DataFaker for fields + Instancio/EasyRandom for structure."
 
 ```kotlin
 dependencies {
-    testImplementation("io.github.frikit:krandom-core:4.1.0")
+    testImplementation("io.github.frikit:random-data-generator-core:1.0.0")
 }
 ```
 

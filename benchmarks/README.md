@@ -1,6 +1,6 @@
 # Benchmarks
 
-This module contains performance workloads for kRandom:
+This module contains performance workloads for random-data-generator:
 
 - Proper JMH microbenchmarks (`@Benchmark`-based)
 - A macro profile runner for large generation loops
@@ -8,13 +8,13 @@ This module contains performance workloads for kRandom:
 
 ## Competitor Benchmarks
 
-Three benchmark classes compare krandom against other JVM fake-data libraries:
+Three benchmark classes compare random-data-generator against other JVM fake-data libraries:
 
 | Benchmark class | What it measures | Libraries compared |
 |:---|:---|:---|
-| `CompetitorScalarBenchmark` | Single value generation (firstName, email, streetAddress) | krandom, DataFaker, JavaFaker |
-| `CompetitorObjectBenchmark` | POJO population (6-field flat object) | krandom, DataFaker, EasyRandom, Instancio |
-| `CompetitorBulkBenchmark` | Batch generation (100 and 1000 objects) | krandom, DataFaker, EasyRandom, Instancio |
+| `CompetitorScalarBenchmark` | Single value generation (firstName, email, streetAddress) | random-data-generator, DataFaker, JavaFaker |
+| `CompetitorObjectBenchmark` | POJO population (6-field flat object) | random-data-generator, DataFaker, EasyRandom, Instancio |
+| `CompetitorBulkBenchmark` | Batch generation (100 and 1000 objects) | random-data-generator, DataFaker, EasyRandom, Instancio |
 
 ### Latest Results Summary
 
@@ -27,7 +27,7 @@ protocol and are not regression-comparable.
 
 **Scalar generation** (ops/s, higher is better):
 
-| Benchmark | krandom (ops/s) | DataFaker (ops/s) | krandom advantage |
+| Benchmark | random-data-generator (ops/s) | DataFaker (ops/s) | random-data-generator advantage |
 |:---|---:|---:|:---|
 | firstName | 103,289,329 | 6,249,732 | 16.5x |
 | email | 18,622,629 | 866,639 | 21.5x |
@@ -35,7 +35,7 @@ protocol and are not regression-comparable.
 
 **Object population** keeps structural generation and semantic fixture construction separate:
 
-| Workload | krandom | DataFaker | EasyRandom | Instancio |
+| Workload | random-data-generator | DataFaker | EasyRandom | Instancio |
 |:---|---:|---:|---:|---:|
 | structural object | 9,005 | — | 78,913 | 196,118 |
 | semantic fixture | 3,202 | 506,915 | — | — |
@@ -76,7 +76,7 @@ Single benchmark class:
 
 ## Internal Benchmarks
 
-JMH benchmark classes for krandom internals:
+JMH benchmark classes for random-data-generator internals:
 
 - `FirstNameGeneratorBenchmark` — locale-parameterized first name throughput
 - `RegexGeneratorBenchmark` — regex-based generation overhead

@@ -1,1 +1,1 @@
-rootProject.name = "krandom-java-gradle-example"
+rootProject.name = "random-data-generator-java-gradle-example"

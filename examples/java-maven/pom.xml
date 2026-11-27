@@ -3,12 +3,12 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>io.github.frikit.krandom.examples</groupId>
-    <artifactId>krandom-java-maven-example</artifactId>
+    <groupId>io.github.frikit.rdg.examples</groupId>
+    <artifactId>random-data-generator-java-maven-example</artifactId>
     <version>0.1.0</version>
 
     <properties>
-        <krandom.version>4.2.0-SNAPSHOT</krandom.version>
+        <rdg.version>1.0.0-SNAPSHOT</rdg.version>
         <maven.compiler.release>21</maven.compiler.release>
     </properties>
 
@@ -16,8 +16,8 @@
         <dependencies>
             <dependency>
                 <groupId>io.github.frikit</groupId>
-                <artifactId>krandom-bom</artifactId>
-                <version>${krandom.version}</version>
+                <artifactId>random-data-generator-bom</artifactId>
+                <version>${rdg.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -27,7 +27,7 @@
     <dependencies>
         <dependency>
             <groupId>io.github.frikit</groupId>
-            <artifactId>krandom-core</artifactId>
+            <artifactId>random-data-generator-core</artifactId>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>

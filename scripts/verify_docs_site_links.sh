@@ -15,8 +15,8 @@ docs_dir = Path(sys.argv[1])
 config = (docs_dir / "_config.yml").read_text(encoding="utf-8")
 errors = []
 
-if not re.search(r"^baseurl:\s*[\"']?/krandom[\"']?\s*$", config, flags=re.MULTILINE):
-    errors.append("docs-site/_config.yml must set baseurl: /krandom")
+if not re.search(r"^baseurl:\s*[\"']?/random-data-generator-core[\"']?\s*$", config, flags=re.MULTILINE):
+    errors.append("docs-site/_config.yml must set baseurl: /random-data-generator-core")
 
 link_re = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 relative_url_re = re.compile(r"\{\{\s*'([^']+)'\s*\|\s*relative_url\s*\}\}")
@@ -34,9 +34,9 @@ def front_matter(text):
 def normalize_site_path(path):
     if not path:
         return path
-    if path.startswith("/krandom/"):
-        path = path[len("/krandom"):]
-    if path == "/krandom":
+    if path.startswith("/rdg/"):
+        path = path[len("/random-data-generator-core"):]
+    if path == "/random-data-generator-core":
         path = "/"
     if not path.startswith("/"):
         path = "/" + path

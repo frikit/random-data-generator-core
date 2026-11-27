@@ -1,0 +1,120 @@
+/*
+ * Copyright (c) 2026 random-data-generator contributors
+ *
+ * Licensed under the MIT License. See LICENSE in the project root for license information.
+ */
+package io.github.frikit.rdg.generator.network;
+
+import io.github.frikit.rdg.generator.Generator;
+import io.github.frikit.rdg.generator.GeneratorConfig;
+import java.util.Objects;
+import java.util.Random;
+import java.util.StringJoiner;
+
+/**
+ * Generates random IPv6 addresses in colon-separated notation (RFC 4291, RFC 5952).
+ *
+ * <p>The default {@link NetworkSafetyPolicy#TEST_SAFE_RESERVED} keeps every address inside the RFC 3849 documentation
+ * prefix {@code 2001:db8::/32}. Under {@link NetworkSafetyPolicy#REALISTIC_UNCLASSIFIED} all 128 bits are
+ * random.
+ *
+ * <p><b>RFC compliance</b>
+ * <ul>
+ *   <li>RFC 4291 §2.2 — 128-bit address represented as eight 16-bit groups separated by
+ *       {@code :}, each group expressed in hexadecimal.</li>
+ *   <li>RFC 5952 §4.1 — leading zeros within each group are suppressed
+ *       (e.g., {@code db8} not {@code 0db8}).</li>
+ *   <li>RFC 5952 §4.3 — lowercase hexadecimal digits.</li>
+ *   <li>RFC 5952 §4.2 — {@code ::} compression is intentionally omitted.  Random 128-bit
+ *       values almost never contain consecutive all-zero groups; omitting compression
+ *       produces unambiguous addresses that remain valid per RFC 4291 and are accepted
+ *       by all standard validators.</li>
+ * </ul>
+ *
+ * <p><strong>Basic Usage:</strong>
+ * <pre>{@code
+ * IPv6Generator gen = new IPv6Generator();
+ * String ip = gen.generate();             // "2001:db8:85a3:0:0:8a2e:370:7334"
+ * var list = gen.generateList(10);
+ * }</pre>
+ *
+ * <p><strong>Seeded Generation:</strong>
+ * <pre>{@code
+ * GeneratorConfig config = GeneratorConfig.builder().seed(12345L).build();
+ * IPv6Generator gen = new IPv6Generator(config);
+ * String ip = gen.generate();  // Reproducible output
+ * }</pre>
+ *
+ * <p><strong>Thread Safety:</strong>
+ * This generator holds a single mutable PRNG. Concurrent calls are memory-safe but interleave the
+ * random sequence (destroying reproducibility) and contend on the PRNG, so an instance is <em>not</em>
+ * safe to share across threads. Confine one instance per thread, or wrap construction with
+ * {@code Generators.threadLocal(...)} for deterministic concurrent use.
+ */
+public final class IPv6Generator implements Generator<String> {
+
+    /**
+     * Number of 16-bit groups in an IPv6 address (RFC 4291 §2.2).
+     */
+    private static final int GROUPS = 8;
+    /**
+     * Maximum value of one 16-bit group (0xFFFF = 65535).
+     */
+    private static final int GROUP_MAX = 0x10000; // nextInt(exclusive upper bound)
+
+    private final GeneratorConfig config;
+    private final Random random;
+
+    /**
+     * Creates an IPv6 generator with default configuration.
+     */
+    public IPv6Generator() {
+        this(GeneratorConfig.defaults());
+    }
+
+    /**
+     * Creates an IPv6 generator with the specified configuration.
+     *
+     * @param config the generator configuration; must not be {@code null}
+     * @throws NullPointerException if {@code config} is {@code null}
+     */
+    public IPv6Generator(GeneratorConfig config) {
+        this.config = Objects.requireNonNull(config, "config must not be null");
+        this.random = config.createRandom();
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Generates a random IPv6 address.
+     *
+     * @return an IPv6 address in colon-separated notation; never {@code null}
+     */
+    @Override
+    public String generate() {
+        StringJoiner joiner = new StringJoiner(":");
+        if (isReserved()) {
+            joiner.add("2001").add("db8");
+        }
+        for (int i = joiner.length() == 0 ? 0 : 2; i < GROUPS; i++) {
+            // nextInt(0x10000) → [0x0000, 0xFFFF]; Integer.toHexString suppresses leading zeros.
+            joiner.add(Integer.toHexString(random.nextInt(GROUP_MAX)));
+        }
+        return joiner.toString();
+    }
+
+    /**
+     * Generates IPv6 CIDR notation such as {@code 2001:db8:a:b:c:d:e:f/64} (without zero-compression): an
+     * address and a prefix length, whose host bits are not cleared. Under
+     * {@link NetworkSafetyPolicy#TEST_SAFE_RESERVED} the prefix is at least 32, so the whole range stays
+     * inside the RFC 3849 prefix.
+     */
+    public String generateCidr() {
+        int prefix = isReserved() ? 32 + random.nextInt(97) : 16 + random.nextInt(113); // [32 or 16, 128]
+        return generate() + "/" + prefix;
+    }
+
+    private boolean isReserved() {
+        return config.getNetworkSafetyPolicy() == NetworkSafetyPolicy.TEST_SAFE_RESERVED;
+    }
+}

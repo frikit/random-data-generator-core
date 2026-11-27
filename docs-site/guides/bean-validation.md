@@ -16,9 +16,9 @@ contract fails before a fixture is returned.
 
 ## Dependency
 
-The Jakarta Validation API is a compile-only dependency of `krandom-core`, so it is not pulled in
+The Jakarta Validation API is a compile-only dependency of `random-data-generator-core`, so it is not pulled in
 transitively. Add `jakarta.validation:jakarta.validation-api` to your own dependencies (test scope
-is enough) to activate constraint-aware generation. Without the API on the class path, kRandom
+is enough) to activate constraint-aware generation. Without the API on the class path, random-data-generator
 detects its absence once and generates plain values; constraint annotations are ignored rather
 than failing with a `NoClassDefFoundError`.
 
@@ -70,7 +70,7 @@ the size is the bound nearest it: `@Size(min = 20)` gives 20 elements under the 
 A constraint written before an array type, as in `@NotEmpty Leaf[]` or `@Size(max = 3) String[]`,
 constrains the array and not its elements. Java places such an annotation on the array's component
 type as well as on the declaration, but Hibernate Validator reads it for the array alone, and so does
-kRandom: `@Size(max = 3) String[]` holds up to three strings of the configured length. A constraint
+random-data-generator: `@Size(max = 3) String[]` holds up to three strings of the configured length. A constraint
 on a type argument inside the component still applies, so each list in `List<@Email String>[]` holds
 email addresses.
 
@@ -94,7 +94,7 @@ lets a pattern's `*`, `+`, and `{n,}` reach that length, so `[0-9]+` with `@Size
 
 ## Honest exclusions
 
-- Constraints not listed above, such as `@Digits`, remain ordinary metadata; kRandom does not claim
+- Constraints not listed above, such as `@Digits`, remain ordinary metadata; random-data-generator does not claim
   to enforce them.
 - A listed constraint on an unsupported target fails contextually instead of being ignored.
 - Explicit custom generator and override outputs are not silently changed or post-validated.

@@ -6,7 +6,7 @@ permalink: /guides/spring-boot-starter/
 
 # Spring Boot Starter
 
-Use `krandom-spring-boot-starter` when a Spring Boot 4.x application should get a shared kRandom configuration and ready-to-inject generators from application properties.
+Use `random-data-generator-spring-boot-starter` when a Spring Boot 4.x application should get a shared random-data-generator configuration and ready-to-inject generators from application properties.
 
 The starter is built against Spring Boot 4.x and exposes `spring-boot-autoconfigure` transitively, so consumer applications must be on Spring Boot 4.x as well.
 
@@ -18,15 +18,15 @@ repositories {
 }
 
 dependencies {
-    implementation("io.github.frikit:krandom-spring-boot-starter:4.1.0")
+    implementation("io.github.frikit:random-data-generator-spring-boot-starter:1.0.0")
 }
 ```
 
-Latest version: see [GitHub Releases](https://github.com/frikit/krandom/releases).
+Latest version: see [GitHub Releases](https://github.com/frikit/random-data-generator-core/releases).
 
 ## Application Properties
 
-All properties are optional. If omitted, kRandom uses US locale defaults and a non-deterministic random source.
+All properties are optional. If omitted, random-data-generator uses US locale defaults and a non-deterministic random source.
 
 ```properties
 krandom.seed=42
@@ -63,9 +63,9 @@ and collection bounds, object settings, and safety and construction policies, so
 `krandom.*` generation property above is rejected next to it instead of silently overriding part of
 the recorded configuration. The error names each conflicting property; blank values count as unset.
 
-From 4.0.0 `krandom.recipe` must be a `krandom-recipe/v2` recipe. A `krandom-recipe/v1` recipe, which a 3.x
+From 4.0.0 `krandom.recipe` must be a `rdg-recipe/v2` recipe. A `rdg-recipe/v1` recipe, which a 3.x
 starter logs, fails at context startup with `Invalid krandom.recipe: Unsupported recipe version: v1. ...` and
-names the release that wrote it, such as `This recipe records library-version 3.2.0: replay it with kRandom
+names the release that wrote it, such as `This recipe records library-version 3.2.0: replay it with random-data-generator
 3.2.0.`
 
 ### Seeding settings (from 4.0.0)
@@ -106,10 +106,10 @@ The starter registers these beans only when the application has not already prov
 ## Usage
 
 ```java
-import io.github.frikit.krandom.generator.Generator;
-import io.github.frikit.krandom.generator.GeneratorConfig;
-import io.github.frikit.krandom.generator.provider.ProviderHub;
-import io.github.frikit.krandom.spring.KrandomObjectFakerFactory;
+import io.github.frikit.rdg.generator.Generator;
+import io.github.frikit.rdg.generator.GeneratorConfig;
+import io.github.frikit.rdg.generator.provider.ProviderHub;
+import io.github.frikit.rdg.spring.KrandomObjectFakerFactory;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -174,19 +174,19 @@ later tests and a second registration fails with `Provider already registered`. 
 replace a provider at runtime, register it with `ConflictPolicy.REPLACE`. Customizers apply only to
 the auto-configured hub; an application-defined `ProviderHub` bean is used as is.
 
-## The `@KrandomTest` Slice
+## The `@RandomDataGeneratorTest` Slice
 
-`@KrandomTest` is a self-contained test slice: it bootstraps the Spring TestContext framework by
+`@RandomDataGeneratorTest` is a self-contained test slice: it bootstraps the Spring TestContext framework by
 itself (no extra `@ExtendWith` or `@SpringBootTest`), disables full application
-auto-configuration, and starts a context containing only the three kRandom beans above.
+auto-configuration, and starts a context containing only the three random-data-generator beans above.
 
 ```java
-import io.github.frikit.krandom.spring.KrandomTest;
-import io.github.frikit.krandom.spring.KrandomObjectFakerFactory;
+import io.github.frikit.rdg.spring.RandomDataGeneratorTest;
+import io.github.frikit.rdg.spring.KrandomObjectFakerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.TestPropertySource;
 
-@KrandomTest
+@RandomDataGeneratorTest
 @TestPropertySource(properties = "krandom.seed=42")
 class UserFixtureTest {
 
@@ -201,19 +201,19 @@ class UserFixtureTest {
 }
 ```
 
-Like Spring Boot's own slices, `@KrandomTest` needs a `@SpringBootConfiguration` class — your
+Like Spring Boot's own slices, `@RandomDataGeneratorTest` needs a `@SpringBootConfiguration` class — your
 application class in a parent package, or a nested `@SpringBootConfiguration` in the test — and
 the Spring Boot test libraries on the test classpath (`spring-boot-starter-test` provides them).
 `krandom.*` properties bind the same way as in the full application context.
 
-Also like those slices, `@KrandomTest` registers a type-exclude filter (2.6+): the `@Service`,
+Also like those slices, `@RandomDataGeneratorTest` registers a type-exclude filter (2.6+): the `@Service`,
 `@Repository`, `@Component`, and `@Configuration` classes found by your
 `@SpringBootApplication`'s component scan are not loaded, because with auto-configuration disabled
 they would fail on missing infrastructure such as data sources or task executors. Add the
 application beans a test needs explicitly:
 
 ```java
-@KrandomTest
+@RandomDataGeneratorTest
 @Import(PricingService.class)
 class PricingFixtureTest {
 
@@ -228,9 +228,9 @@ beans.
 ## Jackson version
 
 The starter itself does not depend on Jackson. Spring Boot 4 defaults to **Jackson 3**
-(`tools.jackson`), and the separate `krandom-jackson` module is a Jackson 3 module too. When Spring
+(`tools.jackson`), and the separate `random-data-generator-jackson` module is a Jackson 3 module too. When Spring
 Boot auto-configures Jackson (`spring-boot-jackson`), it builds a `JsonMapper` and registers every
-`JacksonModule` bean with it, so a `KrandomJacksonModule` bean makes Boot's mapper serialize kRandom
+`JacksonModule` bean with it, so a `KrandomJacksonModule` bean makes Boot's mapper serialize random-data-generator
 schemas as JSON Schema:
 
 ```java
@@ -238,12 +238,12 @@ schemas as JSON Schema:
 class KrandomJacksonConfiguration {
 
     @Bean
-    KrandomJacksonModule krandomJacksonModule() {
+    KrandomJacksonModule rdgJacksonModule() {
         return new KrandomJacksonModule();
     }
 }
 ```
 
-Outside Spring, `KrandomJackson.newJsonMapper()` builds such a mapper. kRandom 2.10.0 is the last
-release whose `krandom-jackson` targets Jackson 2. See
+Outside Spring, `KrandomJackson.newJsonMapper()` builds such a mapper. random-data-generator 2.10.0 is the last
+release whose `random-data-generator-jackson` targets Jackson 2. See
 [Jackson Integration]({{ '/guides/jackson-integration/' | relative_url }}).

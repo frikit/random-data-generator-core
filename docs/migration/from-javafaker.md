@@ -16,14 +16,14 @@ Two paths:
 **Pros**: maintained; realistic field data **and** object-graph generation in one
 library; 50 supported locale variants (35 native datasets and 15 curated fallbacks); schema export;
 Spring Boot / JUnit Jupiter / kotest integrations.
-**Cons / gaps**: kRandom intentionally omits novelty and fandom catalogs from core; use DataFaker
+**Cons / gaps**: random-data-generator intentionally omits novelty and fandom catalogs from core; use DataFaker
 or a local, provenance-declared data pack when those datasets are required.
 
 ## Dependency
 
 ```kotlin
 dependencies {
-    testImplementation("io.github.frikit:krandom-core:4.1.0")
+    testImplementation("io.github.frikit:random-data-generator-core:1.0.0")
 }
 ```
 

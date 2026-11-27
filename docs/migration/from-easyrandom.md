@@ -1,12 +1,12 @@
 # Migrating From EasyRandom To krandom
 
 Easy Random (`org.jeasy.random`) generates structural random object graphs and describes itself as
-maintenance-only. kRandom requires Java 17 or later from 3.1.0, and Java 21 before it, and adds semantic, locale-aware fixture values. Treat migration as a
+maintenance-only. random-data-generator requires Java 17 or later from 3.1.0, and Java 21 before it, and adds semantic, locale-aware fixture values. Treat migration as a
 behavior change rather than expecting identical seeded objects.
 
 > EasyRandom's `EasyRandomParameters` / `FieldPredicates` / `Randomizer` API is
 > the same surface as the k-random reference library. The exhaustive randomizer
-> mapping table in [`k-random-to-krandom.md`](./k-random-to-krandom.md) applies
+> mapping table in [`from-k-random.md`](./from-k-random.md) applies
 > here too — this guide covers the common cases.
 
 ## Why switch
@@ -20,7 +20,7 @@ schema export; Spring Boot / JUnit Jupiter / kotest.
 
 ```kotlin
 dependencies {
-    testImplementation("io.github.frikit:krandom-core:4.1.0")
+    testImplementation("io.github.frikit:random-data-generator-core:1.0.0")
 }
 ```
 
@@ -86,5 +86,5 @@ explicitly during migration if your tests depended on the old defaults.
 
 A seed is scoped to its own library; EasyRandom's exact snapshots are not
 reproduced. The same krandom version + `GeneratorConfig` + call order is
-repeatable. See the full [`k-random mapping`](./k-random-to-krandom.md) and the
+repeatable. See the full [`k-random mapping`](./from-k-random.md) and the
 [`product roadmap`](../development/market-leadership-roadmap.md) for tracked gaps.

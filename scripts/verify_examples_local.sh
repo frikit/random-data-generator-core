@@ -8,8 +8,8 @@ GRADLEW="${REPO_ROOT}/gradlew"
 DEFAULT_VERSION="$(awk -F= '$1 == "developmentVersion" { print substr($0, index($0, "=") + 1) }' "${REPO_ROOT}/gradle.properties")"
 PUBLISHED_MODULES="$(awk -F= '$1 == "publishedModules" { print substr($0, index($0, "=") + 1) }' "${REPO_ROOT}/gradle.properties")"
 JAVA_MINIMUM_VERSION="$(awk -F= '$1 == "javaMinimumVersion" { print substr($0, index($0, "=") + 1) }' "${REPO_ROOT}/gradle.properties")"
-VERSION="${KRANDOM_VERSION:-${DEFAULT_VERSION}}"
-REQUIRE_JAVA17="${KRANDOM_REQUIRE_JAVA17:-false}"
+VERSION="${RDG_VERSION:-${DEFAULT_VERSION}}"
+REQUIRE_JAVA17="${RDG_REQUIRE_JAVA17:-false}"
 
 if [[ -z "${PUBLISHED_MODULES}" ]]; then
     echo "gradle.properties must define publishedModules." >&2
@@ -28,7 +28,7 @@ done
 step() { echo; echo "==> $*"; }
 
 # Whether Gradle's toolchain detection, which the example builds use, finds a JDK of the given version, whose
-# directory it then sets in FOUND_JDK_HOME. Without one the run fails when KRANDOM_REQUIRE_JAVA17=true, as CI
+# directory it then sets in FOUND_JDK_HOME. Without one the run fails when RDG_REQUIRE_JAVA17=true, as CI
 # sets, and skips the examples on that Java otherwise.
 FOUND_JDK_HOME=""
 require_jdk() {
@@ -50,7 +50,7 @@ require_jdk() {
         return 0
     fi
     if [[ "${REQUIRE_JAVA17}" == "true" ]]; then
-        echo "Gradle detects no JDK ${version} (./gradlew javaToolchains), which KRANDOM_REQUIRE_JAVA17=true requires."
+        echo "Gradle detects no JDK ${version} (./gradlew javaToolchains), which RDG_REQUIRE_JAVA17=true requires."
         exit 1
     fi
     return 1
@@ -60,7 +60,7 @@ cd "${REPO_ROOT}"
 
 "${REPO_ROOT}/scripts/require_java21.sh"
 
-step "Publish krandom modules ${VERSION} to Maven local"
+step "Publish random-data-generator modules ${VERSION} to Maven local"
 "${GRADLEW}" \
     "${PUBLISH_TASKS[@]}" \
     -PreleaseVersion="${VERSION}" \
@@ -70,23 +70,23 @@ step "Publish krandom modules ${VERSION} to Maven local"
 step "Verify Java + Gradle example"
 (
     cd "${REPO_ROOT}/examples/java-gradle"
-    ./gradlew -PkrandomVersion="${VERSION}" test --no-daemon --console=plain
+    ./gradlew -PrdgVersion="${VERSION}" test --no-daemon --console=plain
 )
 
-# The oldest Java that kRandom runs on: a consumer on it resolves the Gradle metadata and runs the modules.
+# The oldest Java that random-data-generator runs on: a consumer on it resolves the Gradle metadata and runs the modules.
 if require_jdk "${JAVA_MINIMUM_VERSION}"; then
     step "Verify Java + Gradle example on Java ${JAVA_MINIMUM_VERSION}"
     (
         cd "${REPO_ROOT}/examples/java-gradle"
-        ./gradlew -PkrandomVersion="${VERSION}" -PjavaVersion="${JAVA_MINIMUM_VERSION}" test --no-daemon --console=plain
+        ./gradlew -PrdgVersion="${VERSION}" -PjavaVersion="${JAVA_MINIMUM_VERSION}" test --no-daemon --console=plain
     )
 else
     step "Skip Java + Gradle example on Java ${JAVA_MINIMUM_VERSION}"
-    echo "Gradle detects no JDK ${JAVA_MINIMUM_VERSION} (./gradlew javaToolchains); install one, or set KRANDOM_REQUIRE_JAVA17=true to fail instead."
+    echo "Gradle detects no JDK ${JAVA_MINIMUM_VERSION} (./gradlew javaToolchains); install one, or set RDG_REQUIRE_JAVA17=true to fail instead."
 fi
 
 step "Verify Java + Maven example"
 (
     cd "${REPO_ROOT}/examples/java-maven"
-    mvn -q -Dkrandom.version="${VERSION}" test
+    mvn -q -Drdg.version="${VERSION}" test
 )

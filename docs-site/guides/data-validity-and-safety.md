@@ -37,7 +37,7 @@ processor's documented sandbox values and test credentials for integration tests
 
 `PhoneNumberSafetyPolicy.TEST_SAFE_WHERE_AVAILABLE` is the default for locale-style output. It
 draws from ranges that the numbering authority reserves for fiction and never assigns to a
-subscriber, for the two numbering plans whose fiction range kRandom implements:
+subscriber, for the two numbering plans whose fiction range random-data-generator implements:
 
 - North American Numbering Plan locales, which resolve to the United States or Canada (`en_US`,
   `en_CA`, `fr_CA`, and the language-only English fallback), use

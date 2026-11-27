@@ -1,12 +1,12 @@
 # Guide for AI coding agents
 
-This file is for AI coding agents that change kRandom. Read it before your first edit, then read the
+This file is for AI coding agents that change random-data-generator. Read it before your first edit, then read the
 guide that matches your task from the table below. People follow the same rules through
 [CONTRIBUTING.md](CONTRIBUTING.md); this file adds what an agent needs to work without being told.
 
-kRandom is a library for seeded, locale-aware random test data on the JVM: a Java core with Jackson,
+random-data-generator is a library for seeded, locale-aware random test data on the JVM: a Java core with Jackson,
 JUnit, Spring Boot, Kotest and Kotlin DSL modules, published to Maven Central as
-`io.github.frikit:krandom-*`. Its users rely on two promises above all: **the same seed and
+`io.github.frikit:random-data-generator-*`. Its users rely on two promises above all: **the same seed and
 configuration give the same values**, and **the public API stays compatible within a major line**.
 Most rules below exist to protect those two promises.
 
@@ -62,7 +62,7 @@ Most rules below exist to protect those two promises.
 
 | Path | What it is |
 | --- | --- |
-| `core/` | `krandom-core`: generators, configuration, seeding, locale data, schema output, object engine |
+| `core/` | `random-data-generator-core`: generators, configuration, seeding, locale data, schema output, object engine |
 | `bom/` | Bill of materials; no code |
 | `buildSrc/`, `build.gradle.kts`, `gradle/` | Build logic, version catalog, verification metadata |
 | `scripts/` | The gate and every check it runs, plus maintenance tools |
@@ -96,7 +96,7 @@ dependencies, and never run two copies at once.
 
 ## How to work
 
-1. **Check whether it already exists.** Search `core/src` and `core/src/main/resources/krandom/` for the
+1. **Check whether it already exists.** Search `core/src` and `core/src/main/resources/rdg/` for the
    name (`rg -i <name>`) before you create anything: a generator or vocabulary may already exist and
    only lack some of its entry points.
 2. **Read before you write.** Find the closest existing example of what you are adding and mirror it:

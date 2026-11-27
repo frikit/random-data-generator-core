@@ -1,6 +1,6 @@
 # Migrating From Instancio To krandom
 
-Instancio is a mature object-graph generator. kRandom also provides one-call graph generation and
+Instancio is a mature object-graph generator. random-data-generator also provides one-call graph generation and
 adds built-in realistic, locale-aware values.
 
 ## Why switch / trade-offs
@@ -10,7 +10,7 @@ adds built-in realistic, locale-aware values.
 34 countries (checksum-valid where the identifier defines a check digit), schema export, Spring Boot / Jackson / kotest.
 **What Instancio does better today**: a broader selector vocabulary and scoping model, element and
 setter selectors, conditional assignment, data feeds, and generated field/parameter injection for
-JUnit. kRandom 2.1 already provides Java method-reference selectors, typed nested paths, immutable
+JUnit. random-data-generator 2.1 already provides Java method-reference selectors, typed nested paths, immutable
 `ObjectModel<T>` templates, dependent rules, and strict unused-rule validation; the remaining gaps
 are tracked in the [`product roadmap`](../development/market-leadership-roadmap.md).
 
@@ -18,8 +18,8 @@ are tracked in the [`product roadmap`](../development/market-leadership-roadmap.
 
 ```kotlin
 dependencies {
-    testImplementation("io.github.frikit:krandom-core:4.1.0")
-    // optional: testImplementation("io.github.frikit:krandom-junit:4.1.0")
+    testImplementation("io.github.frikit:random-data-generator-core:1.0.0")
+    // optional: testImplementation("io.github.frikit:random-data-generator-junit:1.0.0")
 }
 ```
 
@@ -41,7 +41,7 @@ dependencies {
 | `onComplete(all(P.class), p -> ...)` | `.afterGenerate(p -> ...)` / `.postProcess(op)` |
 | `toModel()` + reuse | `ObjectModel.of(X.class).configure(...)`; compose with `.and(...)` |
 | nested target `field(Address::getCity)` | `.ruleFor(PropertyPath.of(X::getAddress).then(Address::getCity), ...)` |
-| `InstancioExtension` + `@Seed(123)` | `KrandomExtension` + `@KrandomSeed(123)` (`krandom-junit`) |
+| `InstancioExtension` + `@Seed(123)` | `KrandomExtension` + `@KrandomSeed(123)` (`random-data-generator-junit`) |
 
 ## Example
 

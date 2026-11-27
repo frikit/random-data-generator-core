@@ -39,7 +39,7 @@ tasks.register<JavaExec>("jmh") {
     if (project.hasProperty("jmhArgs")) {
         args(project.property("jmhArgs").toString().split(" "))
     } else {
-        args("io.github.frikit.krandom.benchmarks.*")
+        args("io.github.frikit.rdg.benchmarks.*")
     }
 }
 
@@ -47,5 +47,5 @@ tasks.register<JavaExec>("profileGeneration") {
     group = "benchmark"
     description = "Run macro profiling for large-scale generation workloads."
     classpath = sourceSets["main"].runtimeClasspath
-    mainClass.set("io.github.frikit.krandom.benchmarks.GenerationProfileRunner")
+    mainClass.set("io.github.frikit.rdg.benchmarks.GenerationProfileRunner")
 }

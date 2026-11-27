@@ -6,7 +6,7 @@ permalink: /guides/k-random-migration/
 
 # Migration from k-random
 
-Use this mapping to move from `io.github.k-random:k-random-*` artifacts to native kRandom APIs. This is feature-parity guidance, not source-compatible import replacement.
+Use this mapping to move from `io.github.k-random:k-random-*` artifacts to native random-data-generator APIs. This is feature-parity guidance, not source-compatible import replacement.
 
 ## Install
 
@@ -14,7 +14,7 @@ Gradle Kotlin:
 
 ```kotlin
 dependencies {
-    implementation("io.github.frikit:krandom-core:4.1.0")
+    implementation("io.github.frikit:random-data-generator-core:1.0.0")
 }
 ```
 
@@ -23,14 +23,14 @@ Maven:
 ```xml
 <dependency>
   <groupId>io.github.frikit</groupId>
-  <artifactId>krandom-core</artifactId>
-  <version>4.1.0</version>
+  <artifactId>random-data-generator-core</artifactId>
+  <version>1.0.0</version>
 </dependency>
 ```
 
 ## API mapping
 
-| k-random | kRandom equivalent |
+| k-random | random-data-generator equivalent |
 |---|---|
 | `new KRandom().nextObject(User.class)` | `Generators.ofObject(User.class).generate()` |
 | `random.objects(User.class, 10)` | `Generators.ofObject(User.class).generateList(10)` |
@@ -41,8 +41,8 @@ Maven:
 | `randomize(type, randomizer)` | `objectOverride(type, generator)` |
 | `randomize(fieldPredicate, randomizer)` | `objectOverride(fieldPredicate, generator)` |
 | `excludeField(fieldPredicate)` | `objectExclude(fieldPredicate)` / `objectExcludeField(name)` |
-| `@io.github.krandom.annotation.Randomizer` | `@io.github.frikit.krandom.generator.object.Randomizer` |
-| `k-random-bean-validation` | Native Bean Validation handling in `krandom-core` |
+| `@io.github.krandom.annotation.Randomizer` | `@io.github.frikit.rdg.generator.object.Randomizer` |
+| `k-random-bean-validation` | Native Bean Validation handling in `random-data-generator-core` |
 
 ## Before and after
 
@@ -57,7 +57,7 @@ KRandomParameters parameters = new KRandomParameters()
 User user = new KRandom(parameters).nextObject(User.class);
 ```
 
-kRandom:
+random-data-generator:
 
 ```java
 GeneratorConfig config = GeneratorConfig.builder()
@@ -76,7 +76,7 @@ generator.
 
 ## Domain generators
 
-k-random faker/DataFaker randomizers map to kRandom facade methods and fluent namespaces:
+k-random faker/DataFaker randomizers map to random-data-generator facade methods and fluent namespaces:
 
 ```java
 String firstName = Generators.person().firstName().generate();
@@ -84,4 +84,4 @@ String email = Generators.ofEmail().generate();
 String city = Generators.location().city().generate();
 ```
 
-The complete migration guide lives in the repository at [docs/migration/k-random-to-krandom.md](https://github.com/frikit/krandom/blob/main/docs/migration/k-random-to-krandom.md).
+The complete migration guide lives in the repository at [docs/migration/from-k-random.md](https://github.com/frikit/random-data-generator-core/blob/main/docs/migration/from-k-random.md).

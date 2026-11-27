@@ -1,0 +1,123 @@
+/*
+ * Copyright (c) 2026 random-data-generator contributors
+ *
+ * Licensed under the MIT License. See LICENSE in the project root for license information.
+ */
+package io.github.frikit.rdg.benchmarks;
+
+import io.github.frikit.rdg.generator.GeneratorConfig;
+import io.github.frikit.rdg.generator.object.ObjectGenerationSemanticMode;
+import io.github.frikit.rdg.generator.object.ObjectGenerator;
+import java.util.Locale;
+import java.util.concurrent.TimeUnit;
+import org.instancio.Instancio;
+import org.instancio.Model;
+import org.jeasy.random.EasyRandom;
+import org.jeasy.random.EasyRandomParameters;
+import org.openjdk.jmh.annotations.Benchmark;
+import org.openjdk.jmh.annotations.BenchmarkMode;
+import org.openjdk.jmh.annotations.Fork;
+import org.openjdk.jmh.annotations.Measurement;
+import org.openjdk.jmh.annotations.Mode;
+import org.openjdk.jmh.annotations.OutputTimeUnit;
+import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.Warmup;
+
+/**
+ * POJO population split into structural and semantic fixture workloads.
+ *
+ * <p>All libraries populate the same {@link BenchmarkFixtures.ComparableUser} POJO so the
+ * comparison measures library overhead, not model complexity. EasyRandom and Instancio are
+ * compared with random-data-generator's structural mode. DataFaker's idiomatic manual semantic assignment is
+ * compared with random-data-generator's semantic mode. These two workload families are intentionally reported
+ * separately because their semantics and costs are different. JavaFaker is excluded because it
+ * has no object-population API.
+ */
+@BenchmarkMode(Mode.Throughput)
+@OutputTimeUnit(TimeUnit.SECONDS)
+@Warmup(iterations = 2, time = 1)
+@Measurement(iterations = 3, time = 1)
+@Fork(1)
+public class CompetitorObjectBenchmark {
+
+    // ── random-data-generator state ────────────────────────────────────────────────────────
+
+    @State(Scope.Thread)
+    public static class RandomDataGeneratorState {
+        public final ObjectGenerator<BenchmarkFixtures.ComparableUser> structuralGenerator = new ObjectGenerator<>(
+                BenchmarkFixtures.ComparableUser.class,
+                GeneratorConfig.builder()
+                        .locale(Locale.US)
+                        .seed(7L)
+                        .objectMaxDepth(2)
+                        .objectSemanticMode(ObjectGenerationSemanticMode.STRUCTURAL_ONLY)
+                        .build());
+
+        public final ObjectGenerator<BenchmarkFixtures.ComparableUser> semanticGenerator = new ObjectGenerator<>(
+                BenchmarkFixtures.ComparableUser.class,
+                GeneratorConfig.builder()
+                        .locale(Locale.US)
+                        .seed(7L)
+                        .objectMaxDepth(2)
+                        .build());
+    }
+
+    // ── DataFaker state ──────────────────────────────────────────────────────
+
+    @State(Scope.Thread)
+    public static class DataFakerState {
+        public final net.datafaker.Faker faker = new net.datafaker.Faker(Locale.US, new java.util.Random(7L));
+    }
+
+    // ── EasyRandom state ─────────────────────────────────────────────────────
+
+    @State(Scope.Thread)
+    public static class EasyRandomState {
+        public final EasyRandom easyRandom = new EasyRandom(new EasyRandomParameters().seed(7L));
+    }
+
+    // ── Instancio state ──────────────────────────────────────────────────────
+    // The other libraries reuse prebuilt generators, so Instancio reuses a prebuilt Model: each
+    // invocation measures object creation, not re-parsing the Instancio API specification.
+
+    @State(Scope.Thread)
+    public static class InstancioState {
+        public final Model<BenchmarkFixtures.ComparableUser> model =
+                Instancio.of(BenchmarkFixtures.ComparableUser.class).toModel();
+    }
+
+    // ── Benchmarks ───────────────────────────────────────────────────────────
+
+    @Benchmark
+    public BenchmarkFixtures.ComparableUser rdgStructuralObject(RandomDataGeneratorState state) {
+        return state.structuralGenerator.generate();
+    }
+
+    @Benchmark
+    public BenchmarkFixtures.ComparableUser rdgSemanticObject(RandomDataGeneratorState state) {
+        return state.semanticGenerator.generate();
+    }
+
+    @Benchmark
+    public BenchmarkFixtures.ComparableUser dataFakerObject(DataFakerState state) {
+        BenchmarkFixtures.ComparableUser user = new BenchmarkFixtures.ComparableUser();
+        user.firstName = state.faker.name().firstName();
+        user.lastName = state.faker.name().lastName();
+        user.email = state.faker.internet().emailAddress();
+        user.age = state.faker.number().numberBetween(18, 90);
+        user.city = state.faker.address().city();
+        user.country = state.faker.address().country();
+        return user;
+    }
+
+    @Benchmark
+    public BenchmarkFixtures.ComparableUser easyRandomObject(EasyRandomState state) {
+        return state.easyRandom.nextObject(BenchmarkFixtures.ComparableUser.class);
+    }
+
+    @Benchmark
+    public BenchmarkFixtures.ComparableUser instancioObject(InstancioState state) {
+        return Instancio.create(state.model);
+    }
+}

@@ -52,7 +52,7 @@ and skips itself on an older test Java.
 
 ## Code quality gates
 
-- **Coverage**: `krandom-core` enforces exact 100% line, branch, instruction, method, class, and
+- **Coverage**: `random-data-generator-core` enforces exact 100% line, branch, instruction, method, class, and
   complexity coverage via JaCoCo; its report is uploaded to Codecov. New core code must be covered
   by tests. The integration modules (`jackson`, `junit`, `spring-boot-starter`, `kotest-extensions`,
   and `kotlin-dsl`) generate JaCoCo reports in `<module>/build/reports/jacoco/test` and enforce
@@ -64,7 +64,7 @@ and skips itself on an older test Java.
   least an 85% mutation score and 98% mutated-class line coverage. Expand targets incrementally
   around meaningful branching, review survivors by behavior, and do not treat 100% as a goal when
   equivalent or implementation-only mutations remain.
-- **Nullness**: every `krandom-core` package is `@NullMarked` (JSpecify), and `compileJava` runs
+- **Nullness**: every `random-data-generator-core` package is `@NullMarked` (JSpecify), and `compileJava` runs
   NullAway in JSpecify mode through Error Prone, so a missing `@Nullable` or a possible `null`
   dereference fails compilation. NullAway also checks the tests in `core/src/nullnessTest/java`, which
   call the public API as null-marked consumer code does, so a test there fails to compile when the API
@@ -110,14 +110,14 @@ These scripts are run by hand; none of them is part of the pre-commit gate.
 - `scripts/update_verification_metadata.sh` records checksums for every CI and pre-commit task
   graph after a dependency update.
 - `scripts/fix_dependabot_pr.sh <pull-request-number>` runs that update for a Dependabot branch in
-  a temporary worktree under the JDKs in `KRANDOM_METADATA_JDKS` and commits the result; see
+  a temporary worktree under the JDKs in `RDG_METADATA_JDKS` and commits the result; see
   [dependency reproducibility](docs/development/dependency-reproducibility.md).
 - `scripts/upgrade_latest_gradle.sh` moves the Gradle wrapper to the latest release with its pinned
   distribution checksum; Dependabot normally proposes wrapper updates.
 - `scripts/verify_examples_local.sh` publishes the snapshot to Maven local and runs the consumer
-  examples; `KRANDOM_REQUIRE_SCALA_TOOLS=true` makes missing sbt or Mill an error.
+  examples; `RDG_REQUIRE_SCALA_TOOLS=true` makes missing sbt or Mill an error.
 - `scripts/verify_native_image.sh` builds the native-image smoke fixture. It skips when
-  `native-image` is missing unless `KRANDOM_REQUIRE_NATIVE_IMAGE=true`, which CI sets.
+  `native-image` is missing unless `RDG_REQUIRE_NATIVE_IMAGE=true`, which CI sets.
 - `scripts/run_benchmarks.sh` runs JMH and regenerates the benchmark dashboard.
 - `scripts/verify_release_rehearsal.sh` and `scripts/verify_examples_central.sh` are release steps
   described in the [release runbook](docs/release-runbook.md).
@@ -131,7 +131,7 @@ These scripts are run by hand; none of them is part of the pre-commit gate.
 - **Performance improvements** backed by JMH benchmark data.
 - **Domain data packs and extensions** — long-tail providers are welcome when they have a clear
   fixture use case, source, license, checksum, safety classification, maintainer, and invariant
-  tests. Use a configuration-scoped `KRandomModule` for provider/schema contributions or a
+  tests. Use a configuration-scoped `ExtensionModule` for provider/schema contributions or a
   verified `LocalDataPack` for offline datasets; do not add global registration or runtime
   network loading.
 
@@ -147,7 +147,7 @@ These scripts are run by hand; none of them is part of the pre-commit gate.
 
 ## Reporting issues
 
-Use [GitHub Issues](https://github.com/frikit/krandom/issues) for bug reports and feature requests. Include:
+Use [GitHub Issues](https://github.com/frikit/random-data-generator-core/issues) for bug reports and feature requests. Include:
 
 - Java version and OS
 - Minimal reproducing code or test case

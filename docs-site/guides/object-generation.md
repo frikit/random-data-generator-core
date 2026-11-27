@@ -125,15 +125,15 @@ mutable fields, so it is not a JPMS workaround.
 
 ### Named modules and `opens`
 
-`krandom-core` has the explicit module name `io.github.frikit.krandom`. A named consumer needs one
-qualified `opens` clause for each package whose non-public constructors or mutable fields kRandom
+`random-data-generator-core` has the explicit module name `io.github.frikit.rdg`. A named consumer needs one
+qualified `opens` clause for each package whose non-public constructors or mutable fields random-data-generator
 populates:
 
 ```java
 module com.example.fixtures {
-    requires io.github.frikit.krandom;
+    requires io.github.frikit.rdg;
 
-    opens com.example.fixtures.model to io.github.frikit.krandom;
+    opens com.example.fixtures.model to io.github.frikit.rdg;
 }
 ```
 
@@ -290,7 +290,7 @@ arguments, and one that uses its type parameters fails as an unsupported type. T
 `objectSubtype` mapping takes the arguments of a generic member in the same way.
 
 A concrete sealed class is generated as itself, and a sealed JDK type, such as
-`java.lang.constant.ConstantDesc`, is not generated. The `krandom-kotlin-dsl` module reads the
+`java.lang.constant.ConstantDesc`, is not generated. The `random-data-generator-kotlin-dsl` module reads the
 subclasses of a Kotlin sealed type from its metadata and builds them, as the
 [Kotlin DSL guide]({{ '/guides/kotlin-dsl/' | relative_url }}#sealed-types-and-value-classes) describes.
 

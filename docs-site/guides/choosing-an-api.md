@@ -6,7 +6,7 @@ permalink: /guides/choosing-an-api/
 
 # Choosing an API
 
-kRandom now has four main ways to generate data. Use the simplest one that matches the job.
+random-data-generator now has four main ways to generate data. Use the simplest one that matches the job.
 
 ## 1. Scalar generators
 
@@ -28,11 +28,11 @@ String city = Generators.ofCity().generate();
 String label = Generators.ofProviderTemplate("{firstname}-##").generate();
 ```
 
-For seeded fixture values in tests, `Krandom` returns plain values from one object and gives each
+For seeded fixture values in tests, `RandomDataGenerator` returns plain values from one object and gives each
 method its own stream, so a method's values are unaffected by calls of other methods:
 
 ```java
-Krandom fake = Krandom.seeded("checkout-fixtures", Locale.UK);
+RandomDataGenerator fake = RandomDataGenerator.seeded("checkout-fixtures", Locale.UK);
 
 String surname = fake.lastName();
 LocalDate birthDate = fake.birthday(25, 80);
@@ -48,7 +48,7 @@ Choose this path when:
 
 ## 2. Semantic object generation
 
-Use `ObjectGenerator<T>` when you already have a DTO / record / POJO and want kRandom to fill it with realistic defaults.
+Use `ObjectGenerator<T>` when you already have a DTO / record / POJO and want random-data-generator to fill it with realistic defaults.
 
 ```java
 GeneratorConfig cfg = GeneratorConfig.builder()
@@ -110,7 +110,7 @@ Choose this path when:
 
 ## Rule of thumb
 
-- Need seeded values for test fixtures: use `Krandom`.
+- Need seeded values for test fixtures: use `RandomDataGenerator`.
 - Need one value: use a scalar generator.
 - Need a DTO filled quickly: use `ObjectGenerator<T>`.
 - Need specific fixture control: use `ObjectFaker<T>`.

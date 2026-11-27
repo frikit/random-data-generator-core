@@ -1,0 +1,91 @@
+/*
+ * Copyright (c) 2026 random-data-generator contributors
+ *
+ * Licensed under the MIT License. See LICENSE in the project root for license information.
+ */
+package io.github.frikit.rdg.generator.selection;
+
+import io.github.frikit.rdg.generator.Generator;
+import io.github.frikit.rdg.generator.GeneratorConfig;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Objects;
+import java.util.Random;
+
+/**
+ * Emits every value in a finite pool at most once before reporting exhaustion.
+ *
+ * <p>Values are distinct by {@link Object#equals(Object)}: a value that the pool holds more than once
+ * is emitted once a cycle, and {@link #remaining()} counts distinct values.
+ *
+ * @param <T> value type
+ */
+public final class FinitePoolGenerator<T> implements Generator<T> {
+
+    private final List<T> values;
+    private final Random random;
+    private List<T> remaining;
+
+    /**
+     * Creates a pool using the default random source.
+     *
+     * @param values non-empty values to emit
+     */
+    public FinitePoolGenerator(List<T> values) {
+        this(values, new Random());
+    }
+
+    /**
+     * Creates a finite pool whose emission order comes from the configuration's random source.
+     *
+     * @param values pool values; must not be null, empty, or contain {@code null}
+     * @param config generator configuration; must not be {@code null}
+     */
+    public FinitePoolGenerator(List<T> values, GeneratorConfig config) {
+        this(values, Objects.requireNonNull(config, "config must not be null").createRandom());
+    }
+
+    private FinitePoolGenerator(List<T> values, Random random) {
+        Objects.requireNonNull(values, "values must not be null");
+        if (values.isEmpty()) {
+            throw new IllegalArgumentException("values must not be empty");
+        }
+        values.forEach(value -> Objects.requireNonNull(value, "values must not contain null"));
+        this.values = List.copyOf(values);
+        this.random = random;
+        reset();
+    }
+
+    @Override
+    public T generate() {
+        if (remaining.isEmpty()) {
+            throw new NoSuchElementException("Finite pool is exhausted; call reset() to start a new cycle");
+        }
+        return remaining.remove(remaining.size() - 1);
+    }
+
+    /**
+     * Starts a new independently shuffled pool cycle.
+     */
+    public void reset() {
+        List<T> shuffled = new ArrayList<>(values);
+        Collections.shuffle(shuffled, random);
+        // Emitted from the end, each value at its first copy from there; the other copies are dropped.
+        Collections.reverse(shuffled);
+        List<T> cycle = new ArrayList<>(new LinkedHashSet<>(shuffled));
+        Collections.reverse(cycle);
+        remaining = cycle;
+    }
+
+    /**
+     * Returns the number of values remaining in the current cycle.
+     *
+     * @return remaining value count
+     */
+    public int remaining() {
+        return remaining.size();
+    }
+}

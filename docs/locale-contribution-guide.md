@@ -101,7 +101,7 @@ Expected script families are currently:
 ## Code changes required for a new locale
 
 1. Add or update the `SupportedLocale` entry.
-2. Add matching resource files under `core/src/main/resources/krandom/`.
+2. Add matching resource files under `core/src/main/resources/rdg/`.
 3. Add `professions/<locale>.txt` and `titles/<locale>.txt` resource files for the locale.
 4. Update any locale-specific country-name handling if the locale should use JDK-localized country names.
 5. Update locale docs in `docs-site/guides/locale-aware-data.md`.

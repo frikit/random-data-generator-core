@@ -1,11 +1,11 @@
-# kRandom Product Roadmap
+# random-data-generator Product Roadmap
 
 **Reviewed:** 2026-09-24
 **Status:** Active
 **Stable release:** `4.1.0`
 **Development line:** `4.2.0-SNAPSHOT`
 
-kRandom should compete on trustworthy fixture generation, not on raw provider count. The durable
+random-data-generator should compete on trustworthy fixture generation, not on raw provider count. The durable
 advantages are deterministic replay, coherent object fixtures, explicit safety contracts, honest
 performance evidence, and a small extension boundary.
 
@@ -40,11 +40,11 @@ Official documentation checked on 2026-08-27 confirms the comparison areas that 
 
 The maintained local summary is [`../competitive-landscape.md`](../competitive-landscape.md).
 Old provider-by-provider research snapshots were removed because they mixed dated competitor facts
-with current kRandom guidance.
+with current random-data-generator guidance.
 
 ## Ordered priorities
 
-From 3.0.0, kRandom follows Semantic Versioning ([VERSIONING.md](../../VERSIONING.md)). A priority
+From 3.0.0, random-data-generator follows Semantic Versioning ([VERSIONING.md](../../VERSIONING.md)). A priority
 that removes API, changes it incompatibly, or changes existing seeded output beyond a contract fix
 waits for a major release, and deprecates the API it replaces first.
 

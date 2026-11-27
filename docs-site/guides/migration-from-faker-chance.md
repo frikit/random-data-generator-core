@@ -6,11 +6,11 @@ permalink: /guides/migration-from-faker-chance/
 
 # Migration from Faker and Chance
 
-Use this mapping to move existing Faker/Chance-style code to kRandom.
+Use this mapping to move existing Faker/Chance-style code to random-data-generator.
 
 ## API mapping
 
-| Use case | Faker/Chance style | kRandom equivalent |
+| Use case | Faker/Chance style | random-data-generator equivalent |
 |---|---|---|
 | Full name | `faker.name().fullName()` / `chance.name()` | `Generators.ofFullName().generate()` |
 | Email | `faker.internet().emailAddress()` / `chance.email()` | `Generators.ofEmail().generate()` |

@@ -33,19 +33,19 @@ all pass for the exact release commit.
 **Success Criteria**: Maven Central, GitHub release assets and attestations, Central-only consumers,
 documentation deployment, and post-release version facts all succeed.
 **Tests**: Release workflow, asset integrity and attestation verification,
-`KRANDOM_VERSION=2.5.0 scripts/verify_examples_central.sh`, and post-release CI.
+`RDG_VERSION=2.5.0 scripts/verify_examples_central.sh`, and post-release CI.
 **Status**: Complete
 
 ## Publication evidence
 
 - Exact release commit on `main`: `a887c3d42a225f60dca390e378c642244a33c01d`.
-- [Final qualification CI](https://github.com/frikit/krandom/actions/runs/35997680255) passed
+- [Final qualification CI](https://github.com/frikit/random-data-generator-core/actions/runs/35997680255) passed
   Java 21/25, exact coverage, schema mutation, GraalVM native image, SBOM, and the full local
   consumer matrix.
-- [Release workflow](https://github.com/frikit/krandom/actions/runs/35998281924) validated, signed,
+- [Release workflow](https://github.com/frikit/random-data-generator-core/actions/runs/35998281924) validated, signed,
   attested, and uploaded deployment `82cc3523-0b5d-4bda-90e2-92b4a6d4360c` with automatic Central
   publication.
-- [v2.5.0](https://github.com/frikit/krandom/releases/tag/v2.5.0) is a non-prerelease GitHub release
+- [v2.5.0](https://github.com/frikit/random-data-generator-core/releases/tag/v2.5.0) is a non-prerelease GitHub release
   that points to the exact release commit and contains 33 assets.
 - All JSON SBOM component versions, the 177-entry aggregation bundle's ZIP integrity, and its
   GitHub build-provenance attestation passed verification.

@@ -1,6 +1,6 @@
 # Java + Maven Example (Test-based)
 
-Uses `io.github.frikit:krandom-core:4.2.0-SNAPSHOT` by default for repo-local verification.
+Uses `io.github.frikit:random-data-generator-core:1.0.0-SNAPSHOT` by default for repo-local verification.
 
 Use the embedded snapshot default only for repo-local Maven-local checks. For published versions, pass the target version explicitly.
 
@@ -29,5 +29,5 @@ mvn -q test
 To use a different artifact version:
 
 ```bash
-mvn -q -Dkrandom.version=<version> test
+mvn -q -Drdg.version=<version> test
 ```

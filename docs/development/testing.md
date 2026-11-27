@@ -1,6 +1,6 @@
 # Testing and the gate
 
-How kRandom is tested, what `scripts/pre_commit_check.sh` runs, and what to do when a step fails. The
+How random-data-generator is tested, what `scripts/pre_commit_check.sh` runs, and what to do when a step fails. The
 thresholds quoted in [CONTRIBUTING.md](../../CONTRIBUTING.md#code-quality-gates) are the rules; the
 build files are the source of truth for their values.
 
@@ -43,7 +43,7 @@ tests are written with Kotest in the Kotlin modules. Test classes end in `Test`,
 | Facade parity | `FacadeNamespaceParityTest` | You add a factory or a namespace method. |
 | Docs as tests | `DocumentationSnippetsTest`, `ProviderCatalogDocumentationTest` | You change a documented snippet or the provider catalog. |
 
-Paths are under `core/src/test/java/io/github/frikit/krandom/`.
+Paths are under `core/src/test/java/io/github/frikit/rdg/`.
 
 ## The gate
 

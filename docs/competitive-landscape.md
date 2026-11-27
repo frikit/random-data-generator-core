@@ -3,14 +3,14 @@
 **Reviewed:** 2026-08-27
 
 This is a product-direction summary, not an API-parity promise. Competitor surfaces change; use the
-linked official documentation for their current APIs and the kRandom guides for runnable examples.
+linked official documentation for their current APIs and the random-data-generator guides for runnable examples.
 
-| Project | Strength to respect | kRandom direction | Migration guide |
+| Project | Strength to respect | random-data-generator direction | Migration guide |
 |:---|:---|:---|:---|
 | [DataFaker](https://www.datafaker.net/documentation/providers/) | Broad provider catalog, expressions, schemas, and multiple transformers | Prefer curated test-safe providers, coherent fixtures, replay, local verified packs, and explicit safety metadata over catalog count | [Guide](migration/from-datafaker.md) |
 | [Instancio](https://www.instancio.org/user-guide/) | Rich selector model, reusable models, precedence rules, and JUnit integration | Complete one strict Java/Kotlin fixture-control model and value-sanitized explainability without hidden global state | [Guide](migration/from-instancio.md) |
 | [Easy Random](https://github.com/j-easy/easy-random) | Small object-generation entry point and familiar customization model | Preserve one-call object generation while providing semantic defaults, replay, constraints, and maintained integrations | [Guide](migration/from-easyrandom.md) |
-| [JavaFaker](https://github.com/DiUS/java-faker) | Familiar legacy Faker API | Keep a direct migration path to maintained kRandom coordinates and safety-aware configuration | [Guide](migration/from-javafaker.md) |
+| [JavaFaker](https://github.com/DiUS/java-faker) | Familiar legacy Faker API | Keep a direct migration path to maintained random-data-generator coordinates and safety-aware configuration | [Guide](migration/from-javafaker.md) |
 
 ## Current product gaps worth funding
 

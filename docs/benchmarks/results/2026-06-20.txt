@@ -33,7 +33,7 @@ Configuration on demand is an incubating feature.
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.CompetitorBulkBenchmark.dataFakerBulk
+# Benchmark: io.github.frikit.rdg.benchmarks.CompetitorBulkBenchmark.dataFakerBulk
 # Parameters: (batchSize = 100)
 
 # Run progress: 0.00% complete, ETA 00:02:27
@@ -43,7 +43,7 @@ Iteration   1: 4817.753 ops/s
 Iteration   2: 4996.472 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.CompetitorBulkBenchmark.dataFakerBulk":
+Result "io.github.frikit.rdg.benchmarks.CompetitorBulkBenchmark.dataFakerBulk":
   4907.113 ops/s
 
 
@@ -57,7 +57,7 @@ Result "io.github.frikit.krandom.benchmarks.CompetitorBulkBenchmark.dataFakerBul
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.CompetitorBulkBenchmark.dataFakerBulk
+# Benchmark: io.github.frikit.rdg.benchmarks.CompetitorBulkBenchmark.dataFakerBulk
 # Parameters: (batchSize = 1000)
 
 # Run progress: 2.04% complete, ETA 00:02:32
@@ -67,7 +67,7 @@ Iteration   1: 504.848 ops/s
 Iteration   2: 524.279 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.CompetitorBulkBenchmark.dataFakerBulk":
+Result "io.github.frikit.rdg.benchmarks.CompetitorBulkBenchmark.dataFakerBulk":
   514.563 ops/s
 
 
@@ -81,7 +81,7 @@ Result "io.github.frikit.krandom.benchmarks.CompetitorBulkBenchmark.dataFakerBul
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.CompetitorBulkBenchmark.easyRandomBulk
+# Benchmark: io.github.frikit.rdg.benchmarks.CompetitorBulkBenchmark.easyRandomBulk
 # Parameters: (batchSize = 100)
 
 # Run progress: 4.08% complete, ETA 00:02:28
@@ -91,7 +91,7 @@ Iteration   1: 1812.215 ops/s
 Iteration   2: 1845.449 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.CompetitorBulkBenchmark.easyRandomBulk":
+Result "io.github.frikit.rdg.benchmarks.CompetitorBulkBenchmark.easyRandomBulk":
   1828.832 ops/s
 
 
@@ -105,7 +105,7 @@ Result "io.github.frikit.krandom.benchmarks.CompetitorBulkBenchmark.easyRandomBu
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.CompetitorBulkBenchmark.easyRandomBulk
+# Benchmark: io.github.frikit.rdg.benchmarks.CompetitorBulkBenchmark.easyRandomBulk
 # Parameters: (batchSize = 1000)
 
 # Run progress: 6.12% complete, ETA 00:02:25
@@ -115,7 +115,7 @@ Iteration   1: 180.285 ops/s
 Iteration   2: 175.964 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.CompetitorBulkBenchmark.easyRandomBulk":
+Result "io.github.frikit.rdg.benchmarks.CompetitorBulkBenchmark.easyRandomBulk":
   178.125 ops/s
 
 
@@ -129,7 +129,7 @@ Result "io.github.frikit.krandom.benchmarks.CompetitorBulkBenchmark.easyRandomBu
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.CompetitorBulkBenchmark.instancioBulk
+# Benchmark: io.github.frikit.rdg.benchmarks.CompetitorBulkBenchmark.instancioBulk
 # Parameters: (batchSize = 100)
 
 # Run progress: 8.16% complete, ETA 00:02:22
@@ -142,7 +142,7 @@ Iteration   1: 14518.525 ops/s
 Iteration   2: 14519.099 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.CompetitorBulkBenchmark.instancioBulk":
+Result "io.github.frikit.rdg.benchmarks.CompetitorBulkBenchmark.instancioBulk":
   14518.812 ops/s
 
 
@@ -156,7 +156,7 @@ Result "io.github.frikit.krandom.benchmarks.CompetitorBulkBenchmark.instancioBul
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.CompetitorBulkBenchmark.instancioBulk
+# Benchmark: io.github.frikit.rdg.benchmarks.CompetitorBulkBenchmark.instancioBulk
 # Parameters: (batchSize = 1000)
 
 # Run progress: 10.20% complete, ETA 00:02:18
@@ -169,7 +169,7 @@ Iteration   1: 1748.604 ops/s
 Iteration   2: 1714.046 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.CompetitorBulkBenchmark.instancioBulk":
+Result "io.github.frikit.rdg.benchmarks.CompetitorBulkBenchmark.instancioBulk":
   1731.325 ops/s
 
 
@@ -183,7 +183,7 @@ Result "io.github.frikit.krandom.benchmarks.CompetitorBulkBenchmark.instancioBul
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.CompetitorBulkBenchmark.krandomBulk
+# Benchmark: io.github.frikit.rdg.benchmarks.CompetitorBulkBenchmark.rdgBulk
 # Parameters: (batchSize = 100)
 
 # Run progress: 12.24% complete, ETA 00:02:15
@@ -196,7 +196,7 @@ Iteration   1: 22.227 ops/s
 Iteration   2: 23.259 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.CompetitorBulkBenchmark.krandomBulk":
+Result "io.github.frikit.rdg.benchmarks.CompetitorBulkBenchmark.rdgBulk":
   22.743 ops/s
 
 
@@ -210,7 +210,7 @@ Result "io.github.frikit.krandom.benchmarks.CompetitorBulkBenchmark.krandomBulk"
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.CompetitorBulkBenchmark.krandomBulk
+# Benchmark: io.github.frikit.rdg.benchmarks.CompetitorBulkBenchmark.rdgBulk
 # Parameters: (batchSize = 1000)
 
 # Run progress: 14.29% complete, ETA 00:02:12
@@ -223,7 +223,7 @@ Iteration   1: 2.263 ops/s
 Iteration   2: 2.321 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.CompetitorBulkBenchmark.krandomBulk":
+Result "io.github.frikit.rdg.benchmarks.CompetitorBulkBenchmark.rdgBulk":
   2.292 ops/s
 
 
@@ -237,7 +237,7 @@ Result "io.github.frikit.krandom.benchmarks.CompetitorBulkBenchmark.krandomBulk"
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.CompetitorObjectBenchmark.dataFakerObject
+# Benchmark: io.github.frikit.rdg.benchmarks.CompetitorObjectBenchmark.dataFakerObject
 
 # Run progress: 16.33% complete, ETA 00:02:13
 # Fork: 1 of 1
@@ -246,7 +246,7 @@ Iteration   1: 486011.275 ops/s
 Iteration   2: 521105.910 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.CompetitorObjectBenchmark.dataFakerObject":
+Result "io.github.frikit.rdg.benchmarks.CompetitorObjectBenchmark.dataFakerObject":
   503558.592 ops/s
 
 
@@ -260,7 +260,7 @@ Result "io.github.frikit.krandom.benchmarks.CompetitorObjectBenchmark.dataFakerO
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.CompetitorObjectBenchmark.easyRandomObject
+# Benchmark: io.github.frikit.rdg.benchmarks.CompetitorObjectBenchmark.easyRandomObject
 
 # Run progress: 18.37% complete, ETA 00:02:09
 # Fork: 1 of 1
@@ -269,7 +269,7 @@ Iteration   1: 213315.057 ops/s
 Iteration   2: 213436.506 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.CompetitorObjectBenchmark.easyRandomObject":
+Result "io.github.frikit.rdg.benchmarks.CompetitorObjectBenchmark.easyRandomObject":
   213375.781 ops/s
 
 
@@ -283,7 +283,7 @@ Result "io.github.frikit.krandom.benchmarks.CompetitorObjectBenchmark.easyRandom
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.CompetitorObjectBenchmark.instancioObject
+# Benchmark: io.github.frikit.rdg.benchmarks.CompetitorObjectBenchmark.instancioObject
 
 # Run progress: 20.41% complete, ETA 00:02:06
 # Fork: 1 of 1
@@ -295,7 +295,7 @@ Iteration   1: 199844.061 ops/s
 Iteration   2: 201890.189 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.CompetitorObjectBenchmark.instancioObject":
+Result "io.github.frikit.rdg.benchmarks.CompetitorObjectBenchmark.instancioObject":
   200867.125 ops/s
 
 
@@ -309,7 +309,7 @@ Result "io.github.frikit.krandom.benchmarks.CompetitorObjectBenchmark.instancioO
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.CompetitorObjectBenchmark.krandomObject
+# Benchmark: io.github.frikit.rdg.benchmarks.CompetitorObjectBenchmark.rdgObject
 
 # Run progress: 22.45% complete, ETA 00:02:02
 # Fork: 1 of 1
@@ -321,7 +321,7 @@ Iteration   1: 2381.580 ops/s
 Iteration   2: 2504.367 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.CompetitorObjectBenchmark.krandomObject":
+Result "io.github.frikit.rdg.benchmarks.CompetitorObjectBenchmark.rdgObject":
   2442.973 ops/s
 
 
@@ -335,7 +335,7 @@ Result "io.github.frikit.krandom.benchmarks.CompetitorObjectBenchmark.krandomObj
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.CompetitorScalarBenchmark.dataFakerEmail
+# Benchmark: io.github.frikit.rdg.benchmarks.CompetitorScalarBenchmark.dataFakerEmail
 
 # Run progress: 24.49% complete, ETA 00:01:58
 # Fork: 1 of 1
@@ -344,7 +344,7 @@ Iteration   1: 858457.980 ops/s
 Iteration   2: 865585.459 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.CompetitorScalarBenchmark.dataFakerEmail":
+Result "io.github.frikit.rdg.benchmarks.CompetitorScalarBenchmark.dataFakerEmail":
   862021.719 ops/s
 
 
@@ -358,7 +358,7 @@ Result "io.github.frikit.krandom.benchmarks.CompetitorScalarBenchmark.dataFakerE
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.CompetitorScalarBenchmark.dataFakerFirstName
+# Benchmark: io.github.frikit.rdg.benchmarks.CompetitorScalarBenchmark.dataFakerFirstName
 
 # Run progress: 26.53% complete, ETA 00:01:55
 # Fork: 1 of 1
@@ -367,7 +367,7 @@ Iteration   1: 5634870.133 ops/s
 Iteration   2: 5943800.667 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.CompetitorScalarBenchmark.dataFakerFirstName":
+Result "io.github.frikit.rdg.benchmarks.CompetitorScalarBenchmark.dataFakerFirstName":
   5789335.400 ops/s
 
 
@@ -381,7 +381,7 @@ Result "io.github.frikit.krandom.benchmarks.CompetitorScalarBenchmark.dataFakerF
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.CompetitorScalarBenchmark.dataFakerStreetAddress
+# Benchmark: io.github.frikit.rdg.benchmarks.CompetitorScalarBenchmark.dataFakerStreetAddress
 
 # Run progress: 28.57% complete, ETA 00:01:52
 # Fork: 1 of 1
@@ -390,7 +390,7 @@ Iteration   1: 1667174.659 ops/s
 Iteration   2: 1722273.994 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.CompetitorScalarBenchmark.dataFakerStreetAddress":
+Result "io.github.frikit.rdg.benchmarks.CompetitorScalarBenchmark.dataFakerStreetAddress":
   1694724.327 ops/s
 
 
@@ -404,7 +404,7 @@ Result "io.github.frikit.krandom.benchmarks.CompetitorScalarBenchmark.dataFakerS
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.CompetitorScalarBenchmark.javaFakerEmail
+# Benchmark: io.github.frikit.rdg.benchmarks.CompetitorScalarBenchmark.javaFakerEmail
 
 # Run progress: 30.61% complete, ETA 00:01:48
 # Fork: 1 of 1
@@ -413,7 +413,7 @@ Iteration   1: 343062.323 ops/s
 Iteration   2: 349717.158 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.CompetitorScalarBenchmark.javaFakerEmail":
+Result "io.github.frikit.rdg.benchmarks.CompetitorScalarBenchmark.javaFakerEmail":
   346389.740 ops/s
 
 
@@ -427,7 +427,7 @@ Result "io.github.frikit.krandom.benchmarks.CompetitorScalarBenchmark.javaFakerE
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.CompetitorScalarBenchmark.javaFakerFirstName
+# Benchmark: io.github.frikit.rdg.benchmarks.CompetitorScalarBenchmark.javaFakerFirstName
 
 # Run progress: 32.65% complete, ETA 00:01:45
 # Fork: 1 of 1
@@ -436,7 +436,7 @@ Iteration   1: 595800.538 ops/s
 Iteration   2: 602855.642 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.CompetitorScalarBenchmark.javaFakerFirstName":
+Result "io.github.frikit.rdg.benchmarks.CompetitorScalarBenchmark.javaFakerFirstName":
   599328.090 ops/s
 
 
@@ -450,7 +450,7 @@ Result "io.github.frikit.krandom.benchmarks.CompetitorScalarBenchmark.javaFakerF
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.CompetitorScalarBenchmark.javaFakerStreetAddress
+# Benchmark: io.github.frikit.rdg.benchmarks.CompetitorScalarBenchmark.javaFakerStreetAddress
 
 # Run progress: 34.69% complete, ETA 00:01:42
 # Fork: 1 of 1
@@ -459,7 +459,7 @@ Iteration   1: 112323.976 ops/s
 Iteration   2: 112010.703 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.CompetitorScalarBenchmark.javaFakerStreetAddress":
+Result "io.github.frikit.rdg.benchmarks.CompetitorScalarBenchmark.javaFakerStreetAddress":
   112167.340 ops/s
 
 
@@ -473,7 +473,7 @@ Result "io.github.frikit.krandom.benchmarks.CompetitorScalarBenchmark.javaFakerS
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.CompetitorScalarBenchmark.krandomEmail
+# Benchmark: io.github.frikit.rdg.benchmarks.CompetitorScalarBenchmark.rdgEmail
 
 # Run progress: 36.73% complete, ETA 00:01:38
 # Fork: 1 of 1
@@ -482,7 +482,7 @@ Iteration   1: 19708950.391 ops/s
 Iteration   2: 18883881.931 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.CompetitorScalarBenchmark.krandomEmail":
+Result "io.github.frikit.rdg.benchmarks.CompetitorScalarBenchmark.rdgEmail":
   19296416.161 ops/s
 
 
@@ -496,7 +496,7 @@ Result "io.github.frikit.krandom.benchmarks.CompetitorScalarBenchmark.krandomEma
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.CompetitorScalarBenchmark.krandomFirstName
+# Benchmark: io.github.frikit.rdg.benchmarks.CompetitorScalarBenchmark.rdgFirstName
 
 # Run progress: 38.78% complete, ETA 00:01:35
 # Fork: 1 of 1
@@ -505,7 +505,7 @@ Iteration   1: 104092181.942 ops/s
 Iteration   2: 103949391.661 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.CompetitorScalarBenchmark.krandomFirstName":
+Result "io.github.frikit.rdg.benchmarks.CompetitorScalarBenchmark.rdgFirstName":
   104020786.802 ops/s
 
 
@@ -519,7 +519,7 @@ Result "io.github.frikit.krandom.benchmarks.CompetitorScalarBenchmark.krandomFir
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.CompetitorScalarBenchmark.krandomStreetAddress
+# Benchmark: io.github.frikit.rdg.benchmarks.CompetitorScalarBenchmark.rdgStreetAddress
 
 # Run progress: 40.82% complete, ETA 00:01:32
 # Fork: 1 of 1
@@ -528,7 +528,7 @@ Iteration   1: 22660775.572 ops/s
 Iteration   2: 22259577.573 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.CompetitorScalarBenchmark.krandomStreetAddress":
+Result "io.github.frikit.rdg.benchmarks.CompetitorScalarBenchmark.rdgStreetAddress":
   22460176.573 ops/s
 
 
@@ -542,7 +542,7 @@ Result "io.github.frikit.krandom.benchmarks.CompetitorScalarBenchmark.krandomStr
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.ExpandedGenerationBenchmark.relaxedSemanticObjectGraph
+# Benchmark: io.github.frikit.rdg.benchmarks.ExpandedGenerationBenchmark.relaxedSemanticObjectGraph
 
 # Run progress: 42.86% complete, ETA 00:01:29
 # Fork: 1 of 1
@@ -554,7 +554,7 @@ Iteration   1: 746.747 ops/s
 Iteration   2: 770.016 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.ExpandedGenerationBenchmark.relaxedSemanticObjectGraph":
+Result "io.github.frikit.rdg.benchmarks.ExpandedGenerationBenchmark.relaxedSemanticObjectGraph":
   758.382 ops/s
 
 
@@ -568,7 +568,7 @@ Result "io.github.frikit.krandom.benchmarks.ExpandedGenerationBenchmark.relaxedS
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.ExpandedGenerationBenchmark.semanticObjectGraph
+# Benchmark: io.github.frikit.rdg.benchmarks.ExpandedGenerationBenchmark.semanticObjectGraph
 
 # Run progress: 44.90% complete, ETA 00:01:26
 # Fork: 1 of 1
@@ -580,7 +580,7 @@ Iteration   1: 925.318 ops/s
 Iteration   2: 946.330 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.ExpandedGenerationBenchmark.semanticObjectGraph":
+Result "io.github.frikit.rdg.benchmarks.ExpandedGenerationBenchmark.semanticObjectGraph":
   935.824 ops/s
 
 
@@ -594,7 +594,7 @@ Result "io.github.frikit.krandom.benchmarks.ExpandedGenerationBenchmark.semantic
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.ExpandedGenerationBenchmark.semanticObjectGraphWithUniqueFields
+# Benchmark: io.github.frikit.rdg.benchmarks.ExpandedGenerationBenchmark.semanticObjectGraphWithUniqueFields
 
 # Run progress: 46.94% complete, ETA 00:01:22
 # Fork: 1 of 1
@@ -606,7 +606,7 @@ Iteration   1: 1041.927 ops/s
 Iteration   2: 1082.128 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.ExpandedGenerationBenchmark.semanticObjectGraphWithUniqueFields":
+Result "io.github.frikit.rdg.benchmarks.ExpandedGenerationBenchmark.semanticObjectGraphWithUniqueFields":
   1062.028 ops/s
 
 
@@ -620,7 +620,7 @@ Result "io.github.frikit.krandom.benchmarks.ExpandedGenerationBenchmark.semantic
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.ExpandedGenerationBenchmark.structuralOnlyObjectGraph
+# Benchmark: io.github.frikit.rdg.benchmarks.ExpandedGenerationBenchmark.structuralOnlyObjectGraph
 
 # Run progress: 48.98% complete, ETA 00:01:19
 # Fork: 1 of 1
@@ -632,7 +632,7 @@ Iteration   1: 959.476 ops/s
 Iteration   2: 970.775 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.ExpandedGenerationBenchmark.structuralOnlyObjectGraph":
+Result "io.github.frikit.rdg.benchmarks.ExpandedGenerationBenchmark.structuralOnlyObjectGraph":
   965.126 ops/s
 
 
@@ -646,7 +646,7 @@ Result "io.github.frikit.krandom.benchmarks.ExpandedGenerationBenchmark.structur
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.ExpandedGenerationBenchmark.uniquenessHeavyEmailGeneration
+# Benchmark: io.github.frikit.rdg.benchmarks.ExpandedGenerationBenchmark.uniquenessHeavyEmailGeneration
 
 # Run progress: 51.02% complete, ETA 00:01:16
 # Fork: 1 of 1
@@ -658,7 +658,7 @@ Iteration   1: 10761.894 ops/s
 Iteration   2: 8122.042 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.ExpandedGenerationBenchmark.uniquenessHeavyEmailGeneration":
+Result "io.github.frikit.rdg.benchmarks.ExpandedGenerationBenchmark.uniquenessHeavyEmailGeneration":
   9441.968 ops/s
 
 
@@ -672,7 +672,7 @@ Result "io.github.frikit.krandom.benchmarks.ExpandedGenerationBenchmark.uniquene
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.FirstNameGeneratorBenchmark.firstName
+# Benchmark: io.github.frikit.rdg.benchmarks.FirstNameGeneratorBenchmark.firstName
 # Parameters: (localeTag = en_US)
 
 # Run progress: 53.06% complete, ETA 00:01:13
@@ -682,7 +682,7 @@ Iteration   1: 104048338.681 ops/s
 Iteration   2: 104016108.631 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.FirstNameGeneratorBenchmark.firstName":
+Result "io.github.frikit.rdg.benchmarks.FirstNameGeneratorBenchmark.firstName":
   104032223.656 ops/s
 
 
@@ -696,7 +696,7 @@ Result "io.github.frikit.krandom.benchmarks.FirstNameGeneratorBenchmark.firstNam
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.FirstNameGeneratorBenchmark.firstName
+# Benchmark: io.github.frikit.rdg.benchmarks.FirstNameGeneratorBenchmark.firstName
 # Parameters: (localeTag = en_GB)
 
 # Run progress: 55.10% complete, ETA 00:01:09
@@ -706,7 +706,7 @@ Iteration   1: 104008770.344 ops/s
 Iteration   2: 104156245.167 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.FirstNameGeneratorBenchmark.firstName":
+Result "io.github.frikit.rdg.benchmarks.FirstNameGeneratorBenchmark.firstName":
   104082507.755 ops/s
 
 
@@ -720,7 +720,7 @@ Result "io.github.frikit.krandom.benchmarks.FirstNameGeneratorBenchmark.firstNam
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.FirstNameGeneratorBenchmark.firstName
+# Benchmark: io.github.frikit.rdg.benchmarks.FirstNameGeneratorBenchmark.firstName
 # Parameters: (localeTag = en_AU)
 
 # Run progress: 57.14% complete, ETA 00:01:06
@@ -730,7 +730,7 @@ Iteration   1: 104033754.301 ops/s
 Iteration   2: 103935930.248 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.FirstNameGeneratorBenchmark.firstName":
+Result "io.github.frikit.rdg.benchmarks.FirstNameGeneratorBenchmark.firstName":
   103984842.274 ops/s
 
 
@@ -744,7 +744,7 @@ Result "io.github.frikit.krandom.benchmarks.FirstNameGeneratorBenchmark.firstNam
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.FirstNameGeneratorBenchmark.firstName
+# Benchmark: io.github.frikit.rdg.benchmarks.FirstNameGeneratorBenchmark.firstName
 # Parameters: (localeTag = fr_FR)
 
 # Run progress: 59.18% complete, ETA 00:01:03
@@ -754,7 +754,7 @@ Iteration   1: 104037634.178 ops/s
 Iteration   2: 104080614.769 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.FirstNameGeneratorBenchmark.firstName":
+Result "io.github.frikit.rdg.benchmarks.FirstNameGeneratorBenchmark.firstName":
   104059124.474 ops/s
 
 
@@ -768,7 +768,7 @@ Result "io.github.frikit.krandom.benchmarks.FirstNameGeneratorBenchmark.firstNam
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.FirstNameGeneratorBenchmark.firstName
+# Benchmark: io.github.frikit.rdg.benchmarks.FirstNameGeneratorBenchmark.firstName
 # Parameters: (localeTag = de_DE)
 
 # Run progress: 61.22% complete, ETA 00:01:00
@@ -778,7 +778,7 @@ Iteration   1: 103998421.883 ops/s
 Iteration   2: 103889945.001 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.FirstNameGeneratorBenchmark.firstName":
+Result "io.github.frikit.rdg.benchmarks.FirstNameGeneratorBenchmark.firstName":
   103944183.442 ops/s
 
 
@@ -792,7 +792,7 @@ Result "io.github.frikit.krandom.benchmarks.FirstNameGeneratorBenchmark.firstNam
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.FirstNameGeneratorBenchmark.firstName
+# Benchmark: io.github.frikit.rdg.benchmarks.FirstNameGeneratorBenchmark.firstName
 # Parameters: (localeTag = ja_JP)
 
 # Run progress: 63.27% complete, ETA 00:00:57
@@ -802,7 +802,7 @@ Iteration   1: 103991296.268 ops/s
 Iteration   2: 103961611.596 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.FirstNameGeneratorBenchmark.firstName":
+Result "io.github.frikit.rdg.benchmarks.FirstNameGeneratorBenchmark.firstName":
   103976453.932 ops/s
 
 
@@ -816,7 +816,7 @@ Result "io.github.frikit.krandom.benchmarks.FirstNameGeneratorBenchmark.firstNam
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.FirstNameGeneratorBenchmark.firstName
+# Benchmark: io.github.frikit.rdg.benchmarks.FirstNameGeneratorBenchmark.firstName
 # Parameters: (localeTag = es_ES)
 
 # Run progress: 65.31% complete, ETA 00:00:53
@@ -826,7 +826,7 @@ Iteration   1: 104088354.560 ops/s
 Iteration   2: 103853956.280 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.FirstNameGeneratorBenchmark.firstName":
+Result "io.github.frikit.rdg.benchmarks.FirstNameGeneratorBenchmark.firstName":
   103971155.420 ops/s
 
 
@@ -840,7 +840,7 @@ Result "io.github.frikit.krandom.benchmarks.FirstNameGeneratorBenchmark.firstNam
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.FirstNameGeneratorBenchmark.firstName
+# Benchmark: io.github.frikit.rdg.benchmarks.FirstNameGeneratorBenchmark.firstName
 # Parameters: (localeTag = it_IT)
 
 # Run progress: 67.35% complete, ETA 00:00:50
@@ -850,7 +850,7 @@ Iteration   1: 104083493.703 ops/s
 Iteration   2: 104008438.461 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.FirstNameGeneratorBenchmark.firstName":
+Result "io.github.frikit.rdg.benchmarks.FirstNameGeneratorBenchmark.firstName":
   104045966.082 ops/s
 
 
@@ -864,7 +864,7 @@ Result "io.github.frikit.krandom.benchmarks.FirstNameGeneratorBenchmark.firstNam
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.FirstNameGeneratorBenchmark.firstName
+# Benchmark: io.github.frikit.rdg.benchmarks.FirstNameGeneratorBenchmark.firstName
 # Parameters: (localeTag = pt_BR)
 
 # Run progress: 69.39% complete, ETA 00:00:47
@@ -874,7 +874,7 @@ Iteration   1: 104013741.431 ops/s
 Iteration   2: 104072419.080 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.FirstNameGeneratorBenchmark.firstName":
+Result "io.github.frikit.rdg.benchmarks.FirstNameGeneratorBenchmark.firstName":
   104043080.255 ops/s
 
 
@@ -888,7 +888,7 @@ Result "io.github.frikit.krandom.benchmarks.FirstNameGeneratorBenchmark.firstNam
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.FirstNameGeneratorBenchmark.firstName
+# Benchmark: io.github.frikit.rdg.benchmarks.FirstNameGeneratorBenchmark.firstName
 # Parameters: (localeTag = zh_CN)
 
 # Run progress: 71.43% complete, ETA 00:00:44
@@ -898,7 +898,7 @@ Iteration   1: 103769321.820 ops/s
 Iteration   2: 103280143.107 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.FirstNameGeneratorBenchmark.firstName":
+Result "io.github.frikit.rdg.benchmarks.FirstNameGeneratorBenchmark.firstName":
   103524732.464 ops/s
 
 
@@ -912,7 +912,7 @@ Result "io.github.frikit.krandom.benchmarks.FirstNameGeneratorBenchmark.firstNam
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.ObjectFactoryBenchmark.directObjectGenerator
+# Benchmark: io.github.frikit.rdg.benchmarks.ObjectFactoryBenchmark.directObjectGenerator
 
 # Run progress: 73.47% complete, ETA 00:00:41
 # Fork: 1 of 1
@@ -924,7 +924,7 @@ Iteration   1: 3668.037 ops/s
 Iteration   2: 3905.880 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.ObjectFactoryBenchmark.directObjectGenerator":
+Result "io.github.frikit.rdg.benchmarks.ObjectFactoryBenchmark.directObjectGenerator":
   3786.958 ops/s
 
 
@@ -938,7 +938,7 @@ Result "io.github.frikit.krandom.benchmarks.ObjectFactoryBenchmark.directObjectG
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.ObjectFactoryBenchmark.generatorsFacadeObjectGenerator
+# Benchmark: io.github.frikit.rdg.benchmarks.ObjectFactoryBenchmark.generatorsFacadeObjectGenerator
 
 # Run progress: 75.51% complete, ETA 00:00:38
 # Fork: 1 of 1
@@ -950,7 +950,7 @@ Iteration   1: 4055.403 ops/s
 Iteration   2: 4304.346 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.ObjectFactoryBenchmark.generatorsFacadeObjectGenerator":
+Result "io.github.frikit.rdg.benchmarks.ObjectFactoryBenchmark.generatorsFacadeObjectGenerator":
   4179.874 ops/s
 
 
@@ -964,7 +964,7 @@ Result "io.github.frikit.krandom.benchmarks.ObjectFactoryBenchmark.generatorsFac
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.ObjectFactoryBenchmark.manualConstruction
+# Benchmark: io.github.frikit.rdg.benchmarks.ObjectFactoryBenchmark.manualConstruction
 
 # Run progress: 77.55% complete, ETA 00:00:34
 # Fork: 1 of 1
@@ -973,7 +973,7 @@ Iteration   1: 42788358.449 ops/s
 Iteration   2: 42901927.889 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.ObjectFactoryBenchmark.manualConstruction":
+Result "io.github.frikit.rdg.benchmarks.ObjectFactoryBenchmark.manualConstruction":
   42845143.169 ops/s
 
 
@@ -987,7 +987,7 @@ Result "io.github.frikit.krandom.benchmarks.ObjectFactoryBenchmark.manualConstru
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.ObjectGeneratorBenchmark.depth10ObjectGraph
+# Benchmark: io.github.frikit.rdg.benchmarks.ObjectGeneratorBenchmark.depth10ObjectGraph
 
 # Run progress: 79.59% complete, ETA 00:00:31
 # Fork: 1 of 1
@@ -999,7 +999,7 @@ Iteration   1: 718.612 ops/s
 Iteration   2: 740.603 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.ObjectGeneratorBenchmark.depth10ObjectGraph":
+Result "io.github.frikit.rdg.benchmarks.ObjectGeneratorBenchmark.depth10ObjectGraph":
   729.607 ops/s
 
 
@@ -1013,7 +1013,7 @@ Result "io.github.frikit.krandom.benchmarks.ObjectGeneratorBenchmark.depth10Obje
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.ObjectGeneratorBenchmark.depth2ObjectGraph
+# Benchmark: io.github.frikit.rdg.benchmarks.ObjectGeneratorBenchmark.depth2ObjectGraph
 
 # Run progress: 81.63% complete, ETA 00:00:28
 # Fork: 1 of 1
@@ -1025,7 +1025,7 @@ Iteration   1: 2774.234 ops/s
 Iteration   2: 2830.607 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.ObjectGeneratorBenchmark.depth2ObjectGraph":
+Result "io.github.frikit.rdg.benchmarks.ObjectGeneratorBenchmark.depth2ObjectGraph":
   2802.421 ops/s
 
 
@@ -1039,7 +1039,7 @@ Result "io.github.frikit.krandom.benchmarks.ObjectGeneratorBenchmark.depth2Objec
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.ObjectGeneratorBenchmark.depth5ObjectGraph
+# Benchmark: io.github.frikit.rdg.benchmarks.ObjectGeneratorBenchmark.depth5ObjectGraph
 
 # Run progress: 83.67% complete, ETA 00:00:25
 # Fork: 1 of 1
@@ -1051,7 +1051,7 @@ Iteration   1: 1365.192 ops/s
 Iteration   2: 1395.997 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.ObjectGeneratorBenchmark.depth5ObjectGraph":
+Result "io.github.frikit.rdg.benchmarks.ObjectGeneratorBenchmark.depth5ObjectGraph":
   1380.594 ops/s
 
 
@@ -1065,7 +1065,7 @@ Result "io.github.frikit.krandom.benchmarks.ObjectGeneratorBenchmark.depth5Objec
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.RegexGeneratorBenchmark.complexPattern
+# Benchmark: io.github.frikit.rdg.benchmarks.RegexGeneratorBenchmark.complexPattern
 
 # Run progress: 85.71% complete, ETA 00:00:22
 # Fork: 1 of 1
@@ -1074,7 +1074,7 @@ Iteration   1: 5070458.454 ops/s
 Iteration   2: 5192152.084 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.RegexGeneratorBenchmark.complexPattern":
+Result "io.github.frikit.rdg.benchmarks.RegexGeneratorBenchmark.complexPattern":
   5131305.269 ops/s
 
 
@@ -1088,7 +1088,7 @@ Result "io.github.frikit.krandom.benchmarks.RegexGeneratorBenchmark.complexPatte
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.RegexGeneratorBenchmark.constructorHotPathWithCachedParseTree
+# Benchmark: io.github.frikit.rdg.benchmarks.RegexGeneratorBenchmark.constructorHotPathWithCachedParseTree
 
 # Run progress: 87.76% complete, ETA 00:00:18
 # Fork: 1 of 1
@@ -1097,7 +1097,7 @@ Iteration   1: 5587130.959 ops/s
 Iteration   2: 5574770.477 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.RegexGeneratorBenchmark.constructorHotPathWithCachedParseTree":
+Result "io.github.frikit.rdg.benchmarks.RegexGeneratorBenchmark.constructorHotPathWithCachedParseTree":
   5580950.718 ops/s
 
 
@@ -1111,7 +1111,7 @@ Result "io.github.frikit.krandom.benchmarks.RegexGeneratorBenchmark.constructorH
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.RegexGeneratorBenchmark.simplePattern
+# Benchmark: io.github.frikit.rdg.benchmarks.RegexGeneratorBenchmark.simplePattern
 
 # Run progress: 89.80% complete, ETA 00:00:15
 # Fork: 1 of 1
@@ -1120,7 +1120,7 @@ Iteration   1: 9200785.254 ops/s
 Iteration   2: 8995259.721 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.RegexGeneratorBenchmark.simplePattern":
+Result "io.github.frikit.rdg.benchmarks.RegexGeneratorBenchmark.simplePattern":
   9098022.487 ops/s
 
 
@@ -1134,7 +1134,7 @@ Result "io.github.frikit.krandom.benchmarks.RegexGeneratorBenchmark.simplePatter
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.SchemaOutputBenchmark.largeSchemaBatch
+# Benchmark: io.github.frikit.rdg.benchmarks.SchemaOutputBenchmark.largeSchemaBatch
 
 # Run progress: 91.84% complete, ETA 00:00:12
 # Fork: 1 of 1
@@ -1143,7 +1143,7 @@ Iteration   1: 1515.614 ops/s
 Iteration   2: 1513.731 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.SchemaOutputBenchmark.largeSchemaBatch":
+Result "io.github.frikit.rdg.benchmarks.SchemaOutputBenchmark.largeSchemaBatch":
   1514.673 ops/s
 
 
@@ -1157,7 +1157,7 @@ Result "io.github.frikit.krandom.benchmarks.SchemaOutputBenchmark.largeSchemaBat
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.SchemaOutputBenchmark.largeSchemaJsonLines
+# Benchmark: io.github.frikit.rdg.benchmarks.SchemaOutputBenchmark.largeSchemaJsonLines
 
 # Run progress: 93.88% complete, ETA 00:00:09
 # Fork: 1 of 1
@@ -1166,7 +1166,7 @@ Iteration   1: 1073.984 ops/s
 Iteration   2: 1074.851 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.SchemaOutputBenchmark.largeSchemaJsonLines":
+Result "io.github.frikit.rdg.benchmarks.SchemaOutputBenchmark.largeSchemaJsonLines":
   1074.418 ops/s
 
 
@@ -1180,7 +1180,7 @@ Result "io.github.frikit.krandom.benchmarks.SchemaOutputBenchmark.largeSchemaJso
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.SchemaOutputBenchmark.streamingCsv
+# Benchmark: io.github.frikit.rdg.benchmarks.SchemaOutputBenchmark.streamingCsv
 
 # Run progress: 95.92% complete, ETA 00:00:06
 # Fork: 1 of 1
@@ -1189,7 +1189,7 @@ Iteration   1: 1356.497 ops/s
 Iteration   2: 1341.084 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.SchemaOutputBenchmark.streamingCsv":
+Result "io.github.frikit.rdg.benchmarks.SchemaOutputBenchmark.streamingCsv":
   1348.791 ops/s
 
 
@@ -1203,7 +1203,7 @@ Result "io.github.frikit.krandom.benchmarks.SchemaOutputBenchmark.streamingCsv":
 # Timeout: 10 min per iteration
 # Threads: 1 thread, will synchronize iterations
 # Benchmark mode: Throughput, ops/time
-# Benchmark: io.github.frikit.krandom.benchmarks.SchemaOutputBenchmark.streamingJsonLines
+# Benchmark: io.github.frikit.rdg.benchmarks.SchemaOutputBenchmark.streamingJsonLines
 
 # Run progress: 97.96% complete, ETA 00:00:03
 # Fork: 1 of 1
@@ -1212,7 +1212,7 @@ Iteration   1: 1175.081 ops/s
 Iteration   2: 1175.692 ops/s
 
 
-Result "io.github.frikit.krandom.benchmarks.SchemaOutputBenchmark.streamingJsonLines":
+Result "io.github.frikit.rdg.benchmarks.SchemaOutputBenchmark.streamingJsonLines":
   1175.386 ops/s
 
 
@@ -1237,21 +1237,21 @@ CompetitorBulkBenchmark.easyRandomBulk                                   100    
 CompetitorBulkBenchmark.easyRandomBulk                                  1000          N/A  thrpt    2        178.125          ops/s
 CompetitorBulkBenchmark.instancioBulk                                    100          N/A  thrpt    2      14518.812          ops/s
 CompetitorBulkBenchmark.instancioBulk                                   1000          N/A  thrpt    2       1731.325          ops/s
-CompetitorBulkBenchmark.krandomBulk                                      100          N/A  thrpt    2         22.743          ops/s
-CompetitorBulkBenchmark.krandomBulk                                     1000          N/A  thrpt    2          2.292          ops/s
+CompetitorBulkBenchmark.rdgBulk                                      100          N/A  thrpt    2         22.743          ops/s
+CompetitorBulkBenchmark.rdgBulk                                     1000          N/A  thrpt    2          2.292          ops/s
 CompetitorObjectBenchmark.dataFakerObject                                N/A          N/A  thrpt    2     503558.592          ops/s
 CompetitorObjectBenchmark.easyRandomObject                               N/A          N/A  thrpt    2     213375.781          ops/s
 CompetitorObjectBenchmark.instancioObject                                N/A          N/A  thrpt    2     200867.125          ops/s
-CompetitorObjectBenchmark.krandomObject                                  N/A          N/A  thrpt    2       2442.973          ops/s
+CompetitorObjectBenchmark.rdgObject                                  N/A          N/A  thrpt    2       2442.973          ops/s
 CompetitorScalarBenchmark.dataFakerEmail                                 N/A          N/A  thrpt    2     862021.719          ops/s
 CompetitorScalarBenchmark.dataFakerFirstName                             N/A          N/A  thrpt    2    5789335.400          ops/s
 CompetitorScalarBenchmark.dataFakerStreetAddress                         N/A          N/A  thrpt    2    1694724.327          ops/s
 CompetitorScalarBenchmark.javaFakerEmail                                 N/A          N/A  thrpt    2     346389.740          ops/s
 CompetitorScalarBenchmark.javaFakerFirstName                             N/A          N/A  thrpt    2     599328.090          ops/s
 CompetitorScalarBenchmark.javaFakerStreetAddress                         N/A          N/A  thrpt    2     112167.340          ops/s
-CompetitorScalarBenchmark.krandomEmail                                   N/A          N/A  thrpt    2   19296416.161          ops/s
-CompetitorScalarBenchmark.krandomFirstName                               N/A          N/A  thrpt    2  104020786.802          ops/s
-CompetitorScalarBenchmark.krandomStreetAddress                           N/A          N/A  thrpt    2   22460176.573          ops/s
+CompetitorScalarBenchmark.rdgEmail                                   N/A          N/A  thrpt    2   19296416.161          ops/s
+CompetitorScalarBenchmark.rdgFirstName                               N/A          N/A  thrpt    2  104020786.802          ops/s
+CompetitorScalarBenchmark.rdgStreetAddress                           N/A          N/A  thrpt    2   22460176.573          ops/s
 ExpandedGenerationBenchmark.relaxedSemanticObjectGraph                   N/A          N/A  thrpt    2        758.382          ops/s
 ExpandedGenerationBenchmark.semanticObjectGraph                          N/A          N/A  thrpt    2        935.824          ops/s
 ExpandedGenerationBenchmark.semanticObjectGraphWithUniqueFields          N/A          N/A  thrpt    2       1062.028          ops/s

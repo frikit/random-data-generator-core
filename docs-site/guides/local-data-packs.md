@@ -7,26 +7,26 @@ permalink: /guides/local-data-packs/
 # Local Data Packs
 
 University fixtures use verified local data packs. A pack is a directory—not a URL—and it is only
-visible through the `DataRegistryContext` that registers it. kRandom never downloads a pack at
+visible through the `DataRegistryContext` that registers it. random-data-generator never downloads a pack at
 runtime.
 
 ## No built-in university data
 
-kRandom ships no university data, because no university dataset it could bundle has an acceptable
+random-data-generator ships no university data, because no university dataset it could bundle has an acceptable
 source and licence, and it does not make one up. So `Generators.ofUniversity(config)`,
 `new UniversityGenerator(config)`, and `Generators.person(config).university()` throw
 `UnsupportedOperationException` in every locale until a pack is registered for the configured
 locale, or for its language. The message, one line wrapped here, names the route below:
 
 ```text
-Locale en_US has no university data, and kRandom ships none. Load a local data pack with
+Locale en_US has no university data, and random-data-generator ships none. Load a local data pack with
 LocalDataPack.load(directory), register it with DataRegistryContext.builder().registerDataPack(pack),
 and pass that context to GeneratorConfig.Builder.registryContext(context). Registered locales: []
 ```
 
 ## Creating and loading a pack
 
-Create `krandom-data-pack.properties` beside `universities.csv`:
+Create `rdg-data-pack.properties` beside `universities.csv`:
 
 ```properties
 format.version=1

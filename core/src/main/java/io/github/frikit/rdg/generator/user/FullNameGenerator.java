@@ -1,0 +1,426 @@
+/*
+ * Copyright (c) 2026 random-data-generator contributors
+ *
+ * Licensed under the MIT License. See LICENSE in the project root for license information.
+ */
+package io.github.frikit.rdg.generator.user;
+
+import io.github.frikit.rdg.generator.Generator;
+import io.github.frikit.rdg.generator.GeneratorConfig;
+import io.github.frikit.rdg.generator.locale.SupportedLocale;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.OptionalLong;
+import java.util.Set;
+
+/**
+ * Generates locale-aware full names by combining a {@link FirstNameGenerator} and a
+ * {@link LastNameGenerator}.
+ *
+ * <p>Built-in locale coverage follows the underlying name generators and the catalog in
+ * {@link io.github.frikit.rdg.generator.locale.SupportedLocale}.
+ *
+ * <p>With {@link GeneratorConfig.Builder#advancingConvenienceStreams(boolean)} on, as it is by default from 4.0.0,
+ * the methods with a middle name or initial keep one middle-name generator, shared with
+ * {@link #generate(NameOptions)}, and each call gives the next middle name. With it off, as in 3.x, they build
+ * one from the same child stream on each call, so a seeded generator repeats one middle name.
+ *
+ * <pre>{@code
+ * FullNameGenerator gen = new FullNameGenerator();
+ * String name = gen.generate();               // "James Smith"
+ * String male = gen.generate(Gender.MALE);    // "John Doe"
+ *
+ * FullNameGenerator de = new FullNameGenerator(Locale.GERMANY);
+ * String deName = de.generate(Gender.FEMALE); // "Marie Müller"
+ * }</pre>
+ */
+public final class FullNameGenerator implements Generator<String> {
+
+    private static final Map<String, Locale> NATIONALITY_TO_LOCALE = nationalityToLocaleMap();
+    private static final Set<String> SUPPORTED_NATIONALITY_KEYS = NATIONALITY_TO_LOCALE.keySet();
+
+    static {
+        io.github.frikit.rdg.internal.Reseeding.register(FullNameGenerator.class, FullNameGenerator::reseedTo);
+    }
+
+    /** Not final: a reseed replaces it with the configuration seeded so, which later child streams derive from. */
+    private GeneratorConfig config;
+
+    private final FirstNameGenerator firstNameGenerator;
+    private final LastNameGenerator lastNameGenerator;
+    private final Map<Locale, NameGenerators> generatorsByLocale;
+
+    /**
+     * Reseeds this generator, which then gives what one built from its configuration with this seed gives: its
+     * first- and last-name streams are reseeded, and the generators it made for other locales and for titles,
+     * suffixes and middle names, whose streams derive from the old seed, are dropped and made again when used.
+     */
+    void reseedTo(long seed) {
+        config = io.github.frikit.rdg.internal.ConfigAccess.withSeed(config, seed);
+        firstNameGenerator.reseedTo(io.github.frikit.rdg.internal.Reseeding.childSeed(config, seed, "firstName"));
+        lastNameGenerator.reseedTo(io.github.frikit.rdg.internal.Reseeding.childSeed(config, seed, "lastName"));
+        generatorsByLocale.clear();
+        generatorsByLocale.put(config.getLocale(), new NameGenerators(config, firstNameGenerator, lastNameGenerator));
+    }
+
+    /**
+     * Uses {@link GeneratorConfig#defaults()} — locale defaults to {@link Locale#US}.
+     */
+    public FullNameGenerator() {
+        this(GeneratorConfig.defaults());
+    }
+
+    /**
+     * Constructs a generator for the given locale.
+     */
+    public FullNameGenerator(Locale locale) {
+        this(GeneratorConfig.builder().locale(locale).build());
+    }
+
+    /**
+     * Full constructor using a {@link GeneratorConfig} (locale + optional seed).
+     */
+    public FullNameGenerator(GeneratorConfig config) {
+        this.config = Objects.requireNonNull(config, "config must not be null");
+        this.firstNameGenerator = new FirstNameGenerator(config.forChildStream("firstName"));
+        this.lastNameGenerator = new LastNameGenerator(config.forChildStream("lastName"));
+        this.generatorsByLocale = new HashMap<>();
+        this.generatorsByLocale.put(
+                config.getLocale(), new NameGenerators(config, firstNameGenerator, lastNameGenerator));
+    }
+
+    private static Locale resolveNationalityLocale(String nationality) {
+        String key = normalizeNationality(nationality);
+        Locale locale = NATIONALITY_TO_LOCALE.get(key);
+        if (locale == null) {
+            throw new UnsupportedOperationException(
+                    "Nationality '" + nationality + "' is not supported. Supported: " + SUPPORTED_NATIONALITY_KEYS);
+        }
+        return locale;
+    }
+
+    private static String normalizeNationality(String nationality) {
+        Objects.requireNonNull(nationality, "nationality must not be null");
+        String normalized = nationality.trim().toLowerCase(Locale.ROOT).replace('-', '_');
+        if (normalized.isEmpty()) {
+            throw new IllegalArgumentException("nationality must not be blank");
+        }
+        return normalized;
+    }
+
+    private static Map<String, Locale> nationalityToLocaleMap() {
+        Map<String, Locale> map = new LinkedHashMap<>();
+        // "UK" is the common name of the United Kingdom and must win over the ISO 639 code of
+        // Ukrainian; Ukrainian names stay reachable through "uk_UA", "uk-UA", "UA" and "UK_UA".
+        registerNationalityToken(map, "uk", Locale.UK);
+        for (SupportedLocale supportedLocale : SupportedLocale.values()) {
+            Locale locale = supportedLocale.locale();
+            registerNationalityToken(map, locale.getLanguage(), locale);
+            registerNationalityToken(map, locale.getCountry(), locale);
+            registerNationalityToken(map, locale.toString(), locale);
+            registerNationalityToken(map, locale.toLanguageTag(), locale);
+            registerNationalityToken(map, supportedLocale.name(), locale);
+        }
+        return Map.copyOf(map);
+    }
+
+    private static void registerNationalityToken(Map<String, Locale> map, String token, Locale locale) {
+        if (token != null && !token.isBlank()) {
+            map.putIfAbsent(normalizeNationality(token), locale);
+        }
+    }
+
+    /**
+     * Generates a random full name (first + last) with a randomly chosen gender.
+     *
+     * @return a full name string; never {@code null}
+     */
+    @Override
+    public String generate() {
+        return firstNameGenerator.generate() + " " + lastNameGenerator.generate();
+    }
+
+    /**
+     * Generates a full name for the specified gender.
+     *
+     * @param gender {@link Gender#MALE} or {@link Gender#FEMALE}; must not be {@code null}
+     * @return a full name string; never {@code null}
+     * @throws NullPointerException if {@code gender} is {@code null}
+     */
+    public String generate(Gender gender) {
+        Objects.requireNonNull(gender, "gender must not be null");
+        return firstNameGenerator.generate(gender) + " " + lastNameGenerator.generate();
+    }
+
+    /**
+     * Generates a full name using female first-name data.
+     *
+     * @return female full name
+     */
+    public String generateFemale() {
+        return generate(Gender.FEMALE);
+    }
+
+    /**
+     * Generates a full name using male first-name data.
+     *
+     * @return male full name
+     */
+    public String generateMale() {
+        return generate(Gender.MALE);
+    }
+
+    /**
+     * Generates a full name that includes a middle name.
+     *
+     * <p>For locales where middle names are not part of the naming model (for example
+     * {@code es_ES}, {@code ja_JP}, {@code zh_CN}), this method throws
+     * {@link UnsupportedOperationException}.
+     *
+     * @return a three-part full name string; never {@code null}
+     * @throws UnsupportedOperationException if middle names are not supported for this locale
+     */
+    public String generateWithMiddleName() {
+        MiddleNameGenerator middleNameGenerator = middleNames();
+        return firstNameGenerator.generate()
+                + " " + middleNameGenerator.generate()
+                + " " + lastNameGenerator.generate();
+    }
+
+    /**
+     * Generates a full name that includes a middle name for the specified gender.
+     *
+     * <p>For locales where middle names are not part of the naming model (for example
+     * {@code es_ES}, {@code ja_JP}, {@code zh_CN}), this method throws
+     * {@link UnsupportedOperationException}.
+     *
+     * @param gender {@link Gender#MALE} or {@link Gender#FEMALE}; must not be {@code null}
+     * @return a three-part full name string; never {@code null}
+     * @throws NullPointerException          if {@code gender} is {@code null}
+     * @throws UnsupportedOperationException if middle names are not supported for this locale
+     */
+    public String generateWithMiddleName(Gender gender) {
+        Objects.requireNonNull(gender, "gender must not be null");
+        MiddleNameGenerator middleNameGenerator = middleNames();
+        return firstNameGenerator.generate(gender)
+                + " " + middleNameGenerator.generate(gender)
+                + " " + lastNameGenerator.generate();
+    }
+
+    /**
+     * Generates a full name with a middle initial (for example, {@code "John P. Smith"}).
+     *
+     * <p>For locales where middle names are not part of the naming model (for example
+     * {@code es_ES}, {@code ja_JP}, {@code zh_CN}), this method throws
+     * {@link UnsupportedOperationException}.
+     *
+     * @return a three-part full name with middle initial; never {@code null}
+     * @throws UnsupportedOperationException if middle names are not supported for this locale
+     */
+    public String generateWithMiddleInitial() {
+        return firstNameGenerator.generate()
+                + " " + middleNames().generateInitial()
+                + " " + lastNameGenerator.generate();
+    }
+
+    /**
+     * Generates a full name with a middle initial for the specified gender.
+     *
+     * @param gender {@link Gender#MALE} or {@link Gender#FEMALE}; must not be {@code null}
+     * @return a three-part full name with middle initial; never {@code null}
+     * @throws NullPointerException          if {@code gender} is {@code null}
+     * @throws UnsupportedOperationException if middle names are not supported for this locale
+     */
+    public String generateWithMiddleInitial(Gender gender) {
+        Objects.requireNonNull(gender, "gender must not be null");
+        return firstNameGenerator.generate(gender)
+                + " " + middleNames().generateInitial(gender)
+                + " " + lastNameGenerator.generate();
+    }
+
+    /**
+     * Generates a full name with Chance-style option combinations.
+     *
+     * <p>Supported options:
+     * <ul>
+     *   <li>{@code middle} — include full middle name</li>
+     *   <li>{@code middleInitial} — include middle initial (takes precedence over {@code middle})</li>
+     *   <li>{@code prefix} — prepend title/honorific</li>
+     *   <li>{@code suffix} — append suffix</li>
+     *   <li>{@code reverse} — emit name in reversed order (last name first)</li>
+     *   <li>{@code gender} — male/female first/middle name selection</li>
+     *   <li>{@code nationality} — locale selector token (for example: {@code "en"}, {@code "it"})</li>
+     * </ul>
+     *
+     * @param options option bag; must not be {@code null}
+     * @return generated full name string
+     */
+    public String generate(NameOptions options) {
+        Objects.requireNonNull(options, "options must not be null");
+
+        Locale locale =
+                options.nationality() == null ? config.getLocale() : resolveNationalityLocale(options.nationality());
+
+        NameGenerators generators = generatorsFor(locale);
+        Gender gender = options.gender();
+
+        StringBuilder sb = new StringBuilder();
+
+        if (options.prefix()) {
+            sb.append(generators.titleGenerator().generate()).append(' ');
+        }
+
+        String firstName = gender == null
+                ? generators.firstNameGenerator().generate()
+                : generators.firstNameGenerator().generate(gender);
+        String middlePart = null;
+        String lastName = generators.lastNameGenerator().generate();
+
+        if (options.middleInitial()) {
+            MiddleNameGenerator middle = generators.middleNameGenerator();
+            middlePart = gender == null ? middle.generateInitial() : middle.generateInitial(gender);
+        } else if (options.middle()) {
+            MiddleNameGenerator middle = generators.middleNameGenerator();
+            middlePart = gender == null ? middle.generate() : middle.generate(gender);
+        }
+
+        if (options.reverse()) {
+            sb.append(lastName).append(' ').append(firstName);
+            if (middlePart != null) {
+                sb.append(' ').append(middlePart);
+            }
+        } else {
+            sb.append(firstName);
+            if (middlePart != null) {
+                sb.append(' ').append(middlePart);
+            }
+            sb.append(' ').append(lastName);
+        }
+
+        if (options.suffix()) {
+            sb.append(' ').append(generators.suffixGenerator().generate());
+        }
+
+        return sb.toString();
+    }
+
+    /**
+     * Returns the locale this generator was configured with.
+     */
+    public Locale getLocale() {
+        return config.getLocale();
+    }
+
+    /**
+     * Returns {@code true} if the configured locale has registered name providers.
+     */
+    public boolean isLocaleExplicitlySupported() {
+        return firstNameGenerator.isLocaleExplicitlySupported();
+    }
+
+    /**
+     * The middle-name generator of the methods with a middle name or initial: a new one from the same child stream
+     * on each call, so a seeded generator repeats one middle name, or, with
+     * {@link GeneratorConfig.Builder#advancingConvenienceStreams(boolean)} on, the one this generator keeps for its
+     * own locale, which {@link #generate(NameOptions)} also draws from, so each call gives the next.
+     */
+    private MiddleNameGenerator middleNames() {
+        return config.isAdvancingConvenienceStreams()
+                ? generatorsFor(config.getLocale()).middleNameGenerator()
+                : new MiddleNameGenerator(config.forChildStream("middleName"));
+    }
+
+    private NameGenerators generatorsFor(Locale locale) {
+        NameGenerators existing = generatorsByLocale.get(locale);
+        if (existing != null) {
+            return existing;
+        }
+
+        GeneratorConfig localeConfig = configForLocale(locale);
+        NameGenerators created = new NameGenerators(
+                localeConfig,
+                new FirstNameGenerator(localeConfig.forChildStream("firstName")),
+                new LastNameGenerator(localeConfig.forChildStream("lastName")));
+        generatorsByLocale.put(locale, created);
+        return created;
+    }
+
+    private GeneratorConfig configForLocale(Locale locale) {
+        GeneratorConfig.Builder builder = config.toBuilder().locale(locale);
+        OptionalLong seed = config.getSeed();
+        if (seed.isPresent()) {
+            long mixed = seed.getAsLong() ^ locale.toLanguageTag().hashCode();
+            builder.seed(mixed);
+        }
+        return builder.build();
+    }
+
+    /**
+     * Option bag for Chance-style name generation.
+     *
+     * @param middle        include a full middle name
+     * @param middleInitial include middle initial (takes precedence over middle)
+     * @param prefix        include title/prefix
+     * @param suffix        include suffix
+     * @param reverse       whether to reverse core name order (last name first)
+     * @param gender        optional gender selector
+     * @param nationality   optional nationality/locale token (for example {@code "en"}, {@code "it"})
+     */
+    public record NameOptions(
+            boolean middle,
+            boolean middleInitial,
+            boolean prefix,
+            boolean suffix,
+            boolean reverse,
+            Gender gender,
+            String nationality) {}
+
+    private static final class NameGenerators {
+
+        private final GeneratorConfig config;
+        private final FirstNameGenerator firstNameGenerator;
+        private final LastNameGenerator lastNameGenerator;
+        private @org.jspecify.annotations.Nullable TitleGenerator titleGenerator;
+        private @org.jspecify.annotations.Nullable SuffixGenerator suffixGenerator;
+        private @org.jspecify.annotations.Nullable MiddleNameGenerator middleNameGenerator;
+
+        private NameGenerators(
+                GeneratorConfig config, FirstNameGenerator firstNameGenerator, LastNameGenerator lastNameGenerator) {
+            this.config = config;
+            this.firstNameGenerator = firstNameGenerator;
+            this.lastNameGenerator = lastNameGenerator;
+        }
+
+        private FirstNameGenerator firstNameGenerator() {
+            return firstNameGenerator;
+        }
+
+        private LastNameGenerator lastNameGenerator() {
+            return lastNameGenerator;
+        }
+
+        private TitleGenerator titleGenerator() {
+            if (titleGenerator == null) {
+                titleGenerator = new TitleGenerator(config.forChildStream("title"));
+            }
+            return titleGenerator;
+        }
+
+        private SuffixGenerator suffixGenerator() {
+            if (suffixGenerator == null) {
+                suffixGenerator = new SuffixGenerator(config.forChildStream("suffix"));
+            }
+            return suffixGenerator;
+        }
+
+        private MiddleNameGenerator middleNameGenerator() {
+            if (middleNameGenerator == null) {
+                middleNameGenerator = new MiddleNameGenerator(config.forChildStream("middleName"));
+            }
+            return middleNameGenerator;
+        }
+    }
+}

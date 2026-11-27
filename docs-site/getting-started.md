@@ -10,22 +10,22 @@ permalink: /getting-started/
 
 - Java 17+ for every module from `3.1.0` (Java 21+ for `3.0.x`)
 - Gradle or Maven
-- JUnit 6 for the optional `krandom-junit` extension
+- JUnit 6 for the optional `random-data-generator-junit` extension
 
 ## Dependency
 
 Module coordinates (Maven Central group `io.github.frikit`):
 
-- `io.github.frikit:krandom-core`
-- `io.github.frikit:krandom-bom` (aligns all module versions)
-- `io.github.frikit:krandom-jackson`
-- `io.github.frikit:krandom-junit` (from `1.2.0`)
-- `io.github.frikit:krandom-spring-boot-starter`
-- `io.github.frikit:krandom-kotest-extensions`
-- `io.github.frikit:krandom-kotlin-dsl`
+- `io.github.frikit:random-data-generator-core`
+- `io.github.frikit:random-data-generator-bom` (aligns all module versions)
+- `io.github.frikit:random-data-generator-jackson`
+- `io.github.frikit:random-data-generator-junit` (from `1.2.0`)
+- `io.github.frikit:random-data-generator-spring-boot-starter`
+- `io.github.frikit:random-data-generator-kotest-extensions`
+- `io.github.frikit:random-data-generator-kotlin-dsl`
 
-The current version is `4.1.0`. Latest version is always shown on
-[GitHub Releases](https://github.com/frikit/krandom/releases).
+The first version will be `1.0.0`. Released versions are shown on
+[GitHub Releases](https://github.com/frikit/random-data-generator-core/releases).
 
 Gradle:
 
@@ -35,14 +35,14 @@ repositories {
 }
 
 dependencies {
-    implementation(platform("io.github.frikit:krandom-bom:4.1.0"))
-    implementation("io.github.frikit:krandom-core")
+    implementation(platform("io.github.frikit:random-data-generator-bom:1.0.0"))
+    implementation("io.github.frikit:random-data-generator-core")
     // Optional integrations:
-    implementation("io.github.frikit:krandom-jackson")
-    implementation("io.github.frikit:krandom-spring-boot-starter")
-    testImplementation("io.github.frikit:krandom-kotest-extensions")
-    testImplementation("io.github.frikit:krandom-kotlin-dsl")
-    testImplementation("io.github.frikit:krandom-junit") // JUnit Jupiter seed extension, from 1.2.0
+    implementation("io.github.frikit:random-data-generator-jackson")
+    implementation("io.github.frikit:random-data-generator-spring-boot-starter")
+    testImplementation("io.github.frikit:random-data-generator-kotest-extensions")
+    testImplementation("io.github.frikit:random-data-generator-kotlin-dsl")
+    testImplementation("io.github.frikit:random-data-generator-junit") // JUnit Jupiter seed extension, from 1.2.0
 }
 ```
 
@@ -53,8 +53,8 @@ Maven:
   <dependencies>
     <dependency>
       <groupId>io.github.frikit</groupId>
-      <artifactId>krandom-bom</artifactId>
-      <version>4.1.0</version>
+      <artifactId>random-data-generator-bom</artifactId>
+      <version>1.0.0</version>
       <type>pom</type>
       <scope>import</scope>
     </dependency>
@@ -64,17 +64,17 @@ Maven:
 <dependencies>
   <dependency>
     <groupId>io.github.frikit</groupId>
-    <artifactId>krandom-core</artifactId>
+    <artifactId>random-data-generator-core</artifactId>
   </dependency>
 </dependencies>
 ```
 
-Import `io.github.frikit:krandom-bom` in Gradle or Maven and omit versions from individual kRandom modules. Use explicit `4.1.0` versions instead when consuming only one artifact without the BOM.
+Import `io.github.frikit:random-data-generator-bom` in Gradle or Maven and omit versions from individual random-data-generator modules. Use explicit `1.0.0` versions instead when consuming only one artifact without the BOM.
 
 ## First usage
 
 ```java
-import io.github.frikit.krandom.generator.Generators;
+import io.github.frikit.rdg.generator.Generators;
 
 int roll = Generators.ofInt(1, 7).generate();
 String name = Generators.ofFullName().generate();
@@ -86,7 +86,7 @@ String ipv4 = Generators.ofIPv4().generate();
 `GeneratorConfig` is the main configuration entry point for the library.
 
 ```java
-import io.github.frikit.krandom.generator.GeneratorConfig;
+import io.github.frikit.rdg.generator.GeneratorConfig;
 
 import java.util.Locale;
 
@@ -101,7 +101,7 @@ Use that same config for scalar generators, object generation, fluent fixtures, 
 ## Realistic object generation by default
 
 ```java
-import io.github.frikit.krandom.generator.Generators;
+import io.github.frikit.rdg.generator.Generators;
 
 OrderDto order = Generators.ofObject(OrderDto.class, cfg).generate();
 ```
@@ -137,8 +137,8 @@ String csv = orders.toCsv(10);
 ## Seeded deterministic generation
 
 ```java
-import io.github.frikit.krandom.generator.GeneratorConfig;
-import io.github.frikit.krandom.generator.user.EmailGenerator;
+import io.github.frikit.rdg.generator.GeneratorConfig;
+import io.github.frikit.rdg.generator.user.EmailGenerator;
 
 GeneratorConfig cfg = GeneratorConfig.builder()
         .seed(42L)
@@ -153,7 +153,7 @@ String firstB = b.generate();
 ```
 
 Every generator built from one seeded config starts from that seed, so different generators draw
-the same random sequence too. `Krandom` (below) gives each of its methods its own stream; for
+the same random sequence too. `RandomDataGenerator` (below) gives each of its methods its own stream; for
 generators you build yourself, see
 [composite child streams]({{ '/guides/primitives-and-determinism/' | relative_url }}#composite-child-streams).
 
@@ -161,15 +161,15 @@ The same root config can also drive deterministic object, fixture, template, pro
 
 ## Fixture values in tests
 
-For test fixtures, `Krandom` is one seeded object that returns plain values. Each method draws from
+For test fixtures, `RandomDataGenerator` is one seeded object that returns plain values. Each method draws from
 its own stream, so its values are unaffected by calls of other methods, and the same seed gives the
 same data. `today()` and birthdays follow the configured clock, so fix the clock when dates must be
 the same on every day:
 
 ```java
-import io.github.frikit.krandom.generator.Krandom;
+import io.github.frikit.rdg.generator.RandomDataGenerator;
 
-Krandom fake = Krandom.of(GeneratorConfig.builder()
+RandomDataGenerator fake = RandomDataGenerator.of(GeneratorConfig.builder()
         .seed("checkout-fixtures")
         .locale(Locale.UK)
         .clock(Clock.fixed(Instant.parse("2025-06-30T12:00:00Z"), ZoneOffset.UTC))
@@ -183,7 +183,7 @@ String postcode = fake.postalCode();
 String title = fake.pick("MR", "MRS", "MS", "DR");
 ```
 
-Create one session and reuse it; a new session starts every stream again. `Krandom.seeded(seed,
+Create one session and reuse it; a new session starts every stream again. `RandomDataGenerator.seeded(seed,
 locale)` is the short form when dates may follow the system clock, and
 `NationalIdSafetyPolicy.REALISTIC_UNCLASSIFIED` on the configuration allows `nationalId()`.
 `postalCode()` and `city()` draw separately; since 3.2.0, `postalLocality()` gives a city with one of its own postal

@@ -1,0 +1,381 @@
+/*
+ * Copyright (c) 2026 random-data-generator contributors
+ *
+ * Licensed under the MIT License. See LICENSE in the project root for license information.
+ */
+package io.github.frikit.rdg.generator;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import io.github.frikit.rdg.generator.location.CountryGenerator;
+import io.github.frikit.rdg.generator.user.FirstNameGenerator;
+import io.github.frikit.rdg.generator.user.Gender;
+import io.github.frikit.rdg.generator.user.MiddleNameGenerator;
+import io.github.frikit.rdg.generator.user.nationalid.NationalIdSafetyPolicy;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Random;
+import java.util.function.Function;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+@DisplayName("RandomDataGenerator")
+class RandomDataGeneratorTest {
+
+    private static final Clock FIXED = Clock.fixed(Instant.parse("2025-06-30T12:00:00Z"), ZoneOffset.UTC);
+    private static final LocalDate TODAY = LocalDate.of(2025, 6, 30);
+
+    private static RandomDataGenerator uk(String seed) {
+        return RandomDataGenerator.of(GeneratorConfig.builder()
+                .seed(seed)
+                .locale(Locale.UK)
+                .clock(FIXED)
+                .nationalIdSafetyPolicy(NationalIdSafetyPolicy.REALISTIC_UNCLASSIFIED)
+                .build());
+    }
+
+    private static List<Object> everyKind(RandomDataGenerator fake) {
+        return List.of(
+                fake.firstName(),
+                fake.firstName(Gender.FEMALE),
+                fake.middleName(),
+                fake.middleName(Gender.MALE),
+                fake.lastName(),
+                fake.fullName(),
+                fake.title(),
+                fake.maritalStatus(),
+                fake.email(),
+                fake.phoneNumber(),
+                fake.nationalId(),
+                fake.nationalIdCompact(),
+                fake.birthday(25, 80),
+                fake.streetAddress(),
+                fake.city(),
+                fake.postalCode(),
+                fake.addressType(),
+                fake.addressPurpose(),
+                fake.country(),
+                fake.countryCode(),
+                fake.countryCodeAlpha3(),
+                fake.countryCodeNumeric(),
+                fake.countryCodes(),
+                fake.today(),
+                fake.dateBetween(TODAY.minusYears(1), TODAY),
+                fake.intBetween(1, 1_000_000),
+                fake.pick("MR", "MRS", "MISS", "MS"),
+                fake.pick(List.of(1, 2, 3, 4, 5)));
+    }
+
+    private static <T> List<T> draw(int count, Function<RandomDataGenerator, T> kind, RandomDataGenerator fake) {
+        List<T> values = new ArrayList<>(count);
+        for (int i = 0; i < count; i++) {
+            values.add(kind.apply(fake));
+        }
+        return values;
+    }
+
+    @Test
+    @DisplayName("the same seed gives the same values for every kind")
+    void sameSeedGivesSameValues() {
+        assertEquals(everyKind(uk("fixtures")), everyKind(uk("fixtures")));
+        assertNotEquals(everyKind(uk("fixtures")), everyKind(uk("other fixtures")));
+    }
+
+    @Test
+    @DisplayName("repeated calls of one kind vary")
+    void repeatedCallsVary() {
+        RandomDataGenerator fake = uk("fixtures");
+
+        assertTrue(new HashSet<>(draw(10, RandomDataGenerator::firstName, fake)).size() > 1);
+        assertTrue(new HashSet<>(draw(10, f -> f.intBetween(1, 1_000_000), fake)).size() > 1);
+    }
+
+    @Test
+    @DisplayName("a kind's values do not shift when other kinds are drawn in between")
+    void kindsAreStableAgainstOtherKinds() {
+        RandomDataGenerator alone = uk("fixtures");
+        RandomDataGenerator interleaved = uk("fixtures");
+
+        List<String> expected = draw(5, RandomDataGenerator::firstName, alone);
+        List<String> actual = new ArrayList<>();
+        for (int i = 0; i < 5; i++) {
+            interleaved.email();
+            interleaved.lastName();
+            actual.add(interleaved.firstName());
+            interleaved.intBetween(1, 10);
+        }
+
+        assertEquals(expected, actual);
+    }
+
+    @Test
+    @DisplayName("each kind draws from its own derived stream, even under the legacy child-stream policy")
+    void kindsUseDerivedStreamsUnderLegacyPolicy() {
+        GeneratorConfig legacy = GeneratorConfig.builder()
+                .seed(42L)
+                .childStreamPolicy(ChildStreamPolicy.LEGACY)
+                .build();
+        RandomDataGenerator fake = RandomDataGenerator.of(legacy);
+
+        assertEquals(ChildStreamPolicy.LEGACY, legacy.getChildStreamPolicy());
+        assertEquals(
+                Generators.ofFirstName(fake.streamConfig("krandom.firstName")).generate(), fake.firstName());
+        assertEquals(
+                Generators.ofLastName(fake.streamConfig("krandom.lastName")).generate(), fake.lastName());
+    }
+
+    @Test
+    @DisplayName("each country-code method draws from its own stream, and countryCodes keeps one country's codes")
+    void countryCodesInEachFormat() {
+        RandomDataGenerator fake = uk("fixtures");
+        CountryGenerator alpha2 = Generators.ofCountry(fake.streamConfig("krandom.countryCode"));
+        CountryGenerator alpha3 = Generators.ofCountry(fake.streamConfig("krandom.countryCodeAlpha3"));
+        CountryGenerator numeric = Generators.ofCountry(fake.streamConfig("krandom.countryCodeNumeric"));
+        CountryGenerator codes = Generators.ofCountry(fake.streamConfig("krandom.countryCodes"));
+
+        // Interleaved, so a generator shared between two methods would shift the other method's values.
+        for (int i = 0; i < 5; i++) {
+            assertEquals(alpha2.generateCode(), fake.countryCode());
+            assertEquals(alpha3.generateCodeAlpha3(), fake.countryCodeAlpha3());
+            assertEquals(numeric.generateCodeNumeric(), fake.countryCodeNumeric());
+            assertEquals(codes.generateCodes(), fake.countryCodes());
+        }
+        assertTrue(fake.countryCode().matches("[A-Z]{2}"));
+        assertTrue(fake.countryCodeAlpha3().matches("[A-Z]{3}"));
+        assertTrue(fake.countryCodeNumeric().matches("\\d{3}"));
+    }
+
+    @Test
+    @DisplayName("address types and purposes draw from their own streams, in the session locale")
+    void addressTypesAndPurposesFollowTheLocale() {
+        RandomDataGenerator fake = RandomDataGenerator.seeded("fixtures", Locale.GERMANY);
+        Generator<String> types = Generators.ofAddressType(fake.streamConfig("krandom.addressType"));
+        Generator<String> purposes = Generators.ofAddressPurpose(fake.streamConfig("krandom.addressPurpose"));
+
+        for (int i = 0; i < 10; i++) {
+            assertEquals(types.generate(), fake.addressType());
+            assertEquals(purposes.generate(), fake.addressPurpose());
+        }
+    }
+
+    @Test
+    @DisplayName("maritalStatus draws from its own stream, in the session locale")
+    void maritalStatusFollowsTheLocale() {
+        RandomDataGenerator fake = RandomDataGenerator.seeded("fixtures", Locale.GERMANY);
+        Generator<String> statuses = Generators.ofMaritalStatus(fake.streamConfig("krandom.maritalStatus"));
+
+        for (int i = 0; i < 10; i++) {
+            assertEquals(statuses.generate(), fake.maritalStatus());
+        }
+    }
+
+    @Test
+    @DisplayName("gendered first and middle names share their method's stream and reject a null gender")
+    void genderedNamesShareTheirMethodsStream() {
+        RandomDataGenerator fake = uk("fixtures");
+        FirstNameGenerator firstNames = Generators.ofFirstName(fake.streamConfig("krandom.firstName"));
+        MiddleNameGenerator middleNames = Generators.ofMiddleName(fake.streamConfig("krandom.middleName"));
+
+        for (int i = 0; i < 5; i++) {
+            assertEquals(firstNames.generate(Gender.FEMALE), fake.firstName(Gender.FEMALE));
+            assertEquals(firstNames.generate(), fake.firstName());
+            assertEquals(firstNames.generate(Gender.MALE), fake.firstName(Gender.MALE));
+            assertEquals(middleNames.generate(Gender.MALE), fake.middleName(Gender.MALE));
+            assertEquals(middleNames.generate(Gender.FEMALE), fake.middleName(Gender.FEMALE));
+            assertEquals(middleNames.generate(), fake.middleName());
+        }
+        assertThrows(NullPointerException.class, () -> fake.firstName(null));
+        assertThrows(NullPointerException.class, () -> fake.middleName(null));
+    }
+
+    @Test
+    @DisplayName("streamConfig derives a seed from the session seed and the name")
+    void streamConfigDerivesSeed() {
+        RandomDataGenerator fake =
+                RandomDataGenerator.of(GeneratorConfig.builder().seed(7L).build());
+
+        GeneratorConfig stream = fake.streamConfig("orders");
+
+        assertEquals(
+                GenerationRecipe.deriveChildSeed(7L, "orders"), stream.getSeed().orElseThrow());
+        assertEquals(stream.getSeed(), fake.streamConfig("orders").getSeed());
+        assertNotEquals(stream.getSeed(), fake.streamConfig("payments").getSeed());
+    }
+
+    @Test
+    @DisplayName("an unseeded session keeps the root configuration and still generates values")
+    void unseededSessionUsesRootConfig() {
+        GeneratorConfig unseeded = GeneratorConfig.defaults();
+        RandomDataGenerator fake = RandomDataGenerator.of(unseeded);
+
+        assertSame(unseeded, fake.getConfig());
+        assertSame(unseeded, fake.streamConfig("orders"));
+        assertFalse(fake.firstName().isBlank());
+    }
+
+    @Test
+    @DisplayName("of rejects a caller-owned Random or random factory, which every kind would share")
+    void ofRejectsSharedRandomSources() {
+        GeneratorConfig shared = GeneratorConfig.builder().random(new Random(7)).build();
+        GeneratorConfig factory =
+                GeneratorConfig.builder().randomFactory(() -> new Random(7)).build();
+
+        assertThrows(IllegalArgumentException.class, () -> RandomDataGenerator.of(shared));
+        assertThrows(IllegalArgumentException.class, () -> RandomDataGenerator.of(factory));
+        assertFalse(
+                RandomDataGenerator.of(GeneratorConfig.builder().secureRandom().build())
+                        .firstName()
+                        .isBlank());
+    }
+
+    @Test
+    @DisplayName("streamConfig rejects null, blank, and multi-line names")
+    void streamConfigRejectsInvalidNames() {
+        RandomDataGenerator fake = RandomDataGenerator.seeded("fixtures");
+
+        assertThrows(NullPointerException.class, () -> fake.streamConfig(null));
+        assertThrows(IllegalArgumentException.class, () -> fake.streamConfig(" "));
+        assertThrows(IllegalArgumentException.class, () -> fake.streamConfig("a\nb"));
+        assertThrows(IllegalArgumentException.class, () -> fake.streamConfig("a\rb"));
+    }
+
+    @Test
+    @DisplayName("the seeded factories set the seed and the locale")
+    void seededFactoriesSetSeedAndLocale() {
+        RandomDataGenerator defaultLocale = RandomDataGenerator.seeded("fixtures");
+        RandomDataGenerator german = RandomDataGenerator.seeded("fixtures", Locale.GERMANY);
+
+        assertEquals(
+                GeneratorConfig.defaults().getLocale(),
+                defaultLocale.getConfig().getLocale());
+        assertEquals(Locale.GERMANY, german.getConfig().getLocale());
+        assertEquals(defaultLocale.getConfig().getSeed(), german.getConfig().getSeed());
+        assertEquals(
+                RandomDataGenerator.seeded("fixtures").firstName(),
+                RandomDataGenerator.seeded("fixtures").firstName());
+    }
+
+    @Test
+    @DisplayName("of rejects a null configuration")
+    void ofRejectsNull() {
+        assertThrows(NullPointerException.class, () -> RandomDataGenerator.of(null));
+    }
+
+    @Test
+    @DisplayName("today follows the configured clock, and dates stay inside their bounds")
+    void datesFollowClockAndBounds() {
+        RandomDataGenerator fake = uk("fixtures");
+
+        assertEquals(TODAY, fake.today());
+        for (int i = 0; i < 50; i++) {
+            LocalDate date = fake.dateBetween(TODAY.minusDays(3), TODAY);
+            assertFalse(date.isBefore(TODAY.minusDays(3)) || date.isAfter(TODAY), date.toString());
+
+            LocalDate birthday = fake.birthday(25, 80);
+            assertFalse(
+                    birthday.isAfter(TODAY.minusYears(25)) || !birthday.isAfter(TODAY.minusYears(81)),
+                    birthday.toString());
+
+            LocalDate exactAge = fake.birthday(30, 30);
+            assertFalse(
+                    exactAge.isAfter(TODAY.minusYears(30)) || !exactAge.isAfter(TODAY.minusYears(31)),
+                    exactAge.toString());
+        }
+        assertEquals(TODAY, fake.dateBetween(TODAY, TODAY));
+        LocalDate newborn = fake.birthday(0, 0);
+        assertFalse(newborn.isAfter(TODAY) || !newborn.isAfter(TODAY.minusYears(1)), newborn.toString());
+    }
+
+    @Test
+    @DisplayName("birthday rejects a negative or inverted age range")
+    void birthdayRejectsInvalidAges() {
+        RandomDataGenerator fake = uk("fixtures");
+
+        assertThrows(IllegalArgumentException.class, () -> fake.birthday(-1, 10));
+        assertThrows(IllegalArgumentException.class, () -> fake.birthday(40, 30));
+    }
+
+    @Test
+    @DisplayName("every call of a method shares its stream, whatever the arguments")
+    void callsOfOneMethodShareAStream() {
+        RandomDataGenerator plain = uk("fixtures");
+        RandomDataGenerator mixed = uk("fixtures");
+
+        List<Integer> expected = draw(5, f -> f.intBetween(1, 1_000_000), plain);
+        mixed.intBetween(1, 6);
+        List<Integer> shifted = draw(5, f -> f.intBetween(1, 1_000_000), mixed);
+
+        assertNotEquals(expected, shifted);
+    }
+
+    @Test
+    @DisplayName("numbers and choices are unaffected by calls of other methods")
+    void numbersAndChoicesAreStableAgainstOtherMethods() {
+        RandomDataGenerator alone = uk("fixtures");
+        RandomDataGenerator interleaved = uk("fixtures");
+
+        List<Integer> expectedNumbers = draw(5, f -> f.intBetween(1, 1_000_000), alone);
+        List<Integer> numbers = new ArrayList<>();
+        for (int i = 0; i < 5; i++) {
+            interleaved.pick("x", "y");
+            interleaved.dateBetween(TODAY.minusYears(1), TODAY);
+            numbers.add(interleaved.intBetween(1, 1_000_000));
+            interleaved.firstName();
+        }
+
+        assertEquals(expectedNumbers, numbers);
+    }
+
+    @Test
+    @DisplayName("intBetween covers both bounds and rejects an inverted range")
+    void intBetweenIsInclusive() {
+        RandomDataGenerator fake = uk("fixtures");
+
+        assertEquals(new HashSet<>(List.of(1, 2, 3)), new HashSet<>(draw(200, f -> f.intBetween(1, 3), fake)));
+        assertEquals(Integer.MAX_VALUE, fake.intBetween(Integer.MAX_VALUE, Integer.MAX_VALUE));
+        assertEquals(5, fake.intBetween(5, 5));
+        assertThrows(IllegalArgumentException.class, () -> fake.intBetween(2, 1));
+    }
+
+    @Test
+    @DisplayName("pick chooses among the given values and rejects empty or null input")
+    void pickChoosesGivenValues() {
+        RandomDataGenerator fake = uk("fixtures");
+
+        assertEquals(new HashSet<>(List.of("a", "b")), new HashSet<>(draw(100, f -> f.pick("a", "b"), fake)));
+        assertEquals("only", fake.pick(List.of("only")));
+        assertThrows(IllegalArgumentException.class, () -> fake.pick(List.of()));
+        assertThrows(NullPointerException.class, () -> fake.pick((List<String>) null));
+        assertThrows(NullPointerException.class, () -> fake.pick((String[]) null));
+    }
+
+    @Test
+    @DisplayName("nationalIdCompact keeps only the letters and digits of the next national ID")
+    void nationalIdCompactRemovesSeparators() {
+        String written = uk("fixtures").nationalId();
+        String compact = uk("fixtures").nationalIdCompact();
+
+        assertTrue(written.contains(" "), written);
+        assertEquals(written.replace(" ", ""), compact);
+        assertTrue(compact.matches("[A-Z]{2}\\d{6}[A-D]"), compact);
+    }
+
+    @Test
+    @DisplayName("national IDs follow the configured safety policy")
+    void nationalIdFollowsSafetyPolicy() {
+        RandomDataGenerator fake = RandomDataGenerator.seeded("fixtures", Locale.UK);
+
+        assertThrows(IllegalStateException.class, fake::nationalId);
+    }
+}

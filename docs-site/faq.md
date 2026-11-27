@@ -8,10 +8,10 @@ permalink: /faq/
 
 ## Which module should I use?
 
-Use `krandom-core` for generation APIs. Add `krandom-jackson` for Jackson 3 serialization support,
-`krandom-junit` for the JUnit seed extension, `krandom-spring-boot-starter` for Spring Boot,
-`krandom-kotest-extensions` for Kotest adapters, or `krandom-kotlin-dsl` for Kotlin fixture rules.
-Import `krandom-bom:4.1.0` to align multiple kRandom modules.
+Use `random-data-generator-core` for generation APIs. Add `random-data-generator-jackson` for Jackson 3 serialization support,
+`random-data-generator-junit` for the JUnit seed extension, `random-data-generator-spring-boot-starter` for Spring Boot,
+`random-data-generator-kotest-extensions` for Kotest adapters, or `random-data-generator-kotlin-dsl` for Kotlin fixture rules.
+Import `random-data-generator-bom:1.0.0` to align multiple random-data-generator modules.
 
 ## How do I keep generated data stable between test runs?
 
@@ -28,10 +28,10 @@ Use `Field` to bind provider names and `Schema` to generate single records or ba
 
 ## How do I extend providers dynamically?
 
-Use an explicitly installed, configuration-scoped `KRandomModule` when the same contribution must
+Use an explicitly installed, configuration-scoped `ExtensionModule` when the same contribution must
 work through provider lookup, schemas, safety metadata, and semantic object fields. Use
 `ProviderHub.register(...)` only for a short-lived hub-local provider.
 
 ## Can Kotlin or Scala consume the library?
 
-Yes. Kotlin and Scala can use the Java `krandom-core` artifact directly. Kotlin projects can also use `krandom-kotlin-dsl` for typed fixture rules, while Kotest projects can use `krandom-kotest-extensions` for property-testing adapters. See [Kotlin DSL]({{ '/guides/kotlin-dsl/' | relative_url }}) and [Property Testing Integrations]({{ '/guides/property-testing-integrations/' | relative_url }}).
+Yes. Kotlin and Scala can use the Java `random-data-generator-core` artifact directly. Kotlin projects can also use `random-data-generator-kotlin-dsl` for typed fixture rules, while Kotest projects can use `random-data-generator-kotest-extensions` for property-testing adapters. See [Kotlin DSL]({{ '/guides/kotlin-dsl/' | relative_url }}) and [Property Testing Integrations]({{ '/guides/property-testing-integrations/' | relative_url }}).
