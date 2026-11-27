@@ -78,40 +78,27 @@ cannot recover an earlier clock. Custom callbacks and registries still do not yi
 recipe. Changes made to an injected builder must be included in the actual configuration you use
 for generation and diagnostics.
 
-## Independent object-field streams (2.3+)
+## Object member streams
 
-```java
-GeneratorConfig config = GeneratorConfig.builder()
-    .seed(42L)
-    .objectFieldStreamPolicy(ObjectFieldStreamPolicy.INDEPENDENT)
-    .build()
-    .snapshotClock();
-```
+With a numeric or textual seed, each member of a generated object draws from its own stream, derived by
+name from the seed, and so does each provider-backed semantic generator, such as the one for `email`. That
+holds whatever the configuration installs: custom rules, exclusions and modules. An override of one field
+then leaves unrelated fields on their streams, and a module that registers a semantic provider does not
+shift the members that do not use it. Dependent rules and semantic relationships may intentionally change
+related values, such as an email derived from a name; arbitrary callbacks remain responsible for their own
+state. A configuration with rules, exclusions or modules still returns no portable recipe.
 
-`ObjectFieldStreamPolicy` is in `io.github.frikit.rdg.generator.object`. INDEPENDENT retains
-named streams for seed-owned object members when custom rules, exclusions, or modules are
-installed. An override of one field then leaves unrelated structural fields on their existing
-streams. A numeric or textual seed is required. Dependent rules and semantic relationships may
-intentionally change related values; arbitrary callbacks remain responsible for their own state.
-
-The default LEGACY policy preserves 2.2 output and the existing portability boundary. The random
-algorithm and child-seed derivation are unchanged. Portable recipes with the explicit policy include
-`object.field-stream-policy`; absent settings retain legacy interpretation. Older readers reject
-that new setting rather than silently changing replay. Customized configurations still return no
-portable recipe. Roll back by selecting LEGACY or removing the option and regenerating the recipe.
+An unseeded configuration, or one with a caller-owned `Random`, has no seed to derive from, so its members
+draw from one shared sequence.
 
 An `ObjectFaker` root rule is such a customization: `ruleFor(path, generator)` on a root member installs a
-field override, so the faker generates without a recipe and, under LEGACY, every seeded member changes.
-From 3.2, `ObjectFaker.ruleForKeepingRecipe(path, generator)` installs the same rule but keeps the
-configuration's recipe and named streams, so only the members the rule supplies, and what semantic
-coherence derives from them, change. See
+field override, so the faker generates without a recipe, but the other seeded members keep their values.
+`ObjectFaker.ruleForKeepingRecipe(path, generator)` installs the same rule and also keeps the
+configuration's recipe. See
 [Root rules that keep the recipe]({{ '/guides/object-generation/' | relative_url }}#root-rules-that-keep-the-recipe-32).
 
-Independent streams can cost more for customized fixtures because each member receives its own
-resolver stream. In the 2.3.0 qualification's three-member structural record, customized throughput
-was about 32k objects/sec with INDEPENDENT versus 101k with LEGACY, with 3.4 times the allocations.
-Existing default throughput stayed within 1% of 2.2.0. These measurements are workload-specific;
-choose stability when it matters and benchmark your own fixture before bulk-generation adoption.
+Named member streams can cost more for customized fixtures because each member receives its own
+resolver stream. Benchmark your own fixture before bulk-generation adoption.
 
 ### Composite child streams
 
@@ -170,7 +157,7 @@ method's name.
   Other built-ins that are not `Seedable`, such as `MiddleNameGenerator` or `CompanyEmailGenerator`,
   and your own generators that are not `Seedable`, keep their own source.
 
-A recipe is `rdg-recipe/v2`. It records none of these, because none of them can be turned off. A
+A recipe is `rdg-recipe/v3`. It records none of these, because none of them can be turned off. A
 recipe that carries a setting this release does not read, such as `setting.child-stream-policy`, is
 rejected at replay with `Unsupported recipe setting: child-stream-policy`, rather than replayed with
 other values.

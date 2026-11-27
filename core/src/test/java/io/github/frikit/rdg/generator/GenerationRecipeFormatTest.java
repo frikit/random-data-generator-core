@@ -23,12 +23,12 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 /**
- * A recipe is {@code rdg-recipe/v2}. Any other recipe version is rejected, and so is a line this library does not
- * read. A recipe that kRandom wrote, format {@code krandom-recipe}, is rejected with a message that says it replays
+ * A recipe is {@code rdg-recipe/v3}. Any other recipe version, {@code v2} included, is rejected, and so is a line
+ * this library does not read. A recipe that kRandom wrote, format {@code krandom-recipe}, is rejected with a message that says it replays
  * only with the kRandom release that wrote it.
  */
-@DisplayName("rdg-recipe/v2, other versions and kRandom recipes")
-class GenerationRecipeV2Test {
+@DisplayName("rdg-recipe/v3, other versions and kRandom recipes")
+class GenerationRecipeFormatTest {
 
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-07-10T12:00:00Z"), ZoneOffset.UTC);
 
@@ -38,6 +38,7 @@ class GenerationRecipeV2Test {
             "advancing-convenience-streams",
             "child-stream-policy",
             "gaussian.strict-math",
+            "object.field-stream-policy",
             "object.reseed-built-in-randomizers");
 
     /** A recipe as kRandom 3.2.0 wrote it for {@code de_DE} and seed 42, with the German street layout on. */
@@ -72,18 +73,18 @@ class GenerationRecipeV2Test {
                 .build();
     }
 
-    private static String serializedV2() {
+    private static String serialized() {
         return seeded().getGenerationRecipe().orElseThrow().serialize();
     }
 
     @Test
-    @DisplayName("a recipe is rdg-recipe/v2 and has no safety-policy label or unknown setting")
-    void writesV2() {
+    @DisplayName("a recipe is rdg-recipe/v3 and has no safety-policy label or unknown setting")
+    void writesV3() {
         GenerationRecipe recipe = seeded().getGenerationRecipe().orElseThrow();
 
-        assertEquals("v2", GenerationRecipe.RECIPE_VERSION);
-        assertEquals("v2", recipe.getRecipeVersion());
-        assertTrue(recipe.serialize().startsWith("format=rdg-recipe\nrecipe-version=v2\n"), recipe.serialize());
+        assertEquals("v3", GenerationRecipe.RECIPE_VERSION);
+        assertEquals("v3", recipe.getRecipeVersion());
+        assertTrue(recipe.serialize().startsWith("format=rdg-recipe\nrecipe-version=v3\n"), recipe.serialize());
         assertFalse(recipe.serialize().contains("\nsafety-policy="), recipe.serialize());
         for (String key : UNKNOWN_SETTINGS) {
             assertFalse(recipe.getSettings().containsKey(key), key);
@@ -91,17 +92,20 @@ class GenerationRecipeV2Test {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"v1", "v3", "v99"})
+    @ValueSource(strings = {"v1", "v2", "v4", "v99"})
     @DisplayName("an rdg-recipe of another version is rejected, parsed or built in code")
     void otherVersionsAreRejected(String version) {
-        String recipe = serializedV2().replace("recipe-version=v2", "recipe-version=" + version);
+        String recipe = serialized().replace("recipe-version=v3", "recipe-version=" + version);
+        String rejection = "Unsupported recipe version: " + version + ". This release replays rdg-recipe/v3 recipes"
+                + " only: replay it with the release that wrote it, which its library-version line names, or record"
+                + " it again with this release.";
 
         assertEquals(
-                "Unsupported recipe version: " + version,
+                rejection,
                 assertThrows(IllegalArgumentException.class, () -> GenerationRecipe.parse(recipe))
                         .getMessage());
         assertEquals(
-                "Unsupported recipe version: " + version,
+                rejection,
                 assertThrows(
                                 IllegalArgumentException.class,
                                 () -> GenerationRecipe.builder()
@@ -116,7 +120,7 @@ class GenerationRecipeV2Test {
     @DisplayName("a kRandom recipe of any version, or of none, is rejected with the kRandom release to replay it with")
     void kRandomRecipesNameKRandom() {
         for (String kRandom : List.of(
-                serializedV2().replace("format=rdg-recipe\n", "format=krandom-recipe\n"),
+                serialized().replace("format=rdg-recipe\n", "format=krandom-recipe\n"),
                 KRANDOM_V1_RECIPE,
                 KRANDOM_V1_RECIPE.replace("recipe-version=v1", "recipe-version=v7"),
                 "format=krandom-recipe\n")) {
@@ -139,13 +143,15 @@ class GenerationRecipeV2Test {
                 "child-stream-policy=LEGACY",
                 "gaussian.strict-math=true",
                 "gaussian.strict-math=false",
+                "object.field-stream-policy=INDEPENDENT",
+                "object.field-stream-policy=LEGACY",
                 "object.reseed-built-in-randomizers=true",
                 "object.reseed-built-in-randomizers=false"
             })
-    @DisplayName("a v2 recipe with a setting this library does not read is rejected at replay, naming the setting")
+    @DisplayName("a recipe with a setting this library does not read is rejected at replay, naming the setting")
     void unknownSettingsAreRejected(String line) {
         String key = line.substring(0, line.indexOf('='));
-        String recipe = serializedV2().replace("setting.charset=", "setting." + line + "\nsetting.charset=");
+        String recipe = serialized().replace("setting.charset=", "setting." + line + "\nsetting.charset=");
         GenerationRecipe parsed = GenerationRecipe.parse(recipe);
 
         assertEquals(
@@ -155,10 +161,10 @@ class GenerationRecipeV2Test {
     }
 
     @Test
-    @DisplayName("a v2 recipe with a safety-policy line is rejected when parsed")
+    @DisplayName("a recipe with a safety-policy line is rejected when parsed")
     void safetyPolicyLineIsRejected() {
-        String recipe = serializedV2()
-                .replace("construction-policy=", "safety-policy=legacy-unclassified\nconstruction-policy=");
+        String recipe =
+                serialized().replace("construction-policy=", "safety-policy=legacy-unclassified\nconstruction-policy=");
 
         assertEquals(
                 "Unknown recipe key: safety-policy",
@@ -167,8 +173,8 @@ class GenerationRecipeV2Test {
     }
 
     @Test
-    @DisplayName("a v2 recipe replays the values it was written with")
-    void v2ReplaysAsRecorded() {
+    @DisplayName("a recipe replays the values it was written with")
+    void replaysAsRecorded() {
         GeneratorConfig on = seeded();
         GeneratorConfig replayOn = GenerationRecipe.parse(
                         on.getGenerationRecipe().orElseThrow().serialize())

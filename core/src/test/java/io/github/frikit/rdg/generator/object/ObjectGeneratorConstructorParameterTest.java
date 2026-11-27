@@ -202,8 +202,7 @@ class ObjectGeneratorConstructorParameterTest {
         Class<?> nameless = compileFixture(namelessDir, NAMELESS_SOURCE);
         Class<?> positionallyNamed = compileFixture(namedDir, POSITIONALLY_NAMED_SOURCE, "-parameters");
         assertEquals(nameless.getName(), positionallyNamed.getName());
-        GeneratorConfig config = seeded().objectFieldStreamPolicy(ObjectFieldStreamPolicy.INDEPENDENT)
-                .build();
+        GeneratorConfig config = seeded().build();
 
         Object fromNameless = new ObjectGenerator<>(nameless, config).generate();
         Object fromNamed = new ObjectGenerator<>(positionallyNamed, config).generate();

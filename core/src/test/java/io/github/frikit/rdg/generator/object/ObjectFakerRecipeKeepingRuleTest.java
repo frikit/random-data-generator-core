@@ -8,7 +8,6 @@ package io.github.frikit.rdg.generator.object;
 import static io.github.frikit.rdg.generator.object.ObjectEngineDefaultsPinTest.PLAIN_FIRST;
 import static io.github.frikit.rdg.generator.object.ObjectEngineDefaultsPinTest.PLAIN_SECOND;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 import io.github.frikit.rdg.generator.GenerationRecipe;
 import io.github.frikit.rdg.generator.GeneratorConfig;
@@ -81,7 +80,7 @@ class ObjectFakerRecipeKeepingRuleTest {
                 .generate();
 
         assertEquals(
-                List.of(Optional.of("rdg-recipe/v2")),
+                List.of(Optional.of("rdg-recipe/v3")),
                 entries.stream()
                         .map(GenerationReportEntry::recipeFormat)
                         .distinct()
@@ -156,45 +155,55 @@ class ObjectFakerRecipeKeepingRuleTest {
                 twice(excluding, faker -> faker.ruleForKeepingRecipe("nickname", () -> "X")));
     }
 
+    /** The recipe format that the report of one generated member gives, empty when the faker drops the recipe. */
+    private static Optional<String> recipeFormat(UnaryOperator<ObjectFaker<Member>> rules) {
+        List<GenerationReportEntry> entries = new ArrayList<>();
+        rules.apply(new ObjectFaker<>(
+                        Member.class,
+                        seeded().generationReportListener(entries::add).build()))
+                .generate();
+        List<Optional<String>> formats = entries.stream()
+                .map(GenerationReportEntry::recipeFormat)
+                .distinct()
+                .toList();
+        assertEquals(1, formats.size(), formats::toString);
+        return formats.get(0);
+    }
+
     @Test
     @DisplayName("a later rule for the same path replaces it, and it replaces an earlier one")
     void replacesAndIsReplaced() {
         GeneratorConfig config = seeded().build();
         List<String> plainRule = twice(config, faker -> faker.ruleFor("nickname", () -> "X"));
         List<String> keeping = twice(config, faker -> faker.ruleForKeepingRecipe("nickname", () -> "X"));
+        Optional<String> kept = Optional.of("rdg-recipe/v3");
         Function<Member, String> dependent = member -> "X";
 
-        assertNotEquals(plainRule, keeping);
-        assertEquals(
-                plainRule,
-                twice(
-                        config,
-                        faker -> faker.ruleForKeepingRecipe("nickname", () -> "Y")
-                                .ruleFor("nickname", () -> "X")));
-        assertEquals(
-                plainRule,
-                twice(
-                        config,
-                        faker -> faker.ruleForKeepingRecipe("nickname", () -> "Y")
-                                .ruleForContext("nickname", context -> "X")));
-        assertEquals(
-                keeping,
-                twice(
-                        config,
-                        faker -> faker.ruleFor("nickname", () -> "Y").ruleForKeepingRecipe("nickname", () -> "X")));
-        assertEquals(
-                keeping,
-                twice(
-                        config,
-                        faker -> faker.ruleForContext("nickname", context -> "Y")
-                                .ruleForKeepingRecipe("nickname", () -> "X")));
+        // Both leave the other members on their named streams; only the recipe tells them apart.
+        assertEquals(plainRule, keeping);
+        assertEquals(Optional.empty(), recipeFormat(faker -> faker.ruleFor("nickname", () -> "X")));
+        assertEquals(kept, recipeFormat(faker -> faker.ruleForKeepingRecipe("nickname", () -> "X")));
+        UnaryOperator<ObjectFaker<Member>> replacedByRule =
+                faker -> faker.ruleForKeepingRecipe("nickname", () -> "Y").ruleFor("nickname", () -> "X");
+        assertEquals(plainRule, twice(config, replacedByRule));
+        assertEquals(Optional.empty(), recipeFormat(replacedByRule));
+        UnaryOperator<ObjectFaker<Member>> replacedByContextRule =
+                faker -> faker.ruleForKeepingRecipe("nickname", () -> "Y").ruleForContext("nickname", context -> "X");
+        assertEquals(plainRule, twice(config, replacedByContextRule));
+        assertEquals(Optional.empty(), recipeFormat(replacedByContextRule));
+        UnaryOperator<ObjectFaker<Member>> replacingRule =
+                faker -> faker.ruleFor("nickname", () -> "Y").ruleForKeepingRecipe("nickname", () -> "X");
+        assertEquals(keeping, twice(config, replacingRule));
+        assertEquals(kept, recipeFormat(replacingRule));
+        UnaryOperator<ObjectFaker<Member>> replacingContextRule =
+                faker -> faker.ruleForContext("nickname", context -> "Y").ruleForKeepingRecipe("nickname", () -> "X");
+        assertEquals(keeping, twice(config, replacingContextRule));
+        assertEquals(kept, recipeFormat(replacingContextRule));
         // A dependent rule leaves the generation as it is, as it always did.
-        assertEquals(
-                keeping,
-                twice(
-                        config,
-                        faker -> faker.ruleForKeepingRecipe("nickname", () -> "Y")
-                                .ruleFor("nickname", dependent)));
+        UnaryOperator<ObjectFaker<Member>> dependentAfter =
+                faker -> faker.ruleForKeepingRecipe("nickname", () -> "Y").ruleFor("nickname", dependent);
+        assertEquals(keeping, twice(config, dependentAfter));
+        assertEquals(kept, recipeFormat(dependentAfter));
     }
 
     @Test

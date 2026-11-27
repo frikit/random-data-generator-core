@@ -20,7 +20,12 @@ import java.util.List;
 import java.util.Random;
 import org.junit.jupiter.api.Test;
 
-class IndependentFieldStreamsTest {
+/**
+ * Every member of a seeded object draws from its own stream, derived by name from the seed, whatever rules,
+ * exclusions or modules the configuration has. An unseeded configuration draws its members from one shared
+ * sequence.
+ */
+class NamedMemberStreamsTest {
     public static class Fixture {
         public String name;
         public int age;
@@ -35,7 +40,7 @@ class IndependentFieldStreamsTest {
 
     public record RecordFixture(String name, int age, List<Integer> values) {}
 
-    private GeneratorConfig legacy() {
+    private GeneratorConfig seeded() {
         return GeneratorConfig.builder()
                 .seed(42)
                 .clock(Clock.fixed(Instant.EPOCH, ZoneOffset.UTC))
@@ -43,15 +48,9 @@ class IndependentFieldStreamsTest {
                 .build();
     }
 
-    private GeneratorConfig independent() {
-        return legacy().toBuilder()
-                .objectFieldStreamPolicy(ObjectFieldStreamPolicy.INDEPENDENT)
-                .build();
-    }
-
     @Test
     void unrelatedFieldsRetainTheirStreamsAcrossOverridesExclusionsAndModules() {
-        GeneratorConfig config = independent();
+        GeneratorConfig config = seeded();
         ExtensionModule emptyModule = new ExtensionModule() {
             public String id() {
                 return "unrelated";
@@ -113,11 +112,11 @@ class IndependentFieldStreamsTest {
     };
 
     @Test
-    void unrelatedSemanticProvidersDoNotShiftIndependentMemberStreams() {
+    void unrelatedSemanticProvidersDoNotShiftMemberStreams() {
         for (ObjectGenerationSemanticMode mode :
                 List.of(ObjectGenerationSemanticMode.RELAXED, ObjectGenerationSemanticMode.STRICT)) {
             GeneratorConfig config =
-                    independent().toBuilder().objectSemanticMode(mode).build();
+                    seeded().toBuilder().objectSemanticMode(mode).build();
             GeneratorConfig withModule =
                     config.toBuilder().install(UNRELATED_SEMANTIC_PROVIDER).build();
             ObjectGenerator<SemanticFixture> plain = new ObjectGenerator<>(SemanticFixture.class, config);
@@ -135,8 +134,8 @@ class IndependentFieldStreamsTest {
     }
 
     @Test
-    void recordsKeepIndependentStreamsAndDifferentRecordIndices() {
-        GeneratorConfig config = independent();
+    void recordsKeepNamedStreamsAndDifferentRecordIndices() {
+        GeneratorConfig config = seeded();
         List<RecordFixture> original = new ObjectGenerator<>(RecordFixture.class, config).generateList(5);
         List<RecordFixture> custom = new ObjectGenerator<>(
                         RecordFixture.class,
@@ -154,65 +153,49 @@ class IndependentFieldStreamsTest {
     }
 
     @Test
-    void defaultsAndExistingRecipesRetainLegacyBehavior() {
-        GeneratorConfig config = legacy();
-        assertEquals(ObjectFieldStreamPolicy.LEGACY, config.getObjectFieldStreamPolicy());
-        GenerationRecipe old = config.getGenerationRecipe().orElseThrow();
-        assertFalse(old.getSettings().containsKey("object.field-stream-policy"));
-        assertEquals(ObjectFieldStreamPolicy.LEGACY, old.toGeneratorConfig().getObjectFieldStreamPolicy());
+    void aReplayedRecipeAndAConfigurationWithoutOneKeepTheSameMemberStreams() {
+        GeneratorConfig config = seeded();
+        GenerationRecipe recipe = config.getGenerationRecipe().orElseThrow();
+        assertFalse(recipe.getSettings().containsKey("object.field-stream-policy"));
+        assertEquals(GenerationRecipe.ALGORITHM, recipe.getAlgorithm());
+        GeneratorConfig replay = GenerationRecipe.parse(recipe.serialize()).toGeneratorConfig();
         List<RecordFixture> baseline = new ObjectGenerator<>(RecordFixture.class, config).generateList(5);
-        assertEquals(baseline, new ObjectGenerator<>(RecordFixture.class, old.toGeneratorConfig()).generateList(5));
-        assertEquals(baseline, new ObjectGenerator<>(RecordFixture.class, independent()).generateList(5));
-        int original = new ObjectGenerator<>(Fixture.class, config).generate().age;
-        int custom = new ObjectGenerator<>(
+        assertEquals(baseline, new ObjectGenerator<>(RecordFixture.class, replay).generateList(5));
+        Fixture original = new ObjectGenerator<>(Fixture.class, config).generate();
+        Fixture custom = new ObjectGenerator<>(
                         Fixture.class,
                         config.toBuilder()
                                 .objectOverride(Fixture.class, "name", () -> "fixed")
                                 .build())
-                .generate()
-                .age;
-        assertNotEquals(original, custom, "legacy non-portable configurations retain their existing sequence");
+                .generate();
+        assertEquals(original.age, custom.age, "a configuration without a recipe keeps the named streams");
+        assertEquals(original.values, custom.values);
     }
 
     @Test
-    void recipeRoundTripPreservesExplicitPolicyWithoutChangingAlgorithm() {
-        GenerationRecipe recipe = independent().getGenerationRecipe().orElseThrow();
-        assertEquals("INDEPENDENT", recipe.getSettings().get("object.field-stream-policy"));
-        assertEquals(GenerationRecipe.ALGORITHM, recipe.getAlgorithm());
-        GeneratorConfig replay = GenerationRecipe.parse(recipe.serialize()).toGeneratorConfig();
-        assertEquals(
-                ObjectFieldStreamPolicy.INDEPENDENT, replay.toBuilder().build().getObjectFieldStreamPolicy());
-        assertEquals(
-                new ObjectGenerator<>(RecordFixture.class, independent()).generateList(5),
-                new ObjectGenerator<>(RecordFixture.class, replay).generateList(5));
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> GenerationRecipe.builder()
-                        .setting("object.field-stream-policy", "UNKNOWN")
-                        .build()
-                        .toGeneratorConfig());
+    void aRecipeWithAFieldStreamPolicyIsRejected() {
+        String serialized = seeded().getGenerationRecipe().orElseThrow().serialize();
+        for (String policy : List.of("LEGACY", "INDEPENDENT")) {
+            GenerationRecipe recipe = GenerationRecipe.parse(serialized.replace(
+                    "setting.charset=", "setting.object.field-stream-policy=" + policy + "\nsetting.charset="));
+            assertEquals(
+                    "Unsupported recipe setting: object.field-stream-policy",
+                    assertThrows(IllegalArgumentException.class, recipe::toGeneratorConfig)
+                            .getMessage());
+        }
     }
 
     @Test
-    void independentStreamsRequireAnOwnedSeedAndRejectNullPolicy() {
-        assertThrows(NullPointerException.class, () -> GeneratorConfig.builder().objectFieldStreamPolicy(null));
-        assertThrows(
-                IllegalStateException.class,
-                () -> GeneratorConfig.builder()
-                        .objectFieldStreamPolicy(ObjectFieldStreamPolicy.INDEPENDENT)
-                        .build());
-        assertThrows(
-                IllegalStateException.class,
-                () -> GeneratorConfig.builder()
-                        .random(new Random(42))
-                        .objectFieldStreamPolicy(ObjectFieldStreamPolicy.INDEPENDENT)
-                        .build());
-        assertEquals(
-                ObjectFieldStreamPolicy.INDEPENDENT,
-                GeneratorConfig.builder()
-                        .seed("text")
-                        .objectFieldStreamPolicy(ObjectFieldStreamPolicy.INDEPENDENT)
-                        .build()
-                        .getObjectFieldStreamPolicy());
+    void anUnseededConfigurationDrawsItsMembersFromOneSharedSequence() {
+        GeneratorConfig config = GeneratorConfig.builder()
+                .random(new Random(42))
+                .objectSemanticMode(ObjectGenerationSemanticMode.STRUCTURAL_ONLY)
+                .build();
+        GeneratorConfig same = config.toBuilder().random(new Random(42)).build();
+        Fixture first = new ObjectGenerator<>(Fixture.class, config).generate();
+        Fixture second = new ObjectGenerator<>(Fixture.class, same).generate();
+        assertEquals(first.name, second.name);
+        assertEquals(first.age, second.age);
+        assertEquals(first.values, second.values);
     }
 }

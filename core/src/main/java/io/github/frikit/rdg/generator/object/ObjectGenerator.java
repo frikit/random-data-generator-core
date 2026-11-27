@@ -514,12 +514,7 @@ public final class ObjectGenerator<T> implements Generator<T> {
         if (config.getGeneratorConfig().getGenerationReportListener().isEmpty()) {
             return null;
         }
-        return GenerationReporter.of(
-                config,
-                ObjectFieldStreamPlanner.usesNamedChildStreams(
-                        config.getGeneratorConfig().getObjectFieldStreamPolicy(),
-                        generationSeed,
-                        config.hasPortableRecipe()));
+        return GenerationReporter.of(config, ObjectFieldStreamPlanner.usesNamedChildStreams(generationSeed));
     }
 
     private ObjectGenerationException constructionFailure(Throwable cause) {

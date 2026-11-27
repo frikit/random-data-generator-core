@@ -53,7 +53,6 @@ takes in its constructor. Build it with `GeneratorConfig.builder()` or `toBuilde
 - safety policies, one per sensitive domain (network, payment cards, banking, national IDs and
   others). Most default to a test-safe or disabled value, so a generator for real-looking identifiers
   can throw until a policy enables it;
-- the object-field stream policy, which controls how object members get their streams;
 - object-engine settings and installed `ExtensionModule`s.
 
 A generator calls `config.createRandom()` for its random source (a fresh `Random(seed)` when seeded),
@@ -73,7 +72,7 @@ says what is guaranteed. The machinery:
 | --- | --- | --- |
 | String seeds | `GeneratorConfig` (`STRING_SEED_DERIVATION`, `deriveSeed`) | `fnv1a64-v1`: FNV-1a 64 over the UTF-8 bytes. A numeric seed wins over a string seed. |
 | Child streams | `GenerationRecipe.deriveChildSeed` | Derives a child seed from the parent seed's bytes and a stream name. `forChildStream` uses it for every seeded child. |
-| Recipes | `generator/GenerationRecipe.java` | The line-oriented `rdg-recipe/v2` format: every setting needed to replay a run. |
+| Recipes | `generator/GenerationRecipe.java` | The line-oriented `rdg-recipe/v3` format: every setting needed to replay a run. |
 | `internal.StreamSeeds` | `internal/StreamSeeds.java` | The same hash split into steps, so `Schema` derives per-cell seeds without building strings. |
 | `internal.Reseeding` | `internal/Reseeding.java` | A registry of package-private `reseedTo(long)` hooks, so `Schema` reuses one generator per column instead of building one per value. |
 | `internal.ConfigAccess` | `internal/ConfigAccess.java` | A cheap seed-replacing copy of a configuration for other packages. |
@@ -126,7 +125,7 @@ A typical generator:
 | Provider hub | `generator/provider/` | `ProviderHub` maps names to generators. `ProviderCatalog` is the source of truth for built-ins and generates `docs/reference/provider-catalog.md`. |
 | Data packs | `generator/datapack/LocalDataPack.java` | Offline, checksum-verified local datasets; no network access. |
 | Schema | `generator/schema/` | `Schema` generates records with a child stream per record and column, and writes JSONL, JSON, CSV, XML, SQL, YAML and TOML; `SchemaParser` reads JSON Schema and OpenAPI. |
-| Object engine | `generator/object/` | `ObjectGenerator` fills records, classes and sealed types; `FieldGeneratorResolver` decides each field (overrides, `@Randomizer`, Bean Validation, semantic names); `SemanticFieldRegistry` maps field names such as `email` to generators. Kotlin constructors are handled by an adapter found through `ServiceLoader`. |
+| Object engine | `generator/object/` | `ObjectGenerator` fills records, classes and sealed types; `FieldGeneratorResolver` decides each field (overrides, `@Randomizer`, Bean Validation, semantic names), and with a seed gives each member and each semantic provider a stream derived by name; `SemanticFieldRegistry` maps field names such as `email` to generators. Kotlin constructors are handled by an adapter found through `ServiceLoader`. |
 | Safety policies | `generator/network`, `generator/finance`, `generator/user`, `generator/location` | Each generator enforces its own policy, for example reserved IP ranges and `.test` domains by default. `ProviderSafetyMetadata` and `ProviderValidity` record the claims. |
 
 ## Integration modules

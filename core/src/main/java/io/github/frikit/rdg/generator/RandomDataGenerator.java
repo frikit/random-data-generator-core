@@ -55,8 +55,9 @@ import org.jspecify.annotations.Nullable;
  */
 public final class RandomDataGenerator {
 
-    // The prefix of each method's stream key, from which its seed is derived. It keeps the kRandom value
-    // so that a seed gives the same values as kRandom 4.1.0; changing it changes every seeded value.
+    // The prefix of each method's stream key, from which its seed is derived. It keeps the kRandom value so
+    // that a seeded method gives the same values as in kRandom 4.1.0, as generators do; generated objects
+    // do not. Changing it changes every seeded value of these methods.
     private static final String KIND_STREAM_PREFIX = "krandom.";
     private static final Pattern NATIONAL_ID_SEPARATORS = Pattern.compile("[^\\p{L}\\p{N}]");
 

@@ -8,36 +8,18 @@ package io.github.frikit.rdg.generator.object;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.frikit.rdg.generator.GeneratorConfig;
 import org.junit.jupiter.api.Test;
 
 class ObjectFieldStreamPlannerTest {
 
     @Test
-    void usesNamedStreamsForPortableSeededConfiguration() {
-        assertTrue(ObjectFieldStreamPlanner.usesNamedChildStreams(
-                GeneratorConfig.builder().seed(42L).build(), 42L));
+    void usesNamedStreamsForEverySeededSession() {
+        assertTrue(ObjectFieldStreamPlanner.usesNamedChildStreams(42L));
+        assertTrue(ObjectFieldStreamPlanner.usesNamedChildStreams(0L));
     }
 
     @Test
-    void usesNamedStreamsForExplicitIndependentPolicyEvenWithCustomRules() {
-        GeneratorConfig config = GeneratorConfig.builder()
-                .seed(42L)
-                .objectFieldStreamPolicy(ObjectFieldStreamPolicy.INDEPENDENT)
-                .objectOverride(String.class, () -> "fixed")
-                .build();
-        assertTrue(ObjectFieldStreamPlanner.usesNamedChildStreams(config, 42L));
-    }
-
-    @Test
-    void keepsSequentialStreamsWithoutAnOwnedSeedOrPortableConfiguration() {
-        assertFalse(ObjectFieldStreamPlanner.usesNamedChildStreams(
-                GeneratorConfig.builder().build(), null));
-        assertFalse(ObjectFieldStreamPlanner.usesNamedChildStreams(
-                GeneratorConfig.builder()
-                        .seed(42L)
-                        .objectOverride(String.class, () -> "fixed")
-                        .build(),
-                42L));
+    void keepsTheSharedSequenceWithoutAGenerationSeed() {
+        assertFalse(ObjectFieldStreamPlanner.usesNamedChildStreams(null));
     }
 }

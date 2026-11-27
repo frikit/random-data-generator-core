@@ -8,8 +8,8 @@ Use the embedded snapshot default only for repo-local Maven-local checks. For pu
 
 - `JavaGradleUsageTest`: the `Generators` factories, seeded determinism, a typed `ObjectModel` with
   `strict()`, locale data scoped to one `GeneratorConfig` (below), and object-generation options:
-  independent field streams, a snapshot clock that the replay recipe keeps, and a failed `ObjectFaker`
-  profile that leaves no rule behind.
+  named member streams that an override leaves alone, a snapshot clock that the replay recipe keeps, and
+  a failed `ObjectFaker` profile that leaves no rule behind.
 - `FixtureDiagnosticsExampleTest`: `ObjectFaker.strict()` rejects a shadowed rule with a
   `FixtureRuleException` before anything is generated, and its report names the rule and its path,
   never a value.

@@ -23,11 +23,6 @@ and passed to `Instancio.create(model)`. Instancio's `Instancio.create(type)` sh
 its API specification on every call and is not used for per-object scores. Bulk benchmarks build
 the Instancio list specification once per batch, so that setup is amortized over the batch size.
 
-`FieldStreamsBenchmark` reports every stream policy with `STRUCTURAL_ONLY` semantics, which isolates
-stream planning, and with the default `RELAXED` semantics that ordinary callers get, which includes
-semantic field-name routing. Compare policies within one semantic mode; the gap between the two
-modes is the semantic-routing cost, not a stream-policy cost.
-
 ## Publication protocol
 
 A publishable run uses three forks, three warmup iterations, five measurement iterations, one

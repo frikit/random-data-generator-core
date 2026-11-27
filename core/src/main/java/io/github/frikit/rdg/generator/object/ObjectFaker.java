@@ -189,15 +189,14 @@ public final class ObjectFaker<T> implements Generator<T> {
      *
      * <p>A root rule from {@link #ruleFor(String, Generator)} is installed in the configuration that generation
      * runs with, as a field override, which no recipe can record. So the faker then generates with no portable
-     * recipe: its report gives no recipe format and its failure diagnostics no replay identity, and under the
-     * default {@link ObjectFieldStreamPolicy#LEGACY} the other members draw from one shared sequence instead of
-     * their own named streams, so every seeded member of the object changes. A rule from this method is
-     * installed and applied in the same way, wherever generation fills its member, but generation keeps the
-     * recipe of the faker's {@code GeneratorConfig}, and with it the named streams, so a seeded object differs
-     * only in the members the rule supplies and in the values that semantic coherence derives from them, such
-     * as an email from a name. Replaying the recipe with the same faker gives the same values, as it does for
-     * nested and dependent rules, which keep the recipe already. The rule's own generator is replayed only if
-     * it is seeded or constant.
+     * recipe: its report gives no recipe format and its failure diagnostics no replay identity. A rule from
+     * this method is installed and applied in the same way, wherever generation fills its member, but
+     * generation keeps the recipe of the faker's {@code GeneratorConfig}. Replaying the recipe with the same
+     * faker gives the same values, as it does for nested and dependent rules, which keep the recipe already.
+     * With either method the other members of a seeded object keep their own named streams, so the object
+     * differs only in the members the rule supplies and in the values that semantic coherence derives from
+     * them, such as an email from a name. The rule's own generator is replayed only if it is seeded or
+     * constant.
      *
      * <p>The recipe is kept while every root rule of the faker comes from this method: a root rule from
      * {@link #ruleFor(String, Generator)}, a root context rule, a root {@link #ignore(String)} or an

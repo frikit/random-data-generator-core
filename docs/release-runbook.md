@@ -162,7 +162,7 @@ The check does not cover:
   annotation, yet Kotlin and NullAway read them, and [VERSIONING.md](../VERSIONING.md) makes a widened
   class type-parameter bound a major-only change. The tests in `core/src/nullnessTest/java` cover some
   of them; review such changes by hand, with a Kotlin compile probe for what Kotlin callers see.
-- Behavior: seeded output, the recipe format (`rdg-recipe/v2` from 4.0.0), and the `fnv1a64-v1`
+- Behavior: seeded output, the recipe format (`rdg-recipe/v3`), and the `fnv1a64-v1`
   derivation stay with
   the tests, such as `GenerationRecipeTest`.
 

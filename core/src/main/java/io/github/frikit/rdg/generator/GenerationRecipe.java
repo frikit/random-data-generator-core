@@ -12,7 +12,6 @@ import io.github.frikit.rdg.generator.finance.SecuritiesIdentifierSafetyPolicy;
 import io.github.frikit.rdg.generator.location.PhoneNumberSafetyPolicy;
 import io.github.frikit.rdg.generator.network.NetworkSafetyPolicy;
 import io.github.frikit.rdg.generator.object.ObjectConstructionPolicy;
-import io.github.frikit.rdg.generator.object.ObjectFieldStreamPolicy;
 import io.github.frikit.rdg.generator.user.IdentityDocumentSafetyPolicy;
 import io.github.frikit.rdg.generator.user.nationalid.NationalIdSafetyPolicy;
 import java.net.URLDecoder;
@@ -43,8 +42,10 @@ import org.jspecify.annotations.Nullable;
  * #RECIPE_VERSION} uses {@value #ALGORITHM}; patch releases must preserve its child-stream and
  * {@link Random} behavior. A future algorithm change requires a new recipe version.
  *
- * <p>A recipe is {@code rdg-recipe/v2}. A recipe that kRandom wrote has the format {@code krandom-recipe}; it
- * is rejected with a message that says it replays only with the kRandom release that wrote it.
+ * <p>A recipe is {@code rdg-recipe/v3}: version {@code v3} derives every member stream and semantic provider
+ * seed of a seeded object by name. A recipe of another version, such as {@code v2}, is rejected as unsupported.
+ * A recipe that kRandom wrote has the format {@code krandom-recipe}; it is rejected with a message that says it
+ * replays only with the kRandom release that wrote it.
  *
  * <p>A recipe does not record the Java runtime's time-zone database or locale data, so values that
  * follow them, such as zone IDs, zone offsets and formatted money amounts, can differ on another JDK.
@@ -55,7 +56,7 @@ public final class GenerationRecipe {
     public static final String FORMAT = "rdg-recipe";
 
     /** Current recipe format and replay-contract version. */
-    public static final String RECIPE_VERSION = "v2";
+    public static final String RECIPE_VERSION = "v3";
 
     /** The format name of a recipe that kRandom, which this library continues, wrote. */
     private static final String KRANDOM_FORMAT = "krandom-recipe";
@@ -405,10 +406,6 @@ public final class GenerationRecipe {
     }
 
     private void applySettings(GeneratorConfig.Builder builder) {
-        String streamPolicy = settings.get("object.field-stream-policy");
-        if (streamPolicy != null) {
-            builder.objectFieldStreamPolicy(ObjectFieldStreamPolicy.valueOf(streamPolicy));
-        }
         String charset = settings.get("charset");
         if (charset != null) {
             builder.charset(Charset.forName(charset));
@@ -508,8 +505,7 @@ public final class GenerationRecipe {
 
     private static boolean isKnownSetting(String key) {
         return switch (key) {
-            case "object.field-stream-policy",
-                    "charset",
+            case "charset",
                     "string.min",
                     "string.max",
                     "collection.min",
@@ -578,7 +574,9 @@ public final class GenerationRecipe {
     private static String requireSupportedRecipeVersion(String value) {
         String version = requireToken("recipeVersion", value);
         if (!RECIPE_VERSION.equals(version)) {
-            throw new IllegalArgumentException("Unsupported recipe version: " + version);
+            throw new IllegalArgumentException("Unsupported recipe version: " + version + ". This release replays "
+                    + FORMAT + "/" + RECIPE_VERSION + " recipes only: replay it with the release that wrote it,"
+                    + " which its library-version line names, or record it again with this release.");
         }
         return version;
     }

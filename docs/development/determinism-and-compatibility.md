@@ -12,7 +12,7 @@ alter it. The user-facing policy is [VERSIONING.md](../../VERSIONING.md); this g
   documented contract (a value that fails its own Bean Validation constraint, a string that does not
   match its declared format). Such a fix is listed under `Fixed` in the changelog with the values it
   affects. A new generator, option or setting leaves existing output unchanged unless the user opts in.
-- **Recipes.** A release replays a `rdg-recipe/v2` recipe that an earlier release of its major line
+- **Recipes.** A release replays a `rdg-recipe/v3` recipe that an earlier release of its major line
   wrote. `GenerationRecipe` is the format; `GeneratorConfig.getGenerationRecipe()` writes it.
 - **String seeds.** `fnv1a64-v1`, the derivation of a seed from text, never changes.
 - **Public API.** The public types and members of the packages `random-data-generator-core` exports, the packages of
@@ -51,7 +51,7 @@ Some values depend on the Java runtime rather than on random-data-generator: tim
 1. **Before you edit,** find the tests that pin exact values for the code you are touching. Search
    for the generator's name together with a fixed seed (`seed(`, `seeded(`) in `core/src/test/`.
    Typical pin tests are `StreetAddressPinsTest`, `GenerationRecipeGoldenStreamTest`,
-   `DefaultFlipPinsTest` and `ChildStreamsTest`.
+   `SeededDefaultsPinsTest` and `ChildStreamsTest`.
 2. **If nothing pins it,** add a pin test first, on the unchanged code: generate a handful of values
    for two or three seeds (and two locales for locale data) and assert them exactly. See it pass on the
    unchanged code before you make the change; it then shows that the values held. For values that also

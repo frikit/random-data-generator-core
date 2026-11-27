@@ -20,7 +20,6 @@ import io.github.frikit.rdg.generator.finance.SecuritiesIdentifierSafetyPolicy;
 import io.github.frikit.rdg.generator.location.PhoneNumberSafetyPolicy;
 import io.github.frikit.rdg.generator.network.NetworkSafetyPolicy;
 import io.github.frikit.rdg.generator.object.ObjectConstructionPolicy;
-import io.github.frikit.rdg.generator.object.ObjectFieldStreamPolicy;
 import io.github.frikit.rdg.generator.object.ObjectGenerationSemanticMode;
 import io.github.frikit.rdg.generator.object.SemanticFieldRegistry;
 import io.github.frikit.rdg.generator.user.IdentityDocumentSafetyPolicy;
@@ -82,18 +81,10 @@ class GeneratorConfigChildStreamTest {
                 Arguments.of(Named.of(
                         "textual seed",
                         GeneratorConfig.builder().seed("child-streams").build())),
-                Arguments.of(Named.of(
-                        "restored from a recipe with a numeric seed",
-                        restored(portableState(ObjectFieldStreamPolicy.LEGACY)))),
-                Arguments.of(Named.of(
-                        "restored from a recipe with a textual seed",
-                        restored(portableState(ObjectFieldStreamPolicy.INDEPENDENT)))),
-                Arguments.of(Named.of(
-                        "every kind of state, legacy object field streams",
-                        everyKindOfState(ObjectFieldStreamPolicy.LEGACY))),
-                Arguments.of(Named.of(
-                        "every kind of state, independent object field streams",
-                        everyKindOfState(ObjectFieldStreamPolicy.INDEPENDENT))));
+                Arguments.of(Named.of("restored from a recipe with a numeric seed", restored(portableState(true)))),
+                Arguments.of(Named.of("restored from a recipe with a textual seed", restored(portableState(false)))),
+                Arguments.of(Named.of("every kind of state, numeric seed", everyKindOfState(true))),
+                Arguments.of(Named.of("every kind of state, textual seed", everyKindOfState(false))));
     }
 
     static Stream<Arguments> portableParents() {
@@ -107,18 +98,14 @@ class GeneratorConfigChildStreamTest {
                                 .seed("child-streams")
                                 .clock(FIXED_CLOCK)
                                 .build())),
+                Arguments.of(Named.of("restored from a recipe with a numeric seed", restored(portableState(true)))),
+                Arguments.of(Named.of("restored from a recipe with a textual seed", restored(portableState(false)))),
                 Arguments.of(Named.of(
-                        "restored from a recipe with a numeric seed",
-                        restored(portableState(ObjectFieldStreamPolicy.LEGACY)))),
+                        "every portable setting, numeric seed",
+                        portableState(true).build())),
                 Arguments.of(Named.of(
-                        "restored from a recipe with a textual seed",
-                        restored(portableState(ObjectFieldStreamPolicy.INDEPENDENT)))),
-                Arguments.of(Named.of(
-                        "every portable setting, legacy object field streams",
-                        portableState(ObjectFieldStreamPolicy.LEGACY).build())),
-                Arguments.of(Named.of(
-                        "every portable setting, independent object field streams",
-                        portableState(ObjectFieldStreamPolicy.INDEPENDENT).build())));
+                        "every portable setting, textual seed",
+                        portableState(false).build())));
     }
 
     @ParameterizedTest(name = "{0}")
@@ -201,7 +188,7 @@ class GeneratorConfigChildStreamTest {
     @Test
     @DisplayName("a child stream of a configuration without modules shares its parent's collections")
     void childWithoutModulesSharesItsParentsCollections() throws IllegalAccessException {
-        GeneratorConfig parent = everyKindOfState(ObjectFieldStreamPolicy.INDEPENDENT);
+        GeneratorConfig parent = everyKindOfState(false);
         GeneratorConfig child = parent.forChildStream("invoice");
 
         List<String> shared = new ArrayList<>();
@@ -224,8 +211,8 @@ class GeneratorConfigChildStreamTest {
     @DisplayName("the parents with every kind of state leave no field a child could carry at its default")
     void parentsWithEveryKindOfStateLeaveNoFieldAtItsDefault() throws IllegalAccessException {
         GeneratorConfig defaults = GeneratorConfig.defaults();
-        GeneratorConfig legacy = everyKindOfState(ObjectFieldStreamPolicy.LEGACY);
-        GeneratorConfig independent = everyKindOfState(ObjectFieldStreamPolicy.INDEPENDENT);
+        GeneratorConfig numeric = everyKindOfState(true);
+        GeneratorConfig textual = everyKindOfState(false);
 
         for (Field field : instanceFields()) {
             if (DEFAULT_IN_EVERY_SUCH_PARENT.contains(field.getName())) {
@@ -233,7 +220,7 @@ class GeneratorConfigChildStreamTest {
             }
             Object value = field.get(defaults);
             assertTrue(
-                    !Objects.equals(value, field.get(legacy)) || !Objects.equals(value, field.get(independent)),
+                    !Objects.equals(value, field.get(numeric)) || !Objects.equals(value, field.get(textual)),
                     field.getName() + " keeps its default in both parents");
         }
     }
@@ -241,8 +228,8 @@ class GeneratorConfigChildStreamTest {
     @Test
     @DisplayName("the restored parents replay a recipe, and their children do not")
     void restoredParentsReplayARecipe() {
-        GeneratorConfig numeric = restored(portableState(ObjectFieldStreamPolicy.LEGACY));
-        GeneratorConfig textual = restored(portableState(ObjectFieldStreamPolicy.INDEPENDENT));
+        GeneratorConfig numeric = restored(portableState(true));
+        GeneratorConfig textual = restored(portableState(false));
 
         assertTrue(numeric.isRestoredFromRecipe());
         assertTrue(numeric.getStringSeed().isEmpty());
@@ -259,10 +246,9 @@ class GeneratorConfigChildStreamTest {
      * Every setting that a portable recipe records, away from its default, with distinct values for fields
      * of one type, so that a copy that mixes two of them up fails.
      */
-    private static GeneratorConfig.Builder portableState(ObjectFieldStreamPolicy policy) {
-        boolean legacy = policy == ObjectFieldStreamPolicy.LEGACY;
+    private static GeneratorConfig.Builder portableState(boolean numeric) {
         GeneratorConfig.Builder builder = GeneratorConfig.builder();
-        if (legacy) {
+        if (numeric) {
             builder.seed(42L);
         } else {
             builder.seed("every-kind-of-state");
@@ -272,13 +258,12 @@ class GeneratorConfigChildStreamTest {
                 .collectionSize(2, 4)
                 .objectMaxDepth(6)
                 .objectPoolSize(11)
-                .objectOverrideDefaultInitialization(legacy)
-                .objectIgnoreErrors(!legacy)
+                .objectOverrideDefaultInitialization(numeric)
+                .objectIgnoreErrors(!numeric)
                 .objectConstructionPolicy(ObjectConstructionPolicy.UNSAFE_CONSTRUCTOR_BYPASS)
                 .objectDateRange(LocalDate.of(2022, 1, 1), LocalDate.of(2022, 12, 31))
                 .objectSemanticMode(
-                        legacy ? ObjectGenerationSemanticMode.STRICT : ObjectGenerationSemanticMode.STRUCTURAL_ONLY)
-                .objectFieldStreamPolicy(policy)
+                        numeric ? ObjectGenerationSemanticMode.STRICT : ObjectGenerationSemanticMode.STRUCTURAL_ONLY)
                 .objectNullProbability(0.25)
                 .objectOptionalEmptyProbability(0.5)
                 .objectUniqueField("accountId")
@@ -288,7 +273,7 @@ class GeneratorConfigChildStreamTest {
                 .generationProfile("child-stream-profile")
                 .providerDatasetVersion("child-stream-dataset")
                 .paymentCardSafetyPolicy(
-                        legacy ? PaymentCardSafetyPolicy.STRIPE_SANDBOX : PaymentCardSafetyPolicy.CHECKSUM_VALID)
+                        numeric ? PaymentCardSafetyPolicy.STRIPE_SANDBOX : PaymentCardSafetyPolicy.CHECKSUM_VALID)
                 .bankingSafetyPolicy(BankingSafetyPolicy.REALISTIC_UNCLASSIFIED)
                 .businessTaxIdentifierSafetyPolicy(BusinessTaxIdentifierSafetyPolicy.REALISTIC_UNCLASSIFIED)
                 .cryptoAddressSafetyPolicy(CryptoAddressSafetyPolicy.REALISTIC_UNCLASSIFIED)
@@ -301,7 +286,7 @@ class GeneratorConfigChildStreamTest {
     }
 
     /** The portable settings, and every kind of state that a recipe cannot record, with two entries apiece. */
-    private static GeneratorConfig everyKindOfState(ObjectFieldStreamPolicy policy) {
+    private static GeneratorConfig everyKindOfState(boolean numeric) {
         Generator<String> typeValue = () -> "type";
         Generator<Long> otherTypeValue = () -> 7L;
         Generator<String> fieldValue = () -> "field";
@@ -316,7 +301,7 @@ class GeneratorConfigChildStreamTest {
         Predicate<Field> startsWithD = field -> field.getName().startsWith("d");
         Predicate<Field> startsWithX = field -> field.getName().startsWith("x");
         Predicate<Class<?>> arrays = Class::isArray;
-        return portableState(policy)
+        return portableState(numeric)
                 .generationFailureListener(diagnostic -> {})
                 .generationReportListener(entry -> {})
                 .generationReportParentsFirst(true)

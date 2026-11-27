@@ -227,8 +227,7 @@ final class FieldGeneratorResolver {
         this.pool = pool;
         this.uniqueFieldTracker = uniqueFieldTracker;
         this.generationSeed = generationSeed;
-        this.namedChildStreams = ObjectFieldStreamPlanner.usesNamedChildStreams(
-                this.generatorConfig.getObjectFieldStreamPolicy(), generationSeed, config.hasPortableRecipe());
+        this.namedChildStreams = ObjectFieldStreamPlanner.usesNamedChildStreams(generationSeed);
         this.sequenceRandom = generationSeed != null ? new Random(generationSeed) : this.generatorConfig.createRandom();
         this.builtins = buildBuiltins(config, this.generatorConfig, this.sequenceRandom);
         this.semanticRegistry = config.getSemanticRegistry();
@@ -238,10 +237,7 @@ final class FieldGeneratorResolver {
             this.semanticTypedGenerators = Map.of();
         } else {
             this.semanticStringGenerators = buildSemanticStringGenerators(
-                    this.generatorConfig,
-                    this.sequenceRandom,
-                    this.semanticRegistry,
-                    independentSemanticSeed(generationSeed));
+                    this.generatorConfig, this.sequenceRandom, this.semanticRegistry, generationSeed);
             this.semanticTypedGenerators = buildSemanticTypedGenerators(
                     this.config,
                     this.generatorConfig,
@@ -697,38 +693,18 @@ final class FieldGeneratorResolver {
                 .plusMillis(source.nextLong(MILLIS_PER_DAY));
     }
 
-    /**
-     * The seed from which {@link ObjectFieldStreamPolicy#INDEPENDENT} member streams derive their
-     * provider-backed semantic generators, or {@code null} for every other stream model.
-     */
-    private @Nullable Long independentSemanticSeed(@Nullable Long generationSeed) {
-        return generationSeed != null
-                        && generatorConfig.getObjectFieldStreamPolicy() == ObjectFieldStreamPolicy.INDEPENDENT
-                ? generationSeed
-                : null;
-    }
-
     private static SemanticStringGenerators buildSemanticStringGenerators(
             GeneratorConfig config,
             Random seedSource,
             SemanticFieldRegistry semanticRegistry,
-            @Nullable Long independentSemanticSeed) {
-        Set<String> providerKeys = semanticRegistry.providerBackedSemanticKeys();
-        long[] providerSeeds = null;
-        // The number of provider-backed keys depends on installed modules. INDEPENDENT member streams
-        // must not shift when an unrelated provider is registered, so they derive each key's seed by
-        // name; every other seeded stream draws one seed per key in registry order.
-        if (independentSemanticSeed == null && config.getSeed().isPresent()) {
-            providerSeeds = new long[providerKeys.size()];
-            for (int i = 0; i < providerSeeds.length; i++) {
-                providerSeeds[i] = seedSource.nextLong();
-            }
-        }
+            @Nullable Long generationSeed) {
+        // The number of provider-backed keys depends on installed modules. Member streams must not shift
+        // when an unrelated provider is registered, so a seeded session derives each key's seed from its
+        // name instead of drawing one; an unseeded session, which has no generation seed, gives none.
         Long statusSeed = nextDeterministicSeed(config, seedSource);
         return new LazySemanticGenerators(
-                providerKeys,
-                providerSeeds,
-                independentSemanticSeed,
+                semanticRegistry.providerBackedSemanticKeys(),
+                generationSeed,
                 (key, seed) ->
                         buildProviderBackedSemanticGenerator(configWithSeed(config, seed), semanticRegistry, key),
                 () -> newStatusStringGenerator(configWithSeed(config, statusSeed)));
@@ -745,28 +721,25 @@ final class FieldGeneratorResolver {
     }
 
     /**
-     * Provider-backed semantic generators, built on first use. Each key's seed is drawn when the
-     * resolver is created, in the same order as eager construction, so seeded output is unchanged;
-     * only the cost of building generators a type never uses is avoided.
+     * Provider-backed semantic generators, built on first use. With a generation seed, each key's
+     * seed is derived from the key's name, so building a generator only when a type uses it changes
+     * no value; only the cost of building generators a type never uses is avoided.
      */
     private static final class LazySemanticGenerators implements SemanticStringGenerators {
 
         private final Set<String> providerKeys;
-        private final long @Nullable [] providerSeeds;
-        private final @Nullable Long independentSeed;
+        private final @Nullable Long derivationSeed;
         private final BiFunction<String, @Nullable Long, Generator<?>> providerFactory;
         private final Supplier<Generator<?>> statusFactory;
         private final Map<String, Optional<Generator<?>>> built = new HashMap<>();
 
         private LazySemanticGenerators(
                 Set<String> providerKeys,
-                long @Nullable [] providerSeeds,
-                @Nullable Long independentSeed,
+                @Nullable Long derivationSeed,
                 BiFunction<String, @Nullable Long, Generator<?>> providerFactory,
                 Supplier<Generator<?>> statusFactory) {
             this.providerKeys = providerKeys;
-            this.providerSeeds = providerSeeds;
-            this.independentSeed = independentSeed;
+            this.derivationSeed = derivationSeed;
             this.providerFactory = providerFactory;
             this.statusFactory = statusFactory;
         }
@@ -787,12 +760,8 @@ final class FieldGeneratorResolver {
                 if ("status".equals(semanticKey)) {
                     return Optional.of(statusFactory.get());
                 }
-                int index = 0;
-                for (String key : providerKeys) {
-                    if (key.equals(semanticKey)) {
-                        return Optional.of(providerFactory.apply(key, seedFor(key, index)));
-                    }
-                    index++;
+                if (providerKeys.contains(semanticKey)) {
+                    return Optional.of(providerFactory.apply(semanticKey, seedFor(semanticKey)));
                 }
                 return Optional.empty();
             } catch (UnsupportedOperationException unavailable) {
@@ -801,11 +770,10 @@ final class FieldGeneratorResolver {
             }
         }
 
-        private @Nullable Long seedFor(String key, int index) {
-            if (independentSeed != null) {
-                return GenerationRecipe.deriveChildSeed(independentSeed, "semantic:" + key);
-            }
-            return providerSeeds != null ? Long.valueOf(providerSeeds[index]) : null;
+        private @Nullable Long seedFor(String key) {
+            return derivationSeed != null
+                    ? Long.valueOf(GenerationRecipe.deriveChildSeed(derivationSeed, "semantic:" + key))
+                    : null;
         }
     }
 

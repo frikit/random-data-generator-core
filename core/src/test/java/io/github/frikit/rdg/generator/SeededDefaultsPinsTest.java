@@ -51,7 +51,7 @@ import org.junit.jupiter.api.Test;
  * {@link WithRandomizers}, nested in this class. Renaming this class changes those values.
  */
 @DisplayName("seeded child streams, street layout, randomizers and Gaussian draws keep their values")
-class DefaultFlipPinsTest {
+class SeededDefaultsPinsTest {
 
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-07-10T12:00:00Z"), ZoneOffset.UTC);
 
@@ -65,36 +65,36 @@ class DefaultFlipPinsTest {
             de info Tulpenpfad 8680 | Tulpenpfad 8680, Mönchengladbach, Nordrhein-Westfalen 41061, Deutschland
             de schema [{street=Tannenhöhe 3876, email=waltervogt@example.net}, {street=Parkberg 1951, email=laura_becker@example.com}]
             de session Beethovenring 7072
-            de object Ayse, Domal. 855, Parkbr. 9051 | Tim, Beethoveng. 4164, Bismarckpl. 2993
+            de object Leonie, Bismarckberg 4305, Domprom. 2356 | Oliver, Hafenpark 2174, Bismarckwall 9816
             de-DE street Schlossanger 7389 | Rosenstrasse 9180 | Kantgart. 1014, Konstanz, Baden-Württemberg 78462, Deutschland
             de-DE info Tulpenpfad 8680 | Tulpenpfad 8680, Mönchengladbach, Nordrhein-Westfalen 41061, Deutschland
             de-DE schema [{street=Tannenhöhe 3876, email=waltervogt@example.net}, {street=Parkberg 1951, email=laura_becker@example.com}]
             de-DE session Beethovenring 7072
-            de-DE object Ayse, Mozartwall 7448, Parkbr. 9051 | Tim, Waldaue 2922, Bismarckpl. 2993
+            de-DE object Leonie, Mozartwall 7448, Domprom. 2356 | Oliver, Waldaue 2922, Bismarckwall 9816
             de-AT street Schlossanger 7389 | Rosenstrasse 9180 | Kantgart. 1014, Rostock, Baden-Württemberg 9342, Österreich
             de-AT info Tulpenpfad 8680 | Tulpenpfad 8680, Oldenburg, Rheinland-Pfalz 9342, Österreich
             de-AT schema [{street=Tannenhöhe 3876, email=waltervogt@example.net}, {street=Parkberg 1951, email=laura_becker@example.com}]
             de-AT session Beethovenring 7072
-            de-AT object Ayse, Mozartwall 7448, Parkbr. 9051 | Tim, Waldaue 2922, Bismarckpl. 2993
+            de-AT object Leonie, Mozartwall 7448, Domprom. 2356 | Oliver, Waldaue 2922, Bismarckwall 9816
             de-CH street Schlossanger 7389 | Rosenstrasse 9180 | Kantgart. 1014, Rostock, Baden-Württemberg 9342, Schweiz
             de-CH info Tulpenpfad 8680 | Tulpenpfad 8680, Oldenburg, Rheinland-Pfalz 9342, Schweiz
             de-CH schema [{street=Tannenhöhe 3876, email=waltervogt@example.net}, {street=Parkberg 1951, email=laura_becker@example.com}]
             de-CH session Beethovenring 7072
-            de-CH object Ayse, Mozartwall 7448, Parkbr. 9051 | Tim, Waldaue 2922, Bismarckpl. 2993
+            de-CH object Leonie, Mozartwall 7448, Domprom. 2356 | Oliver, Waldaue 2922, Bismarckwall 9816
             nl-NL street 7389 Molenstraat pad | 9180 Dorpsstraat Plantsoen | 1014 Beatrixstraat erf, Reusel, GR 8649 ST, Nederland
             nl-NL info 8680 Boslaan bn. | 8680 Boslaan bn., Helmond, DR 8649 ST, Nederland
             nl-NL schema [{street=3876 Wilhelminastraat gr., email=mariusveenstra@example.net}, {street=1951 Stationsstraat wg., email=charlotte_vanschaik@example.com}]
             nl-NL session 7072 Hoofdstraat wg.
-            nl-NL object Merel, 7448 Julianastraat pad, 9051 Stationsstraat ln. | Ivo, 2922 Wilhelminastraat erf, 2993 Waterstraat sgl.
+            nl-NL object Linda, 7448 Julianastraat pad, 2356 Eikenlaan pln. | Casper, 2922 Wilhelminastraat erf, 9816 Lindelaan wg.
             en-US street 7389 River Park | 9180 Jefferson Grove | 1014 Willow Xing, Renton, WA 98056, United States
             en-US info 8680 Lakeview Holw | 8680 Lakeview Holw, Fontana, CA 92335, United States
             en-US schema [{street=3876 Elm Knl, email=landonhill@example.net}, {street=1951 Cherry Mnr, email=savannah_edwards@example.com}]
             en-US session 7072 Fairview Pt
-            en-US object Piper, 7448 Washington Anx, 9051 Cherry Jct | Charles, 2922 Elm Hl, 2993 Lincoln Blvd
-            randomizers -126 1320854254 QSPIiiDvTKHfe
-            randomizers -42 -1375916062 xMRrSmzG
-            randomizers -56 -946313064 ExwAN
-            built-in randomizers [a974fd65-841d-4fb8-8acc-667159bc1446 Easton 382 Park Jct, 9bd35bf1-b02d-4679-8575-2f54fa87f018 Serenity 7862 Franklin Fwy, df6740a1-5bca-4f3e-8560-2e904e4907cf Ivy 3208 Lincoln Ests]
+            en-US object Angela, 7448 Washington Anx, 2356 Park Tpke | Ryan, 2922 Elm Hl, 9816 Grove Anx
+            randomizers -52 1899316059 xEBuGWSyXlEeMKNL
+            randomizers 24 -1303009490 ntNJKYOFUIMPbndTZYE
+            randomizers 78 -1434291171 SgHgtUvBfXdiyLSnHe
+            built-in randomizers [05175d9b-579f-414d-a58c-e4889f457455 Leo 1634 Main Row, ea4ad5bf-96d4-40ed-bfd7-eeb704690af1 Cooper 3596 Willow Hwy, f01178b2-d24c-4a89-88fa-dc7d5936e816 David 941 Woodland Path]
             gaussian 10 [-0.0388436147345816, 0.7916654062154486, 0.08786661673846564, 2.3761061677475346] [99.41734577898127, 111.87498109323172]
             gaussian 14 [0.7299233329370594, -0.31054186561011643, -1.0265431925416346, 1.0495360551026751] [110.94884999405589, 95.34187201584825]
             gaussian 42 [-0.3249011602434719, -0.7283863934921454, -0.25959749624431383, 1.5110439411230536] [95.12648259634793, 89.07420409761782]

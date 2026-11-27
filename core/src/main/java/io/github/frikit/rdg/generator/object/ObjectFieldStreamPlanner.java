@@ -5,26 +5,17 @@
  */
 package io.github.frikit.rdg.generator.object;
 
-import io.github.frikit.rdg.generator.GeneratorConfig;
-
 /** Selects the random-stream model used for one object-generation session. */
 final class ObjectFieldStreamPlanner {
 
     private ObjectFieldStreamPlanner() {}
 
-    static boolean usesNamedChildStreams(
-            GeneratorConfig config, @org.jspecify.annotations.Nullable Long generationSeed) {
-        return usesNamedChildStreams(
-                config.getObjectFieldStreamPolicy(),
-                generationSeed,
-                config.getGenerationRecipe().isPresent());
-    }
-
-    /** Resolvers pass the recipe presence computed once per configuration. */
-    static boolean usesNamedChildStreams(
-            ObjectFieldStreamPolicy policy,
-            @org.jspecify.annotations.Nullable Long generationSeed,
-            boolean portableRecipe) {
-        return generationSeed != null && (policy == ObjectFieldStreamPolicy.INDEPENDENT || portableRecipe);
+    /**
+     * Whether each member draws from its own stream, derived by name from the generation seed. Every seeded
+     * session does, whatever rules, exclusions or modules the configuration has; an unseeded session draws
+     * its members from one shared sequence, since it has no seed to derive from.
+     */
+    static boolean usesNamedChildStreams(@org.jspecify.annotations.Nullable Long generationSeed) {
+        return generationSeed != null;
     }
 }

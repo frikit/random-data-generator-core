@@ -279,19 +279,17 @@ The DSL matches the Java builder defaults with one intentional, documented diffe
 replace property initializers. A `rule(...)` replaces its property's initializer, as field rules do in
 the Java API.
 
-## Opt-in independent streams (2.3+)
+## Member streams
 
 ```kotlin
-import io.github.frikit.rdg.generator.`object`.ObjectFieldStreamPolicy
-
 val users = rdgList<User>(5) {
     config {
         seed(42L)
-        objectFieldStreamPolicy(ObjectFieldStreamPolicy.INDEPENDENT)
     }
     rule(User::name) { "Ada" }
 }
 ```
 
-The Kotlin option uses the same core policy as Java. Object-field streams stay LEGACY unless you select INDEPENDENT. For direct configuration
-consumers, `rdgConfig { seed(42L) }.snapshotClock()` captures an explicit replay clock.
+As in Java, each member of a seeded object draws from its own stream, derived by name from the seed, so the
+rule on `name` leaves the other members' values alone. For direct configuration consumers,
+`rdgConfig { seed(42L) }.snapshotClock()` captures an explicit replay clock.

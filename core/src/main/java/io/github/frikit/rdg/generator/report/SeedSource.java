@@ -12,8 +12,8 @@ public enum SeedSource {
     EXPLICIT_SEED,
 
     /**
-     * A stream derived by name from the configuration's seed: each member of a seeded configuration with a
-     * portable recipe, or with {@code ObjectFieldStreamPolicy.INDEPENDENT}, draws from its own named stream.
+     * A stream derived by name from the configuration's seed: each member of a seeded configuration draws
+     * from its own named stream.
      */
     DERIVED_STREAM,
 

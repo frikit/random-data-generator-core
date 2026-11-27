@@ -62,7 +62,7 @@ class GenerationRecipeTest {
     void stableSerializationRoundTrip() {
         GenerationRecipe recipe = GenerationRecipe.builder()
                 .libraryVersion("2.0.0-rc1")
-                .recipeVersion("v2")
+                .recipeVersion("v3")
                 .algorithm("java.util.Random-v1")
                 .seed(-42L)
                 .locale(Locale.CANADA_FRENCH)
@@ -78,7 +78,7 @@ class GenerationRecipeTest {
 
         assertEquals("""
             format=rdg-recipe
-            recipe-version=v2
+            recipe-version=v3
             library-version=2.0.0-rc1
             algorithm=java.util.Random-v1
             seed=-42
@@ -564,7 +564,7 @@ class GenerationRecipeTest {
         assertThrows(IllegalArgumentException.class, () -> GenerationRecipe.parse("missing-separator"));
         assertThrows(
                 IllegalArgumentException.class,
-                () -> GenerationRecipe.parse(serialized.replace("recipe-version=v2\n", "recipe-version=v2\n\n")));
+                () -> GenerationRecipe.parse(serialized.replace("recipe-version=v3\n", "recipe-version=v3\n\n")));
         assertThrows(
                 IllegalArgumentException.class,
                 () -> GenerationRecipe.parse(serialized.replace("format=rdg-recipe", "1format=rdg-recipe")));

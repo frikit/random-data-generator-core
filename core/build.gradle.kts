@@ -164,7 +164,7 @@ pitest {
             "io.github.frikit.rdg.generator.GeneratorProfileTest",
             "io.github.frikit.rdg.generator.RandomSourceContractTest",
             // The seeded values of the child streams, the German street layout, randomizers and Gaussian draws.
-            "io.github.frikit.rdg.generator.DefaultFlipPinsTest",
+            "io.github.frikit.rdg.generator.SeededDefaultsPinsTest",
             "io.github.frikit.rdg.generator.color.ColorGeneratorTest",
             "io.github.frikit.rdg.generator.finance.Phase3FinanceGeneratorsTest",
             "io.github.frikit.rdg.generator.identifier.UUIDGeneratorTest",
