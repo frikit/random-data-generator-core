@@ -52,7 +52,7 @@ import org.junit.jupiter.api.Test;
 /**
  * Sweeps every route to a generated email address, so that a new one is covered without a test of its
  * own: in every supported locale, under each email-domain and network-safety policy, an address that
- * krandom generates must pass Hibernate Validator's {@code @Email}, checked through the Bean Validation
+ * random-data-generator generates must pass Hibernate Validator's {@code @Email}, checked through the Bean Validation
  * API as a consumer's bean would be. An address is a string whose generator method, record component,
  * map key, schema property or object field is named for mail, other than a domain or a provider. The
  * generator catalog is searched for such routes once, and each route is then drawn from in every

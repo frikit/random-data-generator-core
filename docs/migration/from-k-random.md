@@ -1,16 +1,16 @@
-# Migrating From k-random/k-random To krandom
+# Migrating From k-random/k-random To random-data-generator
 
-This guide maps k-random reference APIs to native krandom APIs. It is not a drop-in import replacement: update imports and use the `io.github.frikit.rdg.*` API surface.
+This guide maps k-random reference APIs to native random-data-generator APIs. It is not a drop-in import replacement: update imports and use the `io.github.frikit.rdg.*` API surface.
 
 ## Dependency Mapping
 
-| k-random artifact | krandom replacement | Notes |
+| k-random artifact | random-data-generator replacement | Notes |
 | --- | --- | --- |
 | `io.github.k-random:k-random-core` | `io.github.frikit:random-data-generator-core` | Core generators, object generation, schema/provider APIs. |
 | `io.github.k-random:k-random-randomizers` | `io.github.frikit:random-data-generator-core` | Native generators live in provider packages instead of a randomizer facade module. |
 | `io.github.k-random:k-random-bean-validation` | `io.github.frikit:random-data-generator-core` | Bean Validation support is native to object generation where supported. |
 
-Current documented krandom install coordinate:
+Current documented random-data-generator install coordinate:
 
 Gradle Kotlin:
 
@@ -40,7 +40,7 @@ Maven:
 
 ## `KRandom` Entry Point Mapping
 
-| k-random `KRandom` usage | krandom replacement |
+| k-random `KRandom` usage | random-data-generator replacement |
 | --- | --- |
 | `new KRandom()` | `Generators.ofObject(Type.class)` when generating objects, or a specific `Generators.of*()` factory for scalar/domain values |
 | `new KRandom(parameters)` | `Generators.ofObject(Type.class, config)` with `GeneratorConfig` |
@@ -58,7 +58,7 @@ User user = random.nextObject(User.class);
 List<User> users = random.objects(User.class, 10);
 ```
 
-krandom:
+random-data-generator:
 
 ```java
 ObjectGenerator<User> users = Generators.ofObject(User.class);
@@ -84,7 +84,7 @@ KRandomParameters parameters = new KRandomParameters().seed(42L);
 User user = new KRandom(parameters).nextObject(User.class);
 ```
 
-krandom:
+random-data-generator:
 
 ```java
 GeneratorConfig config = GeneratorConfig.builder()
@@ -94,7 +94,7 @@ GeneratorConfig config = GeneratorConfig.builder()
 User user = Generators.ofObject(User.class, config).generate();
 ```
 
-The same krandom seed and config produce repeatable krandom output. The generated values are not expected to match k-random's exact strings.
+The same random-data-generator seed and config produce repeatable random-data-generator output. The generated values are not expected to match k-random's exact strings.
 
 ## Records And Nested Objects
 
@@ -131,7 +131,7 @@ Use `collectionSize(min, max)` to replace k-random's `collectionSizeRange(min, m
 
 ## Circular References And Object Depth
 
-krandom detects recursive object graphs and bounds traversal with an object pool and max-depth setting:
+random-data-generator detects recursive object graphs and bounds traversal with an object pool and max-depth setting:
 
 ```java
 GeneratorConfig config = GeneratorConfig.builder()
@@ -144,7 +144,7 @@ TreeNode node = Generators.ofObject(TreeNode.class, config).generate();
 
 ## Configuration Mapping
 
-| k-random | krandom |
+| k-random | random-data-generator |
 | --- | --- |
 | `new KRandomParameters().seed(42L)` | `GeneratorConfig.builder().seed(42L)` |
 | `charset(charset)` | `charset(charset)` |
@@ -156,7 +156,7 @@ TreeNode node = Generators.ofObject(TreeNode.class, config).generate();
 | `overrideDefaultInitialization(true)` | `objectOverrideDefaultInitialization(true)` |
 | `dateRange(min, max)` | `objectDateRange(min, max)` where object generation is the target |
 | `timeRange(min, max)` | Use `TimeGenerator` directly or an object override for `LocalTime` fields |
-| `bypassSetters(true)` | krandom currently uses direct field population for object generation |
+| `bypassSetters(true)` | random-data-generator currently uses direct field population for object generation |
 | `scanClasspathForConcreteTypes(true)` | use explicit type/field overrides for abstract/interface fields |
 
 Example:
@@ -172,9 +172,9 @@ GeneratorConfig config = GeneratorConfig.builder()
 User user = Generators.ofObject(User.class, config).generate();
 ```
 
-Default values are not identical. k-random defaults to seed `123`, string length `1..32`, collection size `1..100`, and effectively unlimited object depth. krandom defaults to an unseeded random source, string length `5..20`, collection size `1..10`, and bounded object depth. Set the values explicitly during migration when those defaults matter.
+Default values are not identical. k-random defaults to seed `123`, string length `1..32`, collection size `1..100`, and effectively unlimited object depth. random-data-generator defaults to an unseeded random source, string length `5..20`, collection size `1..10`, and bounded object depth. Set the values explicitly during migration when those defaults matter.
 
-krandom object generation writes fields directly. That is the native replacement for `bypassSetters(true)`. k-random's setter-first default is not copied as a separate mode.
+random-data-generator object generation writes fields directly. That is the native replacement for `bypassSetters(true)`. k-random's setter-first default is not copied as a separate mode.
 
 For interface or abstract fields, replace `scanClasspathForConcreteTypes(true)` with an explicit override:
 
@@ -201,7 +201,7 @@ KRandomParameters parameters = new KRandomParameters()
     .randomize(String.class, () -> "fixed");
 ```
 
-krandom:
+random-data-generator:
 
 ```java
 GeneratorConfig config = GeneratorConfig.builder()
@@ -222,7 +222,7 @@ KRandomParameters parameters = new KRandomParameters()
 User user = new KRandom(parameters).nextObject(User.class);
 ```
 
-krandom:
+random-data-generator:
 
 ```java
 GeneratorConfig config = GeneratorConfig.builder()
@@ -253,7 +253,7 @@ KRandomParameters parameters = new KRandomParameters()
 Checkout checkout = new KRandom(parameters).nextObject(Checkout.class);
 ```
 
-krandom:
+random-data-generator:
 
 ```java
 GeneratorConfig config = GeneratorConfig.builder()
@@ -271,7 +271,7 @@ k-random:
 new KRandomParameters().excludeField(FieldPredicates.named("password"));
 ```
 
-krandom:
+random-data-generator:
 
 ```java
 GeneratorConfig config = GeneratorConfig.builder()
@@ -279,11 +279,11 @@ GeneratorConfig config = GeneratorConfig.builder()
     .build();
 ```
 
-For annotations, replace k-random's `io.github.krandom.annotation.Exclude` with krandom's `io.github.frikit.rdg.generator.object.Exclude`.
+For annotations, replace k-random's `io.github.krandom.annotation.Exclude` with random-data-generator's `io.github.frikit.rdg.generator.object.Exclude`.
 
 Field predicate mapping:
 
-| k-random | krandom |
+| k-random | random-data-generator |
 | --- | --- |
 | `FieldPredicates.named("pass.*")` | `FieldPredicates.nameMatches("pass.*")` |
 | `FieldPredicates.ofType(String.class)` | `FieldPredicates.ofType(String.class)` |
@@ -293,7 +293,7 @@ Field predicate mapping:
 
 Type predicate mapping:
 
-| k-random | krandom |
+| k-random | random-data-generator |
 | --- | --- |
 | `TypePredicates.named("java.time.LocalDate")` | `TypePredicates.named("java.time.LocalDate")` |
 | `TypePredicates.ofType(LocalDate.class)` | `TypePredicates.ofType(LocalDate.class)` |
@@ -312,7 +312,7 @@ Predicates are regular Java `Predicate` instances, so `.and(...)`, `.or(...)`, a
 
 Annotation mapping:
 
-| k-random annotation | krandom replacement |
+| k-random annotation | random-data-generator replacement |
 | --- | --- |
 | `@io.github.krandom.annotation.Exclude` | `@io.github.frikit.rdg.generator.object.Exclude` |
 | `@io.github.krandom.annotation.Randomizer` | `@io.github.frikit.rdg.generator.object.Randomizer` |
@@ -328,7 +328,7 @@ class User {
 }
 ```
 
-krandom:
+random-data-generator:
 
 ```java
 class User {
@@ -344,7 +344,7 @@ The native `@Randomizer` expects a `Generator<?>` implementation. Constructor ar
 
 Extension point mapping:
 
-| k-random extension point | krandom replacement |
+| k-random extension point | random-data-generator replacement |
 | --- | --- |
 | `Randomizer<T>` | `Generator<T>` |
 | `ContextAwareRandomizer<T>` | `ContextualGenerator<T>` |
@@ -356,7 +356,7 @@ Extension point mapping:
 | `BeanValidationRandomizerRegistry` | native Bean Validation support in `random-data-generator-core`; no registry module is required |
 | ServiceLoader registry discovery / `@Priority` | explicit registration order and `ConflictPolicy`; no source-compatible ServiceLoader surface is added |
 
-k-random `Randomizer<T>` maps to krandom `Generator<T>`:
+k-random `Randomizer<T>` maps to random-data-generator `Generator<T>`:
 
 ```java
 Generator<String> tokenGenerator = () -> "fixed-token";
@@ -414,15 +414,15 @@ GeneratorConfig config = GeneratorConfig.builder()
     .build();
 ```
 
-`ExclusionPolicy` maps to `objectExclude(...)`, `objectExcludeType(...)`, predicate helpers, and `@Exclude`. ServiceLoader registry discovery and `@Priority` registry ordering are not copied into krandom; use explicit registration order, aliases, and `ConflictPolicy` instead.
+`ExclusionPolicy` maps to `objectExclude(...)`, `objectExcludeType(...)`, predicate helpers, and `@Exclude`. ServiceLoader registry discovery and `@Priority` registry ordering are not copied into random-data-generator; use explicit registration order, aliases, and `ConflictPolicy` instead.
 
 ## Randomizer Classes
 
-k-random exposes randomizer classes such as `StringRandomizer`, `EmailRandomizer`, and `LocalDateRandomizer`. krandom uses generator classes and the `Generators` facade:
+k-random exposes randomizer classes such as `StringRandomizer`, `EmailRandomizer`, and `LocalDateRandomizer`. random-data-generator uses generator classes and the `Generators` facade:
 
-| k-random randomizer | krandom replacement |
+| k-random randomizer | random-data-generator replacement |
 | --- | --- |
-| `AbstractRandomizer` / `FakerBasedRandomizer` | Implement `Generator<T>` directly or wrap an existing krandom generator; no base class is required |
+| `AbstractRandomizer` / `FakerBasedRandomizer` | Implement `Generator<T>` directly or wrap an existing random-data-generator generator; no base class is required |
 | `AbstractRangeRandomizer` | Use bounded generator constructors, facade methods, `between(...)` methods, or a small `Generator<T>` lambda for uncommon ranges |
 | `StringRandomizer` | `Generators.ofString()` / `StringGenerator` |
 | `CharacterRandomizer` | `Generators.ofChar()` / `CharGenerator` |
@@ -523,7 +523,7 @@ The table above is the maintained randomizer mapping baseline.
 
 ## Faker And Domain Generators
 
-Most k-random faker/DataFaker randomizers migrate to krandom facade factories or fluent namespaces.
+Most k-random faker/DataFaker randomizers migrate to random-data-generator facade factories or fluent namespaces.
 
 k-random:
 
@@ -533,7 +533,7 @@ String email = new EmailRandomizer().getRandomValue();
 String city = new CityRandomizer().getRandomValue();
 ```
 
-krandom:
+random-data-generator:
 
 ```java
 GeneratorConfig config = GeneratorConfig.builder()
@@ -547,11 +547,11 @@ String city = Generators.location(config).city().generate();
 
 ## Bean Validation
 
-k-random loads Bean Validation support through `k-random-bean-validation`. krandom handles the equivalent behavior natively during object generation; keep using `random-data-generator-core`.
+k-random loads Bean Validation support through `k-random-bean-validation`. random-data-generator handles the equivalent behavior natively during object generation; keep using `random-data-generator-core`.
 
 Supported native constraints include:
 
-| Bean Validation constraint | krandom object-generation behavior |
+| Bean Validation constraint | random-data-generator object-generation behavior |
 | --- | --- |
 | `@AssertFalse`, `@AssertTrue` | Generates matching `boolean`/`Boolean` values; contradictory assertions fail before generation |
 | `@Null` | Generates `null` for reference fields |
@@ -593,7 +593,7 @@ KRandom random = new KRandom(new KRandomParameters());
 Account account = random.nextObject(Account.class);
 ```
 
-krandom:
+random-data-generator:
 
 ```java
 Account account = Generators.ofObject(Account.class).generate();
@@ -603,14 +603,14 @@ Account account = Generators.ofObject(Account.class).generate();
 
 Both libraries support seeded generation, but a seed is scoped to the library that interprets it.
 
-krandom guarantees repeatable krandom output when these inputs stay the same:
+random-data-generator guarantees repeatable random-data-generator output when these inputs stay the same:
 
-- krandom version
+- random-data-generator version
 - `GeneratorConfig`, including seed, locale, string length, collection size, date ranges, semantic mode, and overrides
 - generator entry point and call order
 - your custom generators and providers
 
-k-random seed values do not guarantee identical krandom strings or object snapshots. In particular, k-random/DataFaker approved-output strings are not copied unless a krandom generator explicitly documents that behavior.
+k-random seed values do not guarantee identical random-data-generator strings or object snapshots. In particular, k-random/DataFaker approved-output strings are not copied unless a random-data-generator generator explicitly documents that behavior.
 
 k-random:
 
@@ -620,7 +620,7 @@ User first = new KRandom(parameters).nextObject(User.class);
 User second = new KRandom(parameters).nextObject(User.class);
 ```
 
-krandom:
+random-data-generator:
 
 ```java
 GeneratorConfig config = GeneratorConfig.builder()
@@ -634,7 +634,7 @@ User first = Generators.ofObject(User.class, config).generate();
 User second = Generators.ofObject(User.class, config).generate();
 ```
 
-`first` and `second` are repeatable krandom outputs for the same krandom version and config. They are not expected to equal k-random's `seed(123L)` output.
+`first` and `second` are repeatable random-data-generator outputs for the same random-data-generator version and config. They are not expected to equal k-random's `seed(123L)` output.
 
 If your old tests relied on k-random defaults, set the equivalent knobs explicitly:
 
@@ -647,7 +647,7 @@ GeneratorConfig config = GeneratorConfig.builder()
     .build();
 ```
 
-krandom's native defaults remain different: unseeded random source, string length `5..20`, collection size `1..10`, and bounded object depth.
+random-data-generator's native defaults remain different: unseeded random source, string length `5..20`, collection size `1..10`, and bounded object depth.
 
 ## Tracked Gaps
 

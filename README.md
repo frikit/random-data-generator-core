@@ -37,8 +37,8 @@ from the kRandom 4.1.0 code under new coordinates and a new package, `io.github.
 - CI runs the tests on Java 17, Java 21 and Java 25, with separate GraalVM native-image and critical-path mutation
   jobs.
 - Local quality checks are standardized through `./scripts/pre_commit_check.sh`.
-- Published to Maven Central under `io.github.frikit`. See [`docs/release-runbook.md`](docs/release-runbook.md) for
-  the release process.
+- Will be published to Maven Central under `io.github.frikit`. See [`docs/release-runbook.md`](docs/release-runbook.md)
+  for the release process.
 
 ## What the core covers
 

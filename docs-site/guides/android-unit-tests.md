@@ -8,7 +8,7 @@ permalink: /guides/android-unit-tests/
 
 An Android module can use random-data-generator in its local unit tests, the tests under `src/test` that Gradle runs on
 a JVM on the build machine. The
-[`examples/kotlin-android`](https://github.com/frikit/random-data-generator-core/tree/main/examples/kotlin-android) example,
+[`examples/kotlin-android`](https://github.com/frikit/krandom/tree/main/examples/kotlin-android) example,
 which CI runs, has two Android library modules built with the Android Gradle plugin 9.5.2 and its built-in
 Kotlin, the Kotlin Gradle plugin 2.2.10 that it brings. They compile Java and Kotlin for JVM target 17 against
 `compileSdk` 36, and their unit tests use `random-data-generator-core`, `random-data-generator-kotlin-dsl` and `random-data-generator-junit`.

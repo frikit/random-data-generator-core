@@ -34,7 +34,7 @@ def front_matter(text):
 def normalize_site_path(path):
     if not path:
         return path
-    if path.startswith("/rdg/"):
+    if path.startswith("/random-data-generator-core/"):
         path = path[len("/random-data-generator-core"):]
     if path == "/random-data-generator-core":
         path = "/"

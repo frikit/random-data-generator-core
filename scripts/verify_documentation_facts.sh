@@ -46,6 +46,14 @@ SCHEMA_EXPORT_FORMATS="$(fact schemaExportFormats)"
 # the development line will release.
 DOCUMENTED_VERSION="${LATEST_GA_VERSION:-${DEVELOPMENT_VERSION%-SNAPSHOT}}"
 
+# Before the first release checkApiCompatibility has no baseline and checks nothing. Once the line has moved past a
+# release (the close-out commit after it), the public API of that release must be protected.
+API_BASELINE_VERSION="$(fact apiBaselineVersion)"
+if [[ -n "${LATEST_GA_VERSION}" && "${DEVELOPMENT_VERSION}" != "${LATEST_GA_VERSION}-SNAPSHOT" \
+    && -z "${API_BASELINE_VERSION}" ]]; then
+    fail "apiBaselineVersion is empty although ${LATEST_GA_VERSION} is released; set it to the release whose API ${DEVELOPMENT_VERSION} keeps"
+fi
+
 for value in \
     "${DEVELOPMENT_VERSION}" \
     "${JAVA_MINIMUM_VERSION}" \
@@ -173,11 +181,30 @@ reject_pattern "current installation/migration documentation contains snapshot c
     "${REPO_ROOT}/README.md" \
     "${REPO_ROOT}/docs-site" \
     "${REPO_ROOT}/docs/migration"
-# Every versioned coordinate of this family in the installation and migration docs names the documented version.
-STALE_COORDINATES="$(grep -rhoEI 'io\.github\.frikit:random-data-generator-[a-z0-9-]+:[0-9][0-9A-Za-z.-]*' \
-    "${REPO_ROOT}/README.md" "${REPO_ROOT}/docs-site" "${REPO_ROOT}/docs/migration" \
-    | grep -v ":${DOCUMENTED_VERSION}\$" | sort -u || true)"
-[[ -z "${STALE_COORDINATES}" ]] || fail "documentation names coordinates other than ${DOCUMENTED_VERSION}: ${STALE_COORDINATES//$'\n'/, }"
+# Every versioned coordinate of a module this repository publishes, in the installation and migration docs, names
+# the documented version: as group:artifact:version, and as the <version> that follows its Maven <artifactId>.
+# Modules of the language repositories version on their own, so they are not checked here.
+STALE_COORDINATES="$(python3 -I - "${DOCUMENTED_VERSION}" "${PUBLISHED_MODULES}" \
+    "${REPO_ROOT}/README.md" "${REPO_ROOT}/docs-site" "${REPO_ROOT}/docs/migration" <<'PYTHON'
+import pathlib, re, sys
+version, modules, roots = sys.argv[1], sys.argv[2].split(","), sys.argv[3:]
+artifact = "random-data-generator-(?:" + "|".join(map(re.escape, modules)) + ")"
+patterns = [
+    re.compile(r"io\.github\.frikit:(" + artifact + r"):([0-9][0-9A-Za-z.-]*)"),
+    re.compile(r"<artifactId>(" + artifact + r")</artifactId>\s*<version>([^<]+)</version>"),
+]
+stale = set()
+for root in map(pathlib.Path, roots):
+    for file in [root] if root.is_file() else sorted(root.rglob("*.md")):
+        text = file.read_text(encoding="utf-8")
+        for pattern in patterns:
+            for name, found in pattern.findall(text):
+                if found != version:
+                    stale.add(f"{file.name}: {name}:{found}")
+print(", ".join(sorted(stale)))
+PYTHON
+)"
+[[ -z "${STALE_COORDINATES}" ]] || fail "documentation names coordinates other than ${DOCUMENTED_VERSION}: ${STALE_COORDINATES}"
 
 EXAMPLE_VERSION_FILES=(
     "examples/java-gradle/build.gradle.kts"

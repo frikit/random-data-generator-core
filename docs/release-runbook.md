@@ -274,7 +274,7 @@ rebuild them instead: a new build signs and describes other files than the ones 
 
 ## Post-release
 
-- Verify on Maven Central: `https://repo1.maven.org/maven2/io/github/frikit/rdg-core/<version>/`
+- Verify on Maven Central: `https://repo1.maven.org/maven2/io/github/frikit/random-data-generator-core/<version>/`
   (allow up to ~30 minutes for index propagation).
 - Download each `random-data-generator-<module>.cdx.json` release asset and confirm its
   metadata component version matches the release tag.

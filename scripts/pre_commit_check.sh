@@ -140,9 +140,12 @@ else
 fi
 
 API_BASELINE_VERSION="$(awk -F= '$1 == "apiBaselineVersion" { print substr($0, index($0, "=") + 1) }' "${REPO_ROOT}/gradle.properties")"
-step "Verify public API compatibility with ${API_BASELINE_VERSION}"
+if [[ -z "${API_BASELINE_VERSION}" ]]; then
+    step "Verify public API compatibility"
+    echo "  Skipped: no release yet, so there is no released public API to check (apiBaselineVersion is empty)."
 # --continue reports every module that breaks the baseline, not only the first.
-if "${GRADLEW}" checkApiCompatibility --continue --quiet; then
+elif step "Verify public API compatibility with ${API_BASELINE_VERSION}" \
+    && "${GRADLEW}" checkApiCompatibility --continue --quiet; then
     ok "Public API keeps every ${API_BASELINE_VERSION} declaration compatible"
 else
     fail "Public API compatibility failed — see the changes listed above and build/reports/api-compatibility"

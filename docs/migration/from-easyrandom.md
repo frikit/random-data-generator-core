@@ -1,4 +1,4 @@
-# Migrating From EasyRandom To krandom
+# Migrating From EasyRandom To random-data-generator
 
 Easy Random (`org.jeasy.random`) generates structural random object graphs and describes itself as
 maintenance-only. random-data-generator requires Java 17 or later from 3.1.0, and Java 21 before it, and adds semantic, locale-aware fixture values. Treat migration as a
@@ -26,7 +26,7 @@ dependencies {
 
 ## Entry-point mapping
 
-| EasyRandom | krandom |
+| EasyRandom | random-data-generator |
 |---|---|
 | `new EasyRandom()` | `Generators.ofObject(X.class)` |
 | `new EasyRandom(params)` | `Generators.ofObject(X.class, config)` |
@@ -64,7 +64,7 @@ EasyRandomParameters params = new EasyRandomParameters()
 User user = new EasyRandom(params).nextObject(User.class);
 ```
 
-krandom (same shape, but `email`/`city`/… come out realistic, not `"asdlkfj"`):
+random-data-generator (same shape, but `email`/`city`/… come out realistic, not `"asdlkfj"`):
 
 ```java
 GeneratorConfig config = GeneratorConfig.builder()
@@ -78,13 +78,13 @@ User user = Generators.ofObject(User.class, config).generate();
 
 ## Defaults differ
 
-EasyRandom: string length `1..32`, collection size `1..100`. krandom: string
+EasyRandom: string length `1..32`, collection size `1..100`. random-data-generator: string
 length `5..20`, collection size `1..10`, bounded object depth. Set these
 explicitly during migration if your tests depended on the old defaults.
 
 ## Determinism
 
 A seed is scoped to its own library; EasyRandom's exact snapshots are not
-reproduced. The same krandom version + `GeneratorConfig` + call order is
+reproduced. The same random-data-generator version + `GeneratorConfig` + call order is
 repeatable. See the full [`k-random mapping`](./from-k-random.md) and the
 [`product roadmap`](../development/market-leadership-roadmap.md) for tracked gaps.

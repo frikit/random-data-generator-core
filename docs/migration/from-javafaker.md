@@ -1,4 +1,4 @@
-# Migrating From JavaFaker To krandom
+# Migrating From JavaFaker To random-data-generator
 
 The original JavaFaker repository still documents `com.github.javafaker:javafaker:1.0.2` and has
 been superseded for active Faker-style development by DataFaker. If you are still on JavaFaker,
@@ -7,11 +7,11 @@ treat migration as a dependency refresh rather than extending the legacy surface
 Two paths:
 1. **JavaFaker → DataFaker** — a near drop-in fork (same `faker.name().fullName()`
    API), if you only need realistic field values.
-2. **JavaFaker → krandom** — if you also want one-call object/record graphs,
+2. **JavaFaker → random-data-generator** — if you also want one-call object/record graphs,
    reproducible seeds, and Bean-Validation-aware generation. This is the path
    below.
 
-## Why switch to krandom
+## Why switch to random-data-generator
 
 **Pros**: maintained; realistic field data **and** object-graph generation in one
 library; 50 supported locale variants (35 native datasets and 15 curated fallbacks); schema export;
@@ -33,7 +33,7 @@ JavaFaker's provider API is the same shape as DataFaker's, so the field-level
 mapping in [`from-datafaker.md`](./from-datafaker.md) applies verbatim. The most
 common calls:
 
-| JavaFaker | krandom |
+| JavaFaker | random-data-generator |
 |---|---|
 | `new Faker()` / `new Faker(Locale.UK)` | `GeneratorConfig.builder().locale(Locale.UK).seed(1L).build()` |
 | `faker.name().fullName()` | `Generators.ofFullName(cfg).generate()` |
@@ -54,7 +54,7 @@ String name  = faker.name().fullName();
 String email = faker.internet().emailAddress();
 ```
 
-krandom (and you can now fill a whole object, which JavaFaker never did):
+random-data-generator (and you can now fill a whole object, which JavaFaker never did):
 
 ```java
 GeneratorConfig cfg = GeneratorConfig.builder().seed(7L).build();
@@ -67,7 +67,7 @@ User user = new ObjectFaker<>(User.class, cfg).generate();   // not possible in 
 ## Determinism
 
 A seed is scoped to its own library; JavaFaker's exact strings are not
-reproduced. The same krandom version + `GeneratorConfig` + call order is
+reproduced. The same random-data-generator version + `GeneratorConfig` + call order is
 repeatable.
 
 For the field-level mapping and tracked priorities see

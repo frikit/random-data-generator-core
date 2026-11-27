@@ -1,11 +1,11 @@
-# Migrating From Instancio To krandom
+# Migrating From Instancio To random-data-generator
 
 Instancio is a mature object-graph generator. random-data-generator also provides one-call graph generation and
 adds built-in realistic, locale-aware values.
 
 ## Why switch / trade-offs
 
-**Pros of krandom**: realistic localized data built in (no DataFaker side-car),
+**Pros of random-data-generator**: realistic localized data built in (no DataFaker side-car),
 50 supported locale variants (35 native datasets and 15 curated fallbacks), national IDs for
 34 countries (checksum-valid where the identifier defines a check digit), schema export, Spring Boot / Jackson / kotest.
 **What Instancio does better today**: a broader selector vocabulary and scoping model, element and
@@ -25,7 +25,7 @@ dependencies {
 
 ## API mapping
 
-| Instancio | krandom (`ObjectFaker`) |
+| Instancio | random-data-generator (`ObjectFaker`) |
 |---|---|
 | `Instancio.create(X.class)` | `new ObjectFaker<>(X.class).generate()` |
 | `Instancio.of(X.class)....create()` | `new ObjectFaker<>(X.class, cfg)....generate()` |
@@ -55,7 +55,7 @@ Person p = Instancio.of(Person.class)
     .create();
 ```
 
-krandom (realistic email is built in — no second library):
+random-data-generator (realistic email is built in — no second library):
 
 ```java
 GeneratorConfig cfg = GeneratorConfig.builder().locale(Locale.US).seed(42L).build();
@@ -70,12 +70,12 @@ Person p = new ObjectFaker<>(Person.class, cfg)
 
 Both honor Jakarta Bean Validation during generation
 (`@Size/@Min/@Max/@Email/@Pattern/@Past/@Future/@NotBlank/@Positive`…); in
-krandom this is native to object generation — no extra module.
+random-data-generator this is native to object generation — no extra module.
 
 ## Determinism
 
 A seed is scoped to its own library; Instancio's exact objects are not
-reproduced. The same krandom version + `GeneratorConfig` + call order is
+reproduced. The same random-data-generator version + `GeneratorConfig` + call order is
 repeatable, and `@KrandomSeed` reports/pins the seed for failed tests just like
 Instancio's `@Seed`.
 

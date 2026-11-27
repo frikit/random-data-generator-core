@@ -1,6 +1,6 @@
-# Contributing to krandom
+# Contributing to random-data-generator
 
-Thank you for your interest in contributing to krandom! This document describes the workflow and requirements for contributing.
+Thank you for your interest in contributing to random-data-generator! This document describes the workflow and requirements for contributing.
 
 Before changing code, read the development guides: [architecture](docs/development/architecture.md),
 [determinism and compatibility](docs/development/determinism-and-compatibility.md),

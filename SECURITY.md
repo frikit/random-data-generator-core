@@ -19,7 +19,7 @@ Please **do not open a public GitHub issue** for security reports.
    form (preferred — it scopes the discussion and lets us coordinate a CVE if
    needed).
 2. If GitHub Security Advisories are not available to you, email
-   <ofrikit94@gmail.com> with the subject prefix `[krandom security]` and a
+   <ofrikit94@gmail.com> with the subject prefix `[random-data-generator security]` and a
    clear description of the issue plus steps to reproduce.
 
 You will get an acknowledgement within **5 business days**. Expect updates

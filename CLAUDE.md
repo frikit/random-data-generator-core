@@ -1,4 +1,4 @@
-# krandom — repository instructions
+# random-data-generator — repository instructions
 
 The full guide for AI coding agents is [AGENTS.md](AGENTS.md), imported below. The rules in this
 file apply even if the import is not loaded.

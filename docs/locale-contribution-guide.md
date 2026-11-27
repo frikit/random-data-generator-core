@@ -1,6 +1,6 @@
 # Locale Contribution Guide
 
-This guide defines the minimum bar for adding or upgrading a built-in locale in `krandom`.
+This guide defines the minimum bar for adding or upgrading a built-in locale in `random-data-generator`.
 
 ## Application-level custom locale bundles
 
