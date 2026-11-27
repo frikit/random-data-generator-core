@@ -84,7 +84,7 @@ Where a number matters (versions, counts, thresholds), read it from `gradle.prop
 ```bash
 export JAVA_HOME=/path/to/jdk-21            # the build needs JDK 21+; the code targets Java 17
 ./gradlew :core:test --tests '*CityGeneratorTest'   # iterate on one test class
-./gradlew spotlessApply                     # format Java, Kotlin, Gradle and docs
+./gradlew spotlessApply                     # format Java, Gradle scripts and docs
 ./scripts/pre_commit_check.sh --fast        # quicker loop: no PIT, no SBOMs, cached tests
 ./scripts/pre_commit_check.sh               # the full gate; required before every commit
 ./gradlew checkApiCompatibility             # public API against the baseline release
