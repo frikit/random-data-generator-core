@@ -88,37 +88,23 @@ it. `./gradlew checkApiCompatibility --continue` compares every published jar wi
 line, each module's reviewed list of the major release's intended breaks is subtracted; see
 [Accepted breaks](#accepted-breaks).
 
-- **Java modules** (`core`, `jackson`, `junit`, `spring-boot-starter`): japicmp compares each jar with
-  the released jar from Maven Central and fails on any binary- or source-incompatible change to public
-  or protected API in the public-API packages: the packages that the released `random-data-generator-core` module
-  descriptor exports, and `io.github.frikit.rdg.jackson`, `.junit`, and `.spring`. Packages that
-  `random-data-generator-core` does not export are not checked. Each of these packages must stay exported, also if
-  an integration module, now an automatic module, gains a module descriptor, and each module keeps its
-  JPMS name. The `krandom.*` properties bind through the setters of
-  `KrandomProperties`, so a removed or retyped property fails too. The full reports are in
-  `build/reports/api-compatibility/<module>/`.
-- **Kotlin modules** (`kotlin-dsl`, `kotest-extensions`): the Kotlin Gradle plugin dumps the ABI of
-  the current code, leaving out `internal` declarations that are public in bytecode, and every class
-  and member of the committed baseline `<module>/api/<module>-<apiBaselineVersion>.api` must still be
-  there. A member may move to a supertype, become more visible, or lose `final` or `abstract`, and a
-  class may gain supertypes; a type that users can implement, extend, or apply, such as an
-  annotation, must not gain an abstract member. The plugin's `checkKotlinAbi`, which would reject
-  additions, is turned off, and
-  `updateKotlinAbi` only writes the current dump to `<module>/build/api-compatibility/current/`.
+japicmp compares the `random-data-generator-core` jar with the released jar from Maven Central and fails
+on any binary- or source-incompatible change to public or protected API in the packages that the released
+module descriptor exports. Packages that it does not export are not checked. Each of these packages must
+stay exported, and the module keeps its JPMS name. The full report is in
+`build/reports/api-compatibility/core/`. The integration modules in the `random-data-generator-java`,
+`-kotlin` and `-scala` repositories run their own checks.
 
 A failure names each broken declaration on its own line:
 
 ```text
-random-data-generator-core breaks the 3.0.0 public API (2 incompatible changes):
+random-data-generator-core breaks the 1.0.0 public API (2 incompatible changes):
   io.github.frikit.rdg.generator.color.ColorGenerator#generateColorName(): METHOD_RETURN_TYPE_CHANGED (breaks binary and source)
   io.github.frikit.rdg.generator.color.ColorGenerator#generateSafeColorName(): METHOD_REMOVED (breaks binary and source)
-
-random-data-generator-kotlin-dsl breaks the 3.0.0 public API (1 incompatible change):
-  io.github.frikit.rdg.dsl.ConfigScope: removed `public final fun seed (J)V`
 ```
 
 During a major line, the first line of a failure also names the module's accepted-breaks file, as in
-`random-data-generator-core breaks the 3.2.0 public API (1 incompatible change not listed in core/api/accepted-breaks-4.0.txt):`,
+`random-data-generator-core breaks the 1.2.0 public API (1 incompatible change not listed in core/api/accepted-breaks-2.0.txt):`,
 and the failure ends with how to list a break that the plan names.
 
 What to do:
@@ -126,39 +112,20 @@ What to do:
 - **An addition** passes; list it under Added in the changelog. A method added to an interface or
   abstract class that users implement needs a default implementation, or the check reports it.
 - **A deprecation** is how a minor release retires API. Keep the declaration, mark it `@Deprecated`
-  with a `@deprecated` Javadoc tag that names the replacement (in Kotlin,
-  `@Deprecated("…", ReplaceWith("…"))` at the default `WARNING` level), add the replacement, and list
+  with a `@deprecated` Javadoc tag that names the replacement, add the replacement, and list
   the deprecation under Deprecated in the changelog. The check passes, because deprecating changes no
-  signature. `DeprecationLevel.ERROR` and `HIDDEN` stop existing callers from compiling, so they wait
-  for a major release like the removal itself; the check reports `HIDDEN`, but not `ERROR`.
+  signature.
 - **A removal or an incompatible change** fails; restore the baseline declaration. Only a major
   release removes or changes public API: during a major line, a break that the major release's plan
   names is listed as [Accepted breaks](#accepted-breaks) describes, and the baseline stays at the last
   release of the previous major line until the major release ships.
-- **A compatible change that the Kotlin check rejects**, such as an annotation element with a default
-  value or an abstract member added to a sealed type, which no user can implement: record it with
-  `./gradlew updateKotlinApiBaseline` in the same pull request and explain it there, so that review
-  sees the baseline diff. Never record a break this way: the baseline dump is the released API, and
-  a break belongs in the accepted-breaks file. While a Kotlin module's accepted-breaks file lists an
-  entry, `updateKotlinApiBaseline` fails, because the current dump lacks the accepted breaks and
-  recording it would drop the released declarations from the baseline; edit only the lines of the
-  compatible change into the baseline dump by hand instead. japicmp also rejects an element added to a Java
-  annotation even when it has a default value, and the Java check has no such escape; give the new
+- japicmp rejects an element added to a Java annotation even when it has a default value; give the new
   setting another form, such as a new annotation.
 
 The check does not cover:
 
-- Kotlin `inline` functions with `reified` type parameters: they compile to synthetic methods that
-  the ABI dump leaves out (`krandom`, `rdgList`, `rdgGenerator`, the reified
-  `KrandomBuilder.ruleForType`, and `rdgReplayObjectArb`). The `@PublishedApi` members they call
-  are checked, so compiled callers keep working, but a change to their own signatures shows only in
-  the module tests that call them; review such changes by hand.
-- Kotlin source details that a JVM signature does not carry: parameter names, nullability, default
-  values, `vararg` versus an array, and type arguments. The ABI dump records erased JVM signatures, so
-  a change to one of these passes; review it by hand. For the Java modules, japicmp reports changed
-  type arguments and a parameter that stops being varargs.
-- JSpecify nullness in the Java modules, such as a `@Nullable` added to a return type or a type
-  parameter bound widened from `Object` to `@Nullable Object`. Neither check sees a type-use
+- JSpecify nullness, such as a `@Nullable` added to a return type or a type
+  parameter bound widened from `Object` to `@Nullable Object`. japicmp does not see a type-use
   annotation, yet Kotlin and NullAway read them, and [VERSIONING.md](../VERSIONING.md) makes a widened
   class type-parameter bound a major-only change. The tests in `core/src/nullnessTest/java` cover some
   of them; review such changes by hand, with a Kotlin compile probe for what Kotlin callers see.
@@ -172,15 +139,12 @@ After each release the baseline moves to it; see [Post-release](#post-release).
 
 A major release is the only one that may break the public API, and only where its plan says so.
 While `developmentVersion` is a major `N.0.0-SNAPSHOT`, each module may have
-`<module>/api/accepted-breaks-N.0.txt`, such as `core/api/accepted-breaks-4.0.txt`, next to the Kotlin
-baseline dumps; `updateKotlinApiBaseline` replaces only the `.api` files there. The baseline stays at
+`<module>/api/accepted-breaks-N.0.txt`, such as `core/api/accepted-breaks-2.0.txt`. The baseline stays at
 the last release of the previous major line, and the check subtracts the breaks that the file lists:
 
 - Each line names one break exactly as the check prints it, such as
-  `io.github.frikit.rdg.generator.schema.Schema#loop(int): METHOD_REMOVED (breaks binary and source)`
-  or ``io.github.frikit.rdg.dsl.ConfigScope: removed `public final fun seed (Ljava/lang/String;)V` ``.
-  For a Kotlin module, that is the dump line of a removed declaration, or the other forms the check
-  prints for a changed one. Leading and trailing spaces are ignored, so the indented lines of a
+  `io.github.frikit.rdg.generator.schema.Schema#loop(int): METHOD_REMOVED (breaks binary and source)`.
+  Leading and trailing spaces are ignored, so the indented lines of a
   failure can be pasted as they are.
 - A blank line, or a line whose first character other than a space is `#`, is ignored. A comment
   cannot follow an entry on its line, because Java entries contain `#`. Put the reason above each
@@ -198,7 +162,7 @@ the last release of the previous major line, and the check subtracts the breaks 
 A pass names the accepted breaks:
 
 ```text
-random-data-generator-core: compatible with the 3.2.0 public API (0 additions; 1 accepted break in core/api/accepted-breaks-4.0.txt).
+random-data-generator-core: compatible with the 1.2.0 public API (0 additions; 1 accepted break in core/api/accepted-breaks-2.0.txt).
 ```
 
 To add an entry:
@@ -287,12 +251,8 @@ rebuild them instead: a new build signs and describes other files than the ones 
 - Land a follow-up version-facts commit on `main`: set `developmentVersion` to
   the next `*-SNAPSHOT`, retain `latestGaVersion` at the release just
   published, and move the public API baseline to it. Set
-  `apiBaselineVersion=<version>`, which the check resolves from Maven Central,
-  and run `./gradlew updateKotlinApiBaseline`, which replaces the dumps in
-  `kotlin-dsl/api/` and `kotest-extensions/api/` with those of the current code.
-  Run it before any other change lands on `main`, or else on a checkout of the
-  `v<version>` tag with `-PapiBaselineVersion=<version>` and copy the two dumps
-  over. The new baseline jars need checksums before strict verification
+  `apiBaselineVersion=<version>`, which the check resolves from Maven Central.
+  The new baseline jars need checksums before strict verification
   accepts them: run `./scripts/update_verification_metadata.sh` under JDK 21
   and JDK 25, as [dependency reproducibility](development/dependency-reproducibility.md)
   describes, check that it added only the `random-data-generator-*` `<version>` jars and
@@ -302,8 +262,7 @@ rebuild them instead: a new build signs and describes other files than the ones 
   `./gradlew checkApiCompatibility`; the published install guidance stays
   unchanged.
 - After a major release `N.0.0`, the same commit deletes every
-  `<module>/api/accepted-breaks-N.0.txt`, before it runs `updateKotlinApiBaseline`, which refuses to
-  run while a Kotlin module's file lists an entry: against the `N.0.0` baseline each entry would be
+  `<module>/api/accepted-breaks-N.0.txt`: against the `N.0.0` baseline each entry would be
   stale, and on the next development line the check rejects the files. When a commit opens a major line by
   setting `developmentVersion` to `N.0.0-SNAPSHOT`, it may add an empty
   `<module>/api/accepted-breaks-N.0.txt` with a header comment to each module.

@@ -68,8 +68,7 @@ and skips itself on an older test Java.
   are not checked.
 - **Public API compatibility**: a minor or patch release keeps the public API that
   [VERSIONING.md](VERSIONING.md) defines. `./gradlew checkApiCompatibility` compares the Java jars
-  with the `apiBaselineVersion` release on Maven Central using japicmp, and the ABI dumps of the
-  Kotlin modules with the baseline dumps under `<module>/api/`. Additions pass; a removed or
+  with the `apiBaselineVersion` release on Maven Central using japicmp. Additions pass; a removed or
   incompatibly changed declaration fails, one line per declaration. `check` and the pre-commit gate
   run it. To retire API, deprecate it; see
   [Public API compatibility](docs/release-runbook.md#public-api-compatibility). While the development
@@ -87,13 +86,13 @@ and skips itself on an older test Java.
   `gradle/verification-metadata.xml`; see [dependency reproducibility](docs/development/dependency-reproducibility.md)
   for updating it, including for Dependabot pull requests.
 - **Formatting**: Spotless formats Java with [Palantir Java Format](https://github.com/palantir/palantir-java-format)
-  and Kotlin sources and Gradle scripts with [ktlint](https://pinterest.github.io/ktlint/), and applies
+  and Gradle scripts with [ktlint](https://pinterest.github.io/ktlint/), and applies
   the MIT license header; `.editorconfig` carries the shared indentation and 120-column line length.
   Run `./gradlew spotlessApply` before committing. `spotlessCheck` is part of `check`, so the
   pre-commit gate and CI reject unformatted code. The one-time reformat commit is listed in
   `.git-blame-ignore-revs`; run `git config blame.ignoreRevsFile .git-blame-ignore-revs` once so
   local `git blame` skips it (GitHub's blame view reads the file automatically).
-- **Tests**: all tests must pass. Java modules use JUnit Jupiter; Kotlin modules use Kotest.
+- **Tests**: all tests must pass. The modules use JUnit Jupiter.
 
 CI additionally runs the tests of the Java modules on Java 17, 21 and 25, reports the public API check
 in a job of its own, requires the GraalVM native-image smoke test, and runs every consumer example
