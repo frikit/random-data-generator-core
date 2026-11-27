@@ -24,11 +24,11 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 /**
- * From 4.0.0 a recipe is {@code rdg-recipe/v2}: it records the four seeding settings that 4.0.0 turns on, on
- * or off, and replay requires them. A {@code rdg-recipe/v1} recipe, which 3.x wrote, is rejected with the
- * release it names.
+ * A recipe is {@code rdg-recipe/v2}: it records the four seeding settings that are on by default, on or off,
+ * and replay requires them. Any other recipe version is rejected. A recipe that kRandom wrote, format
+ * {@code krandom-recipe}, is rejected with a message that says how to convert it.
  */
-@DisplayName("rdg-recipe/v2 and the rejection of v1")
+@DisplayName("rdg-recipe/v2, other versions and kRandom recipes")
 class GenerationRecipeV2Test {
 
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-07-10T12:00:00Z"), ZoneOffset.UTC);
@@ -39,9 +39,9 @@ class GenerationRecipeV2Test {
             "gaussian.strict-math",
             "object.reseed-built-in-randomizers");
 
-    /** A recipe as 3.2.0 writes it for {@code de_DE} and seed 42, with the German street layout on. */
-    static final String V1_RECIPE_FROM_3_2_0 = """
-            format=rdg-recipe
+    /** A recipe as kRandom 3.2.0 wrote it for {@code de_DE} and seed 42, with the German street layout on. */
+    static final String KRANDOM_V1_RECIPE = """
+            format=krandom-recipe
             recipe-version=v1
             library-version=3.2.0
             algorithm=java.util.Random-v1
@@ -54,38 +54,12 @@ class GenerationRecipeV2Test {
             construction-policy=safe-constructors
             provider-dataset-version=builtin-v1
             setting.address.german-street-layout=true
-            setting.banking.safety-policy=DISABLED
-            setting.business-tax-identifier.safety-policy=DISABLED
-            setting.charset=US-ASCII
-            setting.child-stream-policy=INDEPENDENT
-            setting.collection.max=10
-            setting.collection.min=1
-            setting.crypto-address.safety-policy=DISABLED
-            setting.email.domain-policy=TEST_SAFE_RESERVED_DOMAINS
-            setting.identity-document.safety-policy=DISABLED
-            setting.national-id.safety-policy=DISABLED
-            setting.network.safety-policy=TEST_SAFE_RESERVED
-            setting.object.ignore-errors=false
-            setting.object.max-depth=5
-            setting.object.null-probability=0.0
-            setting.object.optional-empty-probability=0.0
-            setting.object.override-default-initialization=false
-            setting.object.pool-size=10
-            setting.object.requested-unique-fields=-
-            setting.object.semantic-mode=RELAXED
-            setting.object.unique-fields=email%2Cemailaddress%2Cusername%2Cuserhandle%2Cuuid%2Cguid%2Cid
-            setting.object.uniqueness-max-attempts=256
-            setting.payment.card-safety-policy=TEST_SAFE_NON_ROUTABLE
-            setting.phone-number.safety-policy=TEST_SAFE_WHERE_AVAILABLE
-            setting.securities-identifier.safety-policy=DISABLED
             setting.string.max=20
             setting.string.min=5
             """;
 
-    static final String V1_MESSAGE_FROM_3_2_0 = "Unsupported recipe version: v1. random-data-generator 4.x replays only"
-            + " rdg-recipe/v2 recipes: a rdg-recipe/v1 recipe was written by random-data-generator 3.x or earlier, and its"
-            + " seeded values differ from 4.0.0. This recipe records library-version 3.2.0: replay it with random-data-generator"
-            + " 3.2.0.";
+    private static final String KRANDOM_REJECTION = "Unsupported format: krandom-recipe. kRandom wrote this recipe;"
+            + " random-data-generator, which continues kRandom, names its recipes rdg-recipe. ";
 
     private static GeneratorConfig seeded(UnaryOperator<GeneratorConfig.Builder> settings) {
         return settings.apply(GeneratorConfig.builder()
@@ -93,6 +67,13 @@ class GenerationRecipeV2Test {
                         .locale(Locale.GERMANY)
                         .clock(CLOCK))
                 .build();
+    }
+
+    private static String serializedV2() {
+        return seeded(UnaryOperator.identity())
+                .getGenerationRecipe()
+                .orElseThrow()
+                .serialize();
     }
 
     @Test
@@ -114,126 +95,84 @@ class GenerationRecipeV2Test {
         }
     }
 
-    @Test
-    @DisplayName("parsing a v1 recipe fails with the release it records, to replay it with")
-    void parsingV1Fails() {
-        IllegalArgumentException error =
-                assertThrows(IllegalArgumentException.class, () -> GenerationRecipe.parse(V1_RECIPE_FROM_3_2_0));
-
-        assertEquals(V1_MESSAGE_FROM_3_2_0, error.getMessage());
-    }
-
     @ParameterizedTest
-    @ValueSource(strings = {"3.0.0", "3.1.0", "3.2.0-SNAPSHOT", "2.6.0", "development"})
-    @DisplayName("the v1 message names whatever library-version the recipe records")
-    void v1MessageNamesTheRecordedVersion(String version) {
-        String recipe = V1_RECIPE_FROM_3_2_0.replace("library-version=3.2.0", "library-version=" + version);
+    @ValueSource(strings = {"v1", "v3", "v99"})
+    @DisplayName("an rdg-recipe of another version is rejected, parsed or built in code")
+    void otherVersionsAreRejected(String version) {
+        String recipe = serializedV2().replace("recipe-version=v2", "recipe-version=" + version);
 
-        IllegalArgumentException error =
-                assertThrows(IllegalArgumentException.class, () -> GenerationRecipe.parse(recipe));
-
-        assertEquals(V1_MESSAGE_FROM_3_2_0.replace("3.2.0", version), error.getMessage());
-    }
-
-    @Test
-    @DisplayName("a v1 recipe is rejected before its other lines are checked, with or without a library-version")
-    void v1IsRejectedFirst() {
-        IllegalArgumentException incomplete = assertThrows(
-                IllegalArgumentException.class,
-                () -> GenerationRecipe.parse("format=rdg-recipe\nrecipe-version=v1\nlibrary-version=3.1.0\n"));
-        assertEquals(V1_MESSAGE_FROM_3_2_0.replace("3.2.0", "3.1.0"), incomplete.getMessage());
-
-        IllegalArgumentException unnamed = assertThrows(
-                IllegalArgumentException.class,
-                () -> GenerationRecipe.parse("format=rdg-recipe\nrecipe-version=v1\nseed=not-a-number\n"));
         assertEquals(
-                "Unsupported recipe version: v1. random-data-generator 4.x replays only rdg-recipe/v2 recipes: a"
-                        + " rdg-recipe/v1 recipe was written by random-data-generator 3.x or earlier, and its seeded values"
-                        + " differ from 4.0.0. This recipe records no library-version: replay it with the 3.x release"
-                        + " that wrote it.",
-                unnamed.getMessage());
+                "Unsupported recipe version: " + version,
+                assertThrows(IllegalArgumentException.class, () -> GenerationRecipe.parse(recipe))
+                        .getMessage());
         assertEquals(
-                unnamed.getMessage(),
+                "Unsupported recipe version: " + version,
                 assertThrows(
                                 IllegalArgumentException.class,
-                                () -> GenerationRecipe.parse(
-                                        "format=rdg-recipe\nrecipe-version=v1\nlibrary-version=\n"))
+                                () -> GenerationRecipe.builder()
+                                        .recipeVersion(version)
+                                        .libraryVersion("1.0.0")
+                                        .seed(1L)
+                                        .build())
                         .getMessage());
     }
 
     @Test
-    @DisplayName("a v1 recipe built in code is rejected the same way, and an unknown version as before")
-    void builderRejectsV1() {
-        IllegalArgumentException error = assertThrows(
-                IllegalArgumentException.class,
-                () -> GenerationRecipe.builder()
-                        .recipeVersion("v1")
-                        .libraryVersion("3.2.0")
-                        .seed(1L)
-                        .build());
-        assertEquals(V1_MESSAGE_FROM_3_2_0, error.getMessage());
+    @DisplayName("a kRandom v2 recipe is rejected with how to convert it, and replays once converted")
+    void kRandomV2RecipeConverts() {
+        String recipe = serializedV2();
+        String kRandom = recipe.replace("format=rdg-recipe\n", "format=krandom-recipe\n");
 
         assertEquals(
-                "Unsupported recipe version: v99",
-                assertThrows(
-                                IllegalArgumentException.class,
-                                () -> GenerationRecipe.parse(
-                                        V1_RECIPE_FROM_3_2_0.replace("recipe-version=v1", "recipe-version=v99")))
+                KRANDOM_REJECTION
+                        + "A krandom-recipe/v2 recipe, from kRandom 4.x, replays once its first line reads"
+                        + " format=rdg-recipe; the members of a library record such as AddressInfo then take other"
+                        + " values than in kRandom.",
+                assertThrows(IllegalArgumentException.class, () -> GenerationRecipe.parse(kRandom))
                         .getMessage());
-    }
 
-    private static String v1BuilderMessageWithoutARelease(String libraryVersion) {
-        return "Unsupported recipe version: v1. random-data-generator 4.x replays only rdg-recipe/v2 recipes: a"
-                + " rdg-recipe/v1 recipe was written by random-data-generator 3.x or earlier, and its seeded values differ"
-                + " from 4.0.0. This recipe records library-version " + libraryVersion + ", which is not a 3.x or"
-                + " earlier release, and a library-version of 4 or later cannot have written a v1 recipe: replay it"
-                + " with the 3.x release that wrote it.";
-    }
-
-    private static IllegalArgumentException buildV1(UnaryOperator<GenerationRecipe.Builder> libraryVersion) {
-        return assertThrows(
-                IllegalArgumentException.class,
-                () -> libraryVersion
-                        .apply(GenerationRecipe.builder().recipeVersion("v1").seed(1L))
-                        .build());
+        GeneratorConfig converted = GenerationRecipe.parse(
+                        kRandom.replace("format=krandom-recipe\n", "format=rdg-recipe\n"))
+                .toGeneratorConfig();
+        assertEquals(
+                new StreetAddressGenerator(seeded(UnaryOperator.identity())).generate(),
+                new StreetAddressGenerator(converted).generate());
     }
 
     @Test
-    @DisplayName("a v1 recipe built in code without a library-version does not name the running release to replay it")
-    void builderV1WithoutLibraryVersionDoesNotNameTheRunningRelease() {
-        String running = GenerationRecipe.currentLibraryVersion();
-
-        IllegalArgumentException error = buildV1(UnaryOperator.identity());
-
-        assertEquals(v1BuilderMessageWithoutARelease(running), error.getMessage());
-        assertFalse(error.getMessage().contains("replay it with random-data-generator"), error.getMessage());
+    @DisplayName("a kRandom v1 recipe is rejected with the kRandom release to replay it with")
+    void kRandomV1RecipeNamesKRandom() {
+        assertEquals(
+                KRANDOM_REJECTION
+                        + "A krandom-recipe/v1 recipe, from kRandom 3.x or earlier, replays only with the kRandom"
+                        + " release that its library-version line names.",
+                assertThrows(IllegalArgumentException.class, () -> GenerationRecipe.parse(KRANDOM_V1_RECIPE))
+                        .getMessage());
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {"3", "3.2.0", "3.2.0-SNAPSHOT", "0.9.0", "03.1.0"})
-    @DisplayName("a v1 recipe built in code with a 3.x or earlier library-version still names it")
-    void builderV1NamesA3xLibraryVersion(String version) {
-        IllegalArgumentException error = buildV1(builder -> builder.libraryVersion(version));
+    @Test
+    @DisplayName("a kRandom recipe of another version, or of none, is told that only v2 converts")
+    void otherKRandomRecipesDoNotConvert() {
+        String onlyV2 = KRANDOM_REJECTION
+                + "Only a krandom-recipe/v2 recipe converts, by changing its first line to format=rdg-recipe.";
 
-        assertEquals(V1_MESSAGE_FROM_3_2_0.replace("3.2.0", version), error.getMessage());
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"4", "4.0.0", "4.0.0-SNAPSHOT", "10.1.0", "30.0", "development", "v3.2.0", "-3.2.0"})
-    @DisplayName("a v1 recipe built in code with a 4.x or non-numeric library-version is not told to replay with it")
-    void builderV1WithoutA3xLibraryVersionGetsTheSafeWording(String version) {
-        IllegalArgumentException error = buildV1(builder -> builder.libraryVersion(version));
-
-        assertEquals(v1BuilderMessageWithoutARelease(version), error.getMessage());
+        assertEquals(
+                onlyV2,
+                assertThrows(
+                                IllegalArgumentException.class,
+                                () -> GenerationRecipe.parse(
+                                        KRANDOM_V1_RECIPE.replace("recipe-version=v1", "recipe-version=v7")))
+                        .getMessage());
+        assertEquals(
+                onlyV2,
+                assertThrows(IllegalArgumentException.class, () -> GenerationRecipe.parse("format=krandom-recipe\n"))
+                        .getMessage());
     }
 
     @Test
     @DisplayName("a v2 recipe without one of the four settings is rejected rather than replayed with a default")
     void v2RequiresTheFourSettings() {
-        String recipe = seeded(UnaryOperator.identity())
-                .getGenerationRecipe()
-                .orElseThrow()
-                .serialize();
+        String recipe = serializedV2();
         for (String key : FOUR) {
             GenerationRecipe without = GenerationRecipe.parse(recipe.replace("setting." + key + "=true\n", ""));
             IllegalArgumentException error = assertThrows(IllegalArgumentException.class, without::toGeneratorConfig);
@@ -248,7 +187,7 @@ class GenerationRecipeV2Test {
     }
 
     @Test
-    @DisplayName("a v2 recipe replays each setting as recorded, so the 3.x values replay as 3.x values")
+    @DisplayName("a v2 recipe replays each setting as recorded, so the values with the four off replay as such")
     void v2ReplaysAsRecorded() {
         GeneratorConfig off = seeded(DefaultFlipPinsTest.ALL_OFF);
         GeneratorConfig replayOff = GenerationRecipe.parse(

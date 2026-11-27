@@ -30,7 +30,6 @@ import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.regex.Pattern;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -44,12 +43,9 @@ import org.jspecify.annotations.Nullable;
  * #RECIPE_VERSION} uses {@value #ALGORITHM}; patch releases must preserve its child-stream and
  * {@link Random} behavior. A future algorithm change requires a new recipe version.
  *
- * <p>From 4.0.0 a recipe is {@code rdg-recipe/v2}, and it records the four seeding settings that 4.0.0 turns
- * on by default, on or off, so its replay does not depend on a release's defaults. 3.x wrote
- * {@code rdg-recipe/v1}, which leaves those settings to the 3.x defaults; this release rejects such a recipe
- * with a message that names the {@code library-version} it records, the release to replay it with. For a v1
- * recipe built in code whose {@code library-version} is not 3.x or earlier, such as the builder's default (the
- * running release), the message says instead to replay it with the 3.x release that wrote it.
+ * <p>A recipe is {@code rdg-recipe/v2}, and it records the four seeding settings that are on by default, on or
+ * off, so its replay does not depend on a release's defaults. A recipe that kRandom wrote has the format
+ * {@code krandom-recipe}; it is rejected with a message that says how to convert it.
  *
  * <p>A recipe does not record the Java runtime's time-zone database or locale data, so values that
  * follow them, such as zone IDs, zone offsets and formatted money amounts, can differ on another JDK.
@@ -59,14 +55,11 @@ public final class GenerationRecipe {
     /** Stable name for the line-oriented recipe format. */
     public static final String FORMAT = "rdg-recipe";
 
-    /** Current recipe format and replay-contract version, {@code v2} from 4.0.0. */
+    /** Current recipe format and replay-contract version. */
     public static final String RECIPE_VERSION = "v2";
 
-    /** The version that 3.x wrote, which this release does not replay. */
-    private static final String V1 = "v1";
-
-    /** A library-version whose leading number, the major version, is 3 or lower, such as {@code 3.2.0}. */
-    private static final Pattern THREE_X_OR_EARLIER = Pattern.compile("0*[0-3](?:\\D.*)?");
+    /** The format name of a recipe that kRandom, which this library continues, wrote. */
+    private static final String KRANDOM_FORMAT = "krandom-recipe";
 
     /** Random algorithm and named-child derivation used by recipe version {@value #RECIPE_VERSION}. */
     public static final String ALGORITHM = "java.util.Random-v1";
@@ -124,7 +117,7 @@ public final class GenerationRecipe {
 
     private GenerationRecipe(Builder builder) {
         this.libraryVersion = requireToken("libraryVersion", builder.libraryVersion);
-        this.recipeVersion = requireSupportedRecipeVersion(builder.recipeVersion, libraryVersion);
+        this.recipeVersion = requireSupportedRecipeVersion(builder.recipeVersion);
         this.algorithm = requireSupportedAlgorithm(builder.algorithm);
         this.seed = builder.seed;
         this.seedText = builder.seedText;
@@ -185,11 +178,11 @@ public final class GenerationRecipe {
             }
         }
 
+        if (KRANDOM_FORMAT.equals(entries.get(FORMAT_KEY))) {
+            throw new IllegalArgumentException(kRandomRecipeMessage(entries.get(RECIPE_VERSION_KEY)));
+        }
         requireExact(entries, FORMAT_KEY, FORMAT);
         String recipeVersion = required(entries, RECIPE_VERSION_KEY);
-        if (V1.equals(recipeVersion)) {
-            throw new IllegalArgumentException(v1Message(entries.get(LIBRARY_VERSION_KEY)));
-        }
         String algorithm = required(entries, ALGORITHM_KEY);
         Builder builder = builder()
                 .recipeVersion(recipeVersion)
@@ -627,40 +620,31 @@ public final class GenerationRecipe {
         }
     }
 
-    private static String requireSupportedRecipeVersion(String value, String libraryVersion) {
+    private static String requireSupportedRecipeVersion(String value) {
         String version = requireToken("recipeVersion", value);
-        if (V1.equals(version)) {
-            /*
-             * The builder's library-version defaults to the running release, and code compiled against 3.x passes
-             * the inlined "v1", so only a 3.x or earlier library-version is named as the release to replay with.
-             */
-            throw new IllegalArgumentException(
-                    THREE_X_OR_EARLIER.matcher(libraryVersion).matches()
-                            ? v1Message(libraryVersion)
-                            : v1Rejection("This recipe records library-version " + libraryVersion + ", which is not"
-                                    + " a 3.x or earlier release, and a library-version of 4 or later cannot have"
-                                    + " written a v1 recipe: replay it with the 3.x release that wrote it."));
-        }
         if (!RECIPE_VERSION.equals(version)) {
             throw new IllegalArgumentException("Unsupported recipe version: " + version);
         }
         return version;
     }
 
-    /** Why a {@code rdg-recipe/v1} recipe does not replay, and which release to replay it with. */
-    private static String v1Message(@Nullable String libraryVersion) {
-        return v1Rejection(
-                libraryVersion == null || libraryVersion.isBlank()
-                        ? "This recipe records no library-version: replay it with the 3.x release that wrote it."
-                        : "This recipe records library-version " + libraryVersion
-                                + ": replay it with random-data-generator " + libraryVersion + ".");
-    }
-
-    /** The v1 rejection, ending with the sentence that says which release to replay the recipe with. */
-    private static String v1Rejection(String release) {
-        return "Unsupported recipe version: v1. random-data-generator 4.x replays only rdg-recipe/v2 recipes: a"
-                + " rdg-recipe/v1 recipe was written by random-data-generator 3.x or earlier, and its seeded values differ from"
-                + " 4.0.0. " + release;
+    /** Why a kRandom recipe does not replay as it is, and how to convert it if it can be converted. */
+    private static String kRandomRecipeMessage(@Nullable String recipeVersion) {
+        String rejection =
+                "Unsupported format: " + KRANDOM_FORMAT + ". kRandom wrote this recipe; random-data-generator,"
+                        + " which continues kRandom, names its recipes " + FORMAT + ". ";
+        if (RECIPE_VERSION.equals(recipeVersion)) {
+            return rejection + "A " + KRANDOM_FORMAT + "/" + RECIPE_VERSION
+                    + " recipe, from kRandom 4.x, replays once its"
+                    + " first line reads format=" + FORMAT + "; the members of a library record such as AddressInfo"
+                    + " then take other values than in kRandom.";
+        }
+        if ("v1".equals(recipeVersion)) {
+            return rejection + "A " + KRANDOM_FORMAT + "/v1 recipe, from kRandom 3.x or earlier, replays only with the"
+                    + " kRandom release that its library-version line names.";
+        }
+        return rejection + "Only a " + KRANDOM_FORMAT + "/" + RECIPE_VERSION + " recipe converts, by changing its first"
+                + " line to format=" + FORMAT + ".";
     }
 
     private static String requireSupportedAlgorithm(String value) {
