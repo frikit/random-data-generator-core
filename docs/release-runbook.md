@@ -38,7 +38,8 @@ The GPG public key must be uploaded to a public keyserver (for example
    exact 100% JaCoCo gate; a rounded `100.0%` display is not sufficient by itself.
 3. **Cut the release documentation.** Promote `[Unreleased]` to
    `[<version>] - <YYYY-MM-DD>`, add a fresh empty `[Unreleased]` heading,
-   update the diff link at the bottom, set `latestGaVersion=<version>`, and
+   update the diff link at the bottom (for the first release the link names
+   the tag, `…/releases/tag/v<version>`), set `latestGaVersion=<version>`, and
    update concrete public coordinates in `README.md` and `docs-site/`. Run
    `./scripts/verify_documentation_facts.sh` and commit this release-ready
    documentation before triggering the workflow.

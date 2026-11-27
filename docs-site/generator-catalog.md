@@ -121,7 +121,8 @@ fixtures; see [Finance and Identity]({{ '/guides/finance-and-identity/' | relati
   accept.
 - From 4.0.0, `pick` and `RandomDataGenerator.pick(List)` take a list that holds `null` and may return the `null`:
   `Generators.pick(Arrays.asList("a", null))` is a `PickGenerator<@Nullable String>`. In Kotlin,
-  `krandom.pick(listOf("a", null))` then returns an element rather than the list itself.
+  `RandomDataGenerator.seeded("fixtures").pick(listOf("a", null))` then returns an element rather than the list
+  itself.
 
 ## Domain namespaces
 

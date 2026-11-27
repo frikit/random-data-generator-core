@@ -150,7 +150,8 @@ public final class GenerationRecipe {
      * @param serialized serialized recipe text
      * @return parsed recipe
      * @throws IllegalArgumentException if the form is malformed, incomplete, or unsupported, such as a
-     *                                  {@code rdg-recipe/v1} recipe that a 3.x release wrote
+     *                                  {@code krandom-recipe} recipe, which kRandom wrote, or an
+     *                                  {@code rdg-recipe} of another version
      */
     public static GenerationRecipe parse(String serialized) {
         Objects.requireNonNull(serialized, "serialized must not be null");

@@ -109,9 +109,26 @@ class RegexGeneratorPropertyTest {
     // Flags hold to the end of their group. (?s) is rejected.
     private static final List<String> FLAGS = List.of("(?i)", "(?-i)", "(?s)");
 
+    /** The extreme and near-zero seeds that random cases would rarely draw. */
+    private static final List<Long> EDGE_SEEDS = List.of(Long.MIN_VALUE, -1L, 0L, 1L, Long.MAX_VALUE);
+
+    /** The ends of the minimum string lengths that the random-pattern cases draw from. */
+    private static final List<Integer> EDGE_LENGTHS = List.of(1, 60);
+
+    /** How many random patterns are also tried with every edge seed and edge length. */
+    private static final int EDGE_PATTERNS = 200;
+
     @Test
     @DisplayName("generates only values java.util.regex matches, for every listed pattern and any seed")
     void listedPatternsMatch() {
+        for (String regex : LISTED_PATTERNS) {
+            for (long seed : EDGE_SEEDS) {
+                assertEveryValueMatches(
+                        regex,
+                        new RegexGenerator(
+                                regex, GeneratorConfig.builder().seed(seed).build()));
+            }
+        }
         Random cases = new Random(20_261_104L);
         for (int i = 0; i < 3_000; i++) {
             String regex = pick(cases, LISTED_PATTERNS);
@@ -134,25 +151,43 @@ class RegexGeneratorPropertyTest {
             long seed = cases.nextLong();
             // A minimum length above 5 raises how far *, + and {n,} repeat.
             int minLength = 1 + cases.nextInt(60);
-            GeneratorConfig config = GeneratorConfig.builder()
-                    .seed(seed)
-                    .stringLength(minLength, minLength)
-                    .build();
-            RegexGenerator generator;
-            try {
-                generator = new RegexGenerator(regex, config);
-            } catch (IllegalArgumentException exception) {
-                String message = String.valueOf(exception.getMessage());
-                assertTrue(REJECTIONS.stream().anyMatch(message::startsWith), regex + ": " + message);
+            if (matchesOrIsRejected(regex, seed, minLength)) {
+                accepted++;
+            } else {
                 rejected++;
-                continue;
             }
-            accepted++;
-            assertEveryValueMatches(regex, generator);
+            if (i < EDGE_PATTERNS) {
+                for (long edgeSeed : EDGE_SEEDS) {
+                    for (int edgeLength : EDGE_LENGTHS) {
+                        matchesOrIsRejected(regex, edgeSeed, edgeLength);
+                    }
+                }
+            }
         }
         // Neither branch can have gone quiet.
         assertTrue(accepted > 2_000, "accepted " + accepted);
         assertTrue(rejected > 500, "rejected " + rejected);
+    }
+
+    /**
+     * Builds the generator for one case: a rejection must name why, and an accepted pattern must give only values
+     * that match it. Returns whether the pattern was accepted.
+     */
+    private static boolean matchesOrIsRejected(String regex, long seed, int minLength) {
+        GeneratorConfig config = GeneratorConfig.builder()
+                .seed(seed)
+                .stringLength(minLength, minLength)
+                .build();
+        RegexGenerator generator;
+        try {
+            generator = new RegexGenerator(regex, config);
+        } catch (IllegalArgumentException exception) {
+            String message = String.valueOf(exception.getMessage());
+            assertTrue(REJECTIONS.stream().anyMatch(message::startsWith), regex + ": " + message);
+            return false;
+        }
+        assertEveryValueMatches(regex, generator);
+        return true;
     }
 
     private static String pick(Random random, List<String> values) {

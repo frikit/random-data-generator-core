@@ -8,7 +8,7 @@ package io.github.frikit.rdg.examples.jpms.openconsumer;
 import io.github.frikit.rdg.generator.GeneratorConfig;
 import io.github.frikit.rdg.generator.object.ObjectGenerator;
 
-/** Verifies reflective construction from a package opened to the random-data-generator automatic module. */
+/** Verifies reflective construction from a package opened to the random-data-generator-core module. */
 public final class OpenConsumer {
 
     private OpenConsumer() {}
