@@ -54,9 +54,7 @@ A seed fixes random-data-generator's own draws, not the Java runtime under them:
 - Values that read the runtime's time-zone or locale data follow its TZDB and CLDR versions, such as the zone IDs
   that `ZoneIdGenerator` draws from, the offsets of zoned values, and the amounts that `MoneyGenerator` formats. A
   `GenerationRecipe` records neither version, so another JDK can change these values for the same recipe.
-- `NormalDistributionGenerator` draws with `StrictMath` by default, which gives the same bits everywhere.
-  `GeneratorConfig.Builder.strictMathGaussian(false)` draws with `Math.log`, `Math.sin` and `Math.cos` instead,
-  which Java lets differ in the last bit between platforms.
+- `NormalDistributionGenerator` draws with `StrictMath`, which gives the same bits everywhere.
 - A generator whose random source is a `SecureRandom`, from `GeneratorConfig.Builder.secureRandom()` or one that you
   supply, has no sequence to replay: `Seedable.reseed(long)` adds the seed to the `SecureRandom`'s state, as
   `SecureRandom.setSeed` does, rather than restarting it.

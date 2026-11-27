@@ -7,7 +7,6 @@ package io.github.frikit.rdg.generator.schema;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import io.github.frikit.rdg.generator.ChildStreamPolicy;
 import io.github.frikit.rdg.generator.DataRegistryContext;
 import io.github.frikit.rdg.generator.GenerationRecipe;
 import io.github.frikit.rdg.generator.GeneratorConfig;
@@ -42,20 +41,17 @@ class SchemaFreshBuildOracleTest {
     private static final int RECORDS = 40;
 
     @Test
-    @DisplayName("every built-in schema reference, in several locales and both child-stream policies")
+    @DisplayName("every built-in schema reference, in several locales")
     void everyBuiltInReferenceMatchesAFreshBuildForEachValue() {
         Clock clock = Clock.fixed(Instant.parse("2026-07-10T12:00:00Z"), ZoneOffset.UTC);
         for (Locale locale : List.of(Locale.US, Locale.GERMANY, Locale.forLanguageTag("pt-BR"))) {
-            for (ChildStreamPolicy policy : ChildStreamPolicy.values()) {
-                GeneratorConfig config = GeneratorConfig.builder()
-                        .locale(locale)
-                        .clock(clock)
-                        .childStreamPolicy(policy)
-                        .seed(73L)
-                        .build();
-                for (ProviderDescriptor<?> descriptor : ProviderCatalog.schemaBuiltIns()) {
-                    assertDescriptor(config, descriptor);
-                }
+            GeneratorConfig config = GeneratorConfig.builder()
+                    .locale(locale)
+                    .clock(clock)
+                    .seed(73L)
+                    .build();
+            for (ProviderDescriptor<?> descriptor : ProviderCatalog.schemaBuiltIns()) {
+                assertDescriptor(config, descriptor);
             }
         }
     }
@@ -226,7 +222,7 @@ class SchemaFreshBuildOracleTest {
                     actual.add("threw " + failure.getCause().getClass().getName());
                 }
             }
-            assertEquals(expected, actual, reference + " " + config.getLocale() + " " + config.getChildStreamPolicy());
+            assertEquals(expected, actual, reference + " " + config.getLocale());
         }
     }
 }

@@ -103,7 +103,7 @@ public final class CurrencyGenerator implements Generator<String> {
     private GeneratorConfig config;
 
     private final Random random;
-    /** The money child that the advancing opt-in keeps for price tags, made when first used. */
+    /** The money child kept for price tags, made when first used. */
     private @org.jspecify.annotations.Nullable MoneyGenerator priceTags;
 
     /**
@@ -412,10 +412,8 @@ public final class CurrencyGenerator implements Generator<String> {
      * Generates a locale-aware price tag string.
      * Faker-style alias: {@code pricetag()}.
      *
-     * <p>With {@link GeneratorConfig.Builder#advancingConvenienceStreams(boolean)} on, as it is by default from
-     * 4.0.0, it keeps one {@link MoneyGenerator} for both price-tag methods and each call gives the next amount.
-     * With it off, as in 3.x, each call builds one from the same child stream, so a seeded generator repeats one
-     * amount.
+     * <p>It keeps one {@link MoneyGenerator}, built from the child stream {@code money}, for both price-tag
+     * methods, so each call gives the next amount.
      *
      * @return formatted amount with locale currency
      */
@@ -426,8 +424,7 @@ public final class CurrencyGenerator implements Generator<String> {
     /**
      * Generates a locale-aware price tag string for the provided locale.
      *
-     * <p>Like {@link #generatePriceTag()}, it repeats one amount under a seed unless
-     * {@link GeneratorConfig.Builder#advancingConvenienceStreams(boolean)} is on.
+     * <p>It shares the {@link MoneyGenerator} of {@link #generatePriceTag()}, so each call gives the next amount.
      *
      * @param locale locale override used for formatting and currency selection
      * @return formatted amount with locale currency
@@ -437,9 +434,6 @@ public final class CurrencyGenerator implements Generator<String> {
     }
 
     private MoneyGenerator priceTagMoney() {
-        if (!config.isAdvancingConvenienceStreams()) {
-            return new MoneyGenerator(config.forChildStream("money"));
-        }
         MoneyGenerator kept = priceTags;
         if (kept == null) {
             kept = new MoneyGenerator(config.forChildStream("money"));

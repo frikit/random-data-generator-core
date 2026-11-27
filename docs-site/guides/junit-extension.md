@@ -126,10 +126,8 @@ Gradle build, run the owning project's task (`./gradlew :orders:test --tests ...
 without a matching test do not fail the filter; in a multi-module Maven build, add
 `-pl <module>` or `-Dsurefire.failIfNoSpecifiedTests=false`.
 
-From 4.0.0 a replayed recipe must be `rdg-recipe/v2`. A `rdg-recipe/v1` recipe, printed by a
-3.x release, is a configuration error that names the release that wrote it, such as
-`Invalid krandom.junit.recipe replay recipe: Unsupported recipe version: v1. ... This recipe records
-library-version 3.2.0: replay it with random-data-generator 3.2.0.`; replay it with that release.
+A replayed recipe must be `rdg-recipe/v2`. A `krandom-recipe` recipe, which kRandom wrote, is a configuration
+error: it replays only with the kRandom release that its `library-version` line names.
 
 For a seed-only replay, use a decimal signed 64-bit value:
 

@@ -172,17 +172,14 @@ your cities. Register places for the locale as well to use your own.
 
 ## German street layout
 
-Street addresses put the house number first in every locale by default, so a German street reads
-`7389 Schloss Anger`. German writes the street first, with its type as part of the name:
-`Schlossanger 7389`. Since 3.2.0, `GeneratorConfig.Builder.germanStreetLayout(true)` opts in to that
-layout. It is off by default in 3.x, so seeded output does not change unless you ask for it. From
-4.0.0 it is on by default, and `germanStreetLayout(false)` keeps the 3.x layout.
+Street addresses put the house number first, as in `7389 River Park`, except in the German locales.
+German writes the street first, with its type as part of the name, so a German street reads
+`Schlossanger 7389`.
 
 ```java
 GeneratorConfig de = GeneratorConfig.builder()
         .locale(Locale.GERMANY)
         .seed(42L)
-        .germanStreetLayout(true)
         .build();
 
 String street = new StreetAddressGenerator(de).generate();  // "Schlossanger 7389"
@@ -191,23 +188,18 @@ String street = new StreetAddressGenerator(de).generate();  // "Schlossanger 738
 - **Locales.** It covers every locale whose language is German: `de`, `de_DE`, `de_AT`, `de_CH`, and any
   other `de_*`. Their street data, the built-in data and data you register for them alike, holds the
   first part of a street name (`Haupt`, `Rosen`) and the street types (`Strasse`, `Weg`, `Str.`) to join
-  to it. Every other locale keeps the house number first, with the option on or off.
+  to it. Every other locale writes the house number first.
 - **Form.** The name and the type become one word, the type starting in lower case:
   `Rosenstrasse 9180`, `Hauptstr. 12`. The built-in data spells `Strasse` and `Muehl` without `ß` or
-  umlauts, as before.
+  umlauts.
 - **What follows it.** `StreetAddressGenerator.generate()` and `generate(boolean)`, the street of
   `generateFullAddress()`, and `AddressInfo.street()` and `address()`, and so `RandomDataGenerator.streetAddress()`,
   the `address.street_address` and `address.address_info` schema columns, and the object engine's
-  street fields. `AddressInfo`'s `streetNumber`, `streetName` and `streetSuffix` keep their values, and
+  street fields. `AddressInfo`'s `streetNumber`, `streetName` and `streetSuffix` hold the parts, and
   the rest of a full address keeps its order (`…, München, Bayern 80313, Deutschland`).
-- **Draws.** The same draws are made in the same order with the option on or off, so it changes how the
-  parts are laid out and nothing else.
-- **Recipes.** In 3.x a recipe records `setting.address.german-street-layout=true` while it is on, so it
-  replays the same streets; a recipe without the setting replays with it off. From 4.0.0 a
-  `rdg-recipe/v2` recipe records it as `true` or `false`, and replay requires it.
 
 Other countries write the street first too, among them the Netherlands, Belgium, the Nordic countries,
-Poland, the Czech Republic, Italy and Spain. The option does not cover them, because their street data is
+Poland, the Czech Republic, Italy and Spain. The German layout does not cover them, because their street data is
 shaped differently: whole street names, such as the Dutch `Dorpsstraat` and the Swedish `Storgatan`, or a
 street type that goes before the name, such as the Italian `Via` of `Via Roma 12`. Each needs a layout of
 its own.

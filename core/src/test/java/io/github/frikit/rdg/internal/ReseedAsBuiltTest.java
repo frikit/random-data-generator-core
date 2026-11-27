@@ -11,7 +11,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.frikit.rdg.generator.ChildStreamPolicy;
 import io.github.frikit.rdg.generator.DataRegistryContext;
 import io.github.frikit.rdg.generator.GeneratorConfig;
 import io.github.frikit.rdg.generator.Seedable;
@@ -136,29 +135,11 @@ class ReseedAsBuiltTest {
         // random country only there.
         for (Locale locale : List.of(
                 Locale.US, Locale.GERMANY, Locale.JAPAN, Locale.forLanguageTag("pt-BR"), Locale.forLanguageTag("es"))) {
-            for (ChildStreamPolicy policy : ChildStreamPolicy.values()) {
-                configs.add(GeneratorConfig.builder()
-                        .locale(locale)
-                        .clock(CLOCK)
-                        .childStreamPolicy(policy)
-                        .seed(1L)
-                        .build());
-            }
-            // Advancing convenience streams keep a child, which a reseed must drop.
+            // Advancing convenience streams keep a child, which a reseed must drop, and the German street layout
+            // follows the locale, which a reseed keeps.
             configs.add(GeneratorConfig.builder()
                     .locale(locale)
                     .clock(CLOCK)
-                    .advancingConvenienceStreams(true)
-                    .seed(1L)
-                    .build());
-        }
-        // The German street layout is configuration only, which a reseed keeps.
-        for (ChildStreamPolicy policy : ChildStreamPolicy.values()) {
-            configs.add(GeneratorConfig.builder()
-                    .locale(Locale.GERMANY)
-                    .clock(CLOCK)
-                    .childStreamPolicy(policy)
-                    .germanStreetLayout(true)
                     .seed(1L)
                     .build());
         }
@@ -183,8 +164,7 @@ class ReseedAsBuiltTest {
                     assertEquals(
                             calls(fresh, methods),
                             calls(reused, methods),
-                            factory.getKey().getSimpleName() + " " + config.getLocale() + " "
-                                    + config.getChildStreamPolicy() + " seed " + seed);
+                            factory.getKey().getSimpleName() + " " + config.getLocale() + " seed " + seed);
                     // Reseeded with the same seed after giving those values, it must give them again: what it
                     // kept from them (issued unique values, say) must not count against the new build.
                     Object again = factory.getValue()
@@ -194,8 +174,8 @@ class ReseedAsBuiltTest {
                     assertEquals(
                             calls(again, methods),
                             calls(reused, methods),
-                            factory.getKey().getSimpleName() + " " + config.getLocale() + " "
-                                    + config.getChildStreamPolicy() + " seed " + seed + ", reseeded twice");
+                            factory.getKey().getSimpleName() + " " + config.getLocale() + " seed " + seed
+                                    + ", reseeded twice");
                     compared++;
                 }
             }
@@ -211,27 +191,21 @@ class ReseedAsBuiltTest {
         for (Map.Entry<Class<?>, Function<GeneratorConfig, Object>> factory : FACTORIES.entrySet()) {
             List<Method> methods = noArgumentMethods(factory.getKey());
             for (Locale locale : List.of(Locale.US, Locale.GERMANY, Locale.JAPAN)) {
-                for (boolean advancing : new boolean[] {false, true}) {
-                    // A fixed clock, as time-based values (UUIDv7, say) read it; a reseed leaves the clock alone.
-                    GeneratorConfig unseeded = GeneratorConfig.builder()
-                            .locale(locale)
-                            .clock(CLOCK)
-                            .advancingConvenienceStreams(advancing)
-                            .build();
-                    for (long seed : new long[] {0L, 7L, Long.MIN_VALUE}) {
-                        Object fresh = factory.getValue()
-                                .apply(unseeded.toBuilder().seed(seed).build());
-                        Object reused = factory.getValue().apply(unseeded);
-                        calls(reused, methods);
-                        java.util.Objects.requireNonNull(Reseeding.reseederOf(reused))
-                                .reseed(reused, seed);
-                        assertEquals(
-                                calls(fresh, methods),
-                                calls(reused, methods),
-                                factory.getKey().getSimpleName() + " " + locale + " advancing " + advancing + " seed "
-                                        + seed);
-                        compared++;
-                    }
+                // A fixed clock, as time-based values (UUIDv7, say) read it; a reseed leaves the clock alone.
+                GeneratorConfig unseeded =
+                        GeneratorConfig.builder().locale(locale).clock(CLOCK).build();
+                for (long seed : new long[] {0L, 7L, Long.MIN_VALUE}) {
+                    Object fresh = factory.getValue()
+                            .apply(unseeded.toBuilder().seed(seed).build());
+                    Object reused = factory.getValue().apply(unseeded);
+                    calls(reused, methods);
+                    java.util.Objects.requireNonNull(Reseeding.reseederOf(reused))
+                            .reseed(reused, seed);
+                    assertEquals(
+                            calls(fresh, methods),
+                            calls(reused, methods),
+                            factory.getKey().getSimpleName() + " " + locale + " seed " + seed);
+                    compared++;
                 }
             }
         }
@@ -268,23 +242,19 @@ class ReseedAsBuiltTest {
                 .register(Vocabulary.STREET_ADDRESS, streets)
                 .build();
         List<Method> methods = noArgumentMethods(StreetAddressGenerator.class);
-        for (ChildStreamPolicy policy : ChildStreamPolicy.values()) {
-            GeneratorConfig config = GeneratorConfig.builder()
-                    .locale(Locale.US)
-                    .registryContext(context)
-                    .childStreamPolicy(policy)
-                    .seed(1L)
-                    .build();
-            StreetAddressGenerator reused =
-                    new StreetAddressGenerator(config.toBuilder().seed(108L).build());
-            calls(reused, methods);
-            java.util.Objects.requireNonNull(Reseeding.reseederOf(reused)).reseed(reused, 7L);
+        GeneratorConfig config = GeneratorConfig.builder()
+                .locale(Locale.US)
+                .registryContext(context)
+                .seed(1L)
+                .build();
+        StreetAddressGenerator reused =
+                new StreetAddressGenerator(config.toBuilder().seed(108L).build());
+        calls(reused, methods);
+        java.util.Objects.requireNonNull(Reseeding.reseederOf(reused)).reseed(reused, 7L);
 
-            assertEquals(
-                    calls(new StreetAddressGenerator(config.toBuilder().seed(7L).build()), methods),
-                    calls(reused, methods),
-                    policy.name());
-        }
+        assertEquals(
+                calls(new StreetAddressGenerator(config.toBuilder().seed(7L).build()), methods),
+                calls(reused, methods));
     }
 
     private static List<Method> noArgumentMethods(Class<?> type) {

@@ -69,17 +69,11 @@ class GeneratorConfigChildStreamTest {
 
     /**
      * Fields that keep their default value in every parent that hands its children a stream of their own
-     * without modules: such a parent has a seed, so no other random source, and the legacy child-stream
-     * policy would hand children the parent itself. A restored parent covers the recipe flag.
+     * without modules: such a parent has a seed, so no other random source. A restored parent covers the
+     * recipe flag.
      */
-    private static final Set<String> DEFAULT_IN_EVERY_SUCH_PARENT = Set.of(
-            "random",
-            "randomFactory",
-            "secureRandom",
-            "modules",
-            "extensionRegistry",
-            "childStreamPolicy",
-            "restoredFromRecipe");
+    private static final Set<String> DEFAULT_IN_EVERY_SUCH_PARENT =
+            Set.of("random", "randomFactory", "secureRandom", "modules", "extensionRegistry", "restoredFromRecipe");
 
     static Stream<Arguments> seededParents() {
         return Stream.of(
@@ -280,9 +274,6 @@ class GeneratorConfigChildStreamTest {
                 .objectPoolSize(11)
                 .objectOverrideDefaultInitialization(legacy)
                 .objectIgnoreErrors(!legacy)
-                .advancingConvenienceStreams(!legacy)
-                .strictMathGaussian(!legacy)
-                .objectReseedBuiltInRandomizers(!legacy)
                 .objectConstructionPolicy(ObjectConstructionPolicy.UNSAFE_CONSTRUCTOR_BYPASS)
                 .objectDateRange(LocalDate.of(2022, 1, 1), LocalDate.of(2022, 12, 31))
                 .objectSemanticMode(
@@ -295,7 +286,6 @@ class GeneratorConfigChildStreamTest {
                 .locale(Locale.JAPAN)
                 .clock(FIXED_CLOCK)
                 .generationProfile("child-stream-profile")
-                .safetyPolicy("child-stream-safety")
                 .providerDatasetVersion("child-stream-dataset")
                 .paymentCardSafetyPolicy(
                         legacy ? PaymentCardSafetyPolicy.STRIPE_SANDBOX : PaymentCardSafetyPolicy.CHECKSUM_VALID)
@@ -307,9 +297,7 @@ class GeneratorConfigChildStreamTest {
                 .nationalIdSafetyPolicy(NationalIdSafetyPolicy.REALISTIC_UNCLASSIFIED)
                 .identityDocumentSafetyPolicy(IdentityDocumentSafetyPolicy.REALISTIC_UNCLASSIFIED)
                 .emailDomainPolicy(EmailDomainPolicy.REALISTIC_UNCLASSIFIED)
-                .networkSafetyPolicy(NetworkSafetyPolicy.REALISTIC_UNCLASSIFIED)
-                .childStreamPolicy(ChildStreamPolicy.INDEPENDENT)
-                .germanStreetLayout(legacy);
+                .networkSafetyPolicy(NetworkSafetyPolicy.REALISTIC_UNCLASSIFIED);
     }
 
     /** The portable settings, and every kind of state that a recipe cannot record, with two entries apiece. */

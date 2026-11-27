@@ -53,7 +53,7 @@ takes in its constructor. Build it with `GeneratorConfig.builder()` or `toBuilde
 - safety policies, one per sensitive domain (network, payment cards, banking, national IDs and
   others). Most default to a test-safe or disabled value, so a generator for real-looking identifiers
   can throw until a policy enables it;
-- stream policies and seeding settings that control how child streams are derived;
+- the object-field stream policy, which controls how object members get their streams;
 - object-engine settings and installed `ExtensionModule`s.
 
 A generator calls `config.createRandom()` for its random source (a fresh `Random(seed)` when seeded),
@@ -72,7 +72,7 @@ says what is guaranteed. The machinery:
 | Piece | File | Role |
 | --- | --- | --- |
 | String seeds | `GeneratorConfig` (`STRING_SEED_DERIVATION`, `deriveSeed`) | `fnv1a64-v1`: FNV-1a 64 over the UTF-8 bytes. A numeric seed wins over a string seed. |
-| Child streams | `GenerationRecipe.deriveChildSeed` | Derives a child seed from the parent seed's bytes and a stream name. `ChildStreamPolicy` chooses how. |
+| Child streams | `GenerationRecipe.deriveChildSeed` | Derives a child seed from the parent seed's bytes and a stream name. `forChildStream` uses it for every seeded child. |
 | Recipes | `generator/GenerationRecipe.java` | The line-oriented `rdg-recipe/v2` format: every setting needed to replay a run. |
 | `internal.StreamSeeds` | `internal/StreamSeeds.java` | The same hash split into steps, so `Schema` derives per-cell seeds without building strings. |
 | `internal.Reseeding` | `internal/Reseeding.java` | A registry of package-private `reseedTo(long)` hooks, so `Schema` reuses one generator per column instead of building one per value. |
@@ -145,7 +145,6 @@ A typical generator:
 - `RandomDataGenerator.intBetween` includes its upper bound; `Generators.ofInt(min, max)` excludes it.
 - `RandomDataGenerator.seeded("42")` is a string seed, not the numeric seed `42`.
 - The default charset is US-ASCII, and the default locale is `Locale.US`.
-- `childStreamPolicy` and `objectFieldStreamPolicy` have different defaults.
 - Locale fallback differs by generator: some throw `UnsupportedOperationException` for a locale
   without data, others fall back to a bundled `default.txt`.
 - Classes in `internal` are `public` so other packages can call them; JPMS hides them, the classpath

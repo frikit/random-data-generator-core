@@ -23,10 +23,8 @@ import java.util.Set;
  * <p>Built-in locale coverage follows the underlying name generators and the catalog in
  * {@link io.github.frikit.rdg.generator.locale.SupportedLocale}.
  *
- * <p>With {@link GeneratorConfig.Builder#advancingConvenienceStreams(boolean)} on, as it is by default from 4.0.0,
- * the methods with a middle name or initial keep one middle-name generator, shared with
- * {@link #generate(NameOptions)}, and each call gives the next middle name. With it off, as in 3.x, they build
- * one from the same child stream on each call, so a seeded generator repeats one middle name.
+ * <p>The methods with a middle name or initial keep one middle-name generator, shared with
+ * {@link #generate(NameOptions)}, so each call gives the next middle name.
  *
  * <pre>{@code
  * FullNameGenerator gen = new FullNameGenerator();
@@ -60,8 +58,8 @@ public final class FullNameGenerator implements Generator<String> {
      */
     void reseedTo(long seed) {
         config = io.github.frikit.rdg.internal.ConfigAccess.withSeed(config, seed);
-        firstNameGenerator.reseedTo(io.github.frikit.rdg.internal.Reseeding.childSeed(config, seed, "firstName"));
-        lastNameGenerator.reseedTo(io.github.frikit.rdg.internal.Reseeding.childSeed(config, seed, "lastName"));
+        firstNameGenerator.reseedTo(io.github.frikit.rdg.generator.GenerationRecipe.deriveChildSeed(seed, "firstName"));
+        lastNameGenerator.reseedTo(io.github.frikit.rdg.generator.GenerationRecipe.deriveChildSeed(seed, "lastName"));
         generatorsByLocale.clear();
         generatorsByLocale.put(config.getLocale(), new NameGenerators(config, firstNameGenerator, lastNameGenerator));
     }
@@ -322,15 +320,11 @@ public final class FullNameGenerator implements Generator<String> {
     }
 
     /**
-     * The middle-name generator of the methods with a middle name or initial: a new one from the same child stream
-     * on each call, so a seeded generator repeats one middle name, or, with
-     * {@link GeneratorConfig.Builder#advancingConvenienceStreams(boolean)} on, the one this generator keeps for its
+     * The middle-name generator of the methods with a middle name or initial: the one this generator keeps for its
      * own locale, which {@link #generate(NameOptions)} also draws from, so each call gives the next.
      */
     private MiddleNameGenerator middleNames() {
-        return config.isAdvancingConvenienceStreams()
-                ? generatorsFor(config.getLocale()).middleNameGenerator()
-                : new MiddleNameGenerator(config.forChildStream("middleName"));
+        return generatorsFor(config.getLocale()).middleNameGenerator();
     }
 
     private NameGenerators generatorsFor(Locale locale) {

@@ -116,45 +116,26 @@ choose stability when it matters and benchmark your own fixture before bulk-gene
 ### Composite child streams
 
 Composite value generators such as `PaymentInfoGenerator`, `OrderInfoGenerator`, or
-`PersonInfoGenerator` build child generators from their configuration. Under the default
-`ChildStreamPolicy.INDEPENDENT` (2.11+), each child receives `config.forChildStream(name)`. With a
-numeric or textual seed, that is a copy whose seed is `GenerationRecipe.deriveChildSeed(seed, name)`
-for a stable per-child stream name, so siblings draw from independent streams and the seed still
-reproduces them: the payment, invoice, and order identifiers of one seeded `PaymentInfo` are
-unrelated, such as `PAY-7DC1F9C37F29`, `INV-F852387C7D39`, and `ORD-B9D4F25FCB19` for seed 42.
-Custom composites follow the same contract by passing `config.forChildStream("childName")` to each
-child they construct.
+`PersonInfoGenerator` build child generators from their configuration. Each child receives
+`config.forChildStream(name)`. With a numeric or textual seed, that is a copy whose seed is
+`GenerationRecipe.deriveChildSeed(seed, name)` for a stable per-child stream name, so siblings draw
+from independent streams and the seed still reproduces them: the payment, invoice, and order
+identifiers of one seeded `PaymentInfo` are unrelated, such as `PAY-7DC1F9C37F29`,
+`INV-F852387C7D39`, and `ORD-B9D4F25FCB19` for seed 42. Custom composites follow the same contract by
+passing `config.forChildStream("childName")` to each child they construct.
 
-Without a seed there is nothing to derive from: an unseeded configuration builds under
-`INDEPENDENT`, and `forChildStream` returns it unchanged. Each child then takes its own source from
-`createRandom()`: a fresh unseeded `Random`, or a fresh `SecureRandom` with `secureRandom()`, so
-siblings still draw independent values. A caller-owned `random(...)` instance is shared by every
-child, so the children draw their values in turn from that one sequence. A `randomFactory(...)` is
-called once for each child, and its sources are used as they are, so a factory that returns the same
-seeded source every time correlates the children again. Neither is reseeded.
-
-`ChildStreamPolicy.LEGACY` gives every child the parent's configuration unchanged. With a seed,
-every child's random source then starts at the same state, so sibling values can be correlated: the
-three identifiers of one `PaymentInfo` share a suffix, as in `PAY-359D41BAF78A`,
-`INV-359D41BAF78A`, and `ORD-359D41BAF78A`. It was the default before 2.11, and it reproduces that
-seeded output, except for values whose own data or draws 2.11 changed, such as the addresses of
-locales with [postal places]({{ '/guides/locale-aware-data/' | relative_url }}#coherent-addresses):
-
-```java
-GeneratorConfig config = GeneratorConfig.builder()
-    .seed(42L)
-    .childStreamPolicy(ChildStreamPolicy.LEGACY)
-    .build();
-```
-
-Portable recipes record the policy as `child-stream-policy`, whichever it is, and replay requires
-it. A recipe without that setting, such as one written while `LEGACY` was the default, is rejected
-with `Recipe requires setting: child-stream-policy` rather than replayed with different values.
+Without a seed there is nothing to derive from, and `forChildStream` returns the configuration
+unchanged. Each child then takes its own source from `createRandom()`: a fresh unseeded `Random`, or a
+fresh `SecureRandom` with `secureRandom()`, so siblings still draw independent values. A caller-owned
+`random(...)` instance is shared by every child, so the children draw their values in turn from that
+one sequence. A `randomFactory(...)` is called once for each child, and its sources are used as they
+are, so a factory that returns the same seeded source every time correlates the children again.
+Neither is reseeded.
 
 Separate generators built from one seeded configuration are not children of each other: each starts
-from the root seed, whatever the policy, so two `Generators.ofInt(1, 40, config)` instances return
-the same values, and generators of different types draw from the same random sequence. Give each
-generator its own stream by passing `config.forChildStream(name)`:
+from the root seed, so two `Generators.ofInt(1, 40, config)` instances return the same values, and
+generators of different types draw from the same random sequence. Give each generator its own stream
+by passing `config.forChildStream(name)`:
 
 ```java
 GeneratorConfig config = GeneratorConfig.builder()
@@ -165,58 +146,31 @@ Generator<String> firstNames = Generators.ofFirstName(config.forChildStream("fir
 Generator<String> lastNames = Generators.ofLastName(config.forChildStream("lastName"));
 ```
 
-Under `LEGACY`, `forChildStream` returns the configuration unchanged, so it has no effect there.
-`RandomDataGenerator` does this for you: each of its methods has a stream derived from the seed and the method's
-name, whatever the child-stream policy.
+`RandomDataGenerator` does this for you: each of its methods has a stream derived from the seed and the
+method's name.
 
-## Seeding opt-ins that become the 4.0 defaults (3.2+)
+## Convenience streams, Gaussian draws and randomizers
 
-Three `GeneratorConfig` settings change seeded output, so 3.x keeps them off by default and every
-existing seed and recipe gives the values it gave before. From 4.0.0 each is on by default, and setting
-it to `false` keeps its 3.x values. On 3.x, turn them on to get the 4.0 values early:
-
-```java
-GeneratorConfig config = GeneratorConfig.builder()
-    .seed(42L)
-    .advancingConvenienceStreams(true)
-    .strictMathGaussian(true)
-    .objectReseedBuiltInRandomizers(true)
-    .build();
-```
-
-- **`advancingConvenienceStreams(true)`.** `EmailGenerator.generateCompanyEmail()`, the
+- **Convenience methods advance their child stream.** `EmailGenerator.generateCompanyEmail()`, the
   `FullNameGenerator` methods with a middle name or initial, and `CurrencyGenerator.generatePriceTag`
-  build their child generator again from the same child stream on every call, so a seeded generator
-  repeats one value: seed 42 gives `aharris@advancedassociatesco.test` on every call of
-  `generateCompanyEmail()`. With the opt-in, the generator keeps that child and each call gives the
-  next value. The first call gives what it gave before, and a reseed starts the child again.
-- **`strictMathGaussian(true)`.** `NormalDistributionGenerator` draws with `Math.log`, `Math.sin` and
-  `Math.cos`, which Java lets differ in the last bit between platforms. With the opt-in it uses the
-  `StrictMath` forms, which give the same bits everywhere, so a seed gives the same Gaussian values on
-  every JVM and CPU. Those values can differ in their last bit from what `Math` gives on your platform.
-- **`objectReseedBuiltInRandomizers(true)`.** Object generation already reseeds a `Seedable`
-  `@Randomizer` for every object from that object's stream. A built-in generator that is not
-  `Seedable`, such as `@Randomizer(FirstNameGenerator.class)` or `@Randomizer(UUIDGenerator.class)`,
-  draws from its own unseeded source, so its values change from run to run. With the opt-in, the
-  built-ins that a seeded `Schema` reseeds are reseeded the same way, so they replay from the seed and
-  its recipe. Those are `FullNameGenerator`, `FirstNameGenerator`, `LastNameGenerator`,
-  `UsernameGenerator`, `EmailGenerator`, `PhoneNumberGenerator`, `StreetAddressGenerator`,
-  `AddressInfoGenerator`, `CityGenerator`, `StateGenerator`, `PostalCodeGenerator`, `CountryGenerator`,
-  `CurrencyGenerator`, `MoneyGenerator`, `UUIDGenerator`, `WordGenerator`, `SentenceGenerator` and
-  `ParagraphGenerator`. Other built-ins that are not `Seedable`, such as `MiddleNameGenerator` or
-  `CompanyEmailGenerator`, keep their own source. Other fields keep their values.
+  keep one child generator, so each call gives the next value: seed 42 gives
+  `aharris@advancedassociatesco.test`, then `juliagarcia@advancedresourcesltd.test`, from
+  `generateCompanyEmail()`. A reseed starts the child again.
+- **Gaussian draws use `StrictMath`.** `NormalDistributionGenerator` draws with the `StrictMath` forms
+  of `log`, `sin` and `cos`, which give the same bits everywhere, so a seed gives the same Gaussian
+  values on every JVM and CPU. The `Math` forms, which Java lets differ in the last bit between
+  platforms, are not used.
+- **Object generation reseeds built-in randomizers.** Object generation reseeds a `Seedable`
+  `@Randomizer` for every object from that object's stream. The built-in generators that are not
+  `Seedable` but that a seeded `Schema` reseeds are reseeded the same way, so they replay from the seed
+  and its recipe: `FullNameGenerator`, `FirstNameGenerator`, `LastNameGenerator`, `UsernameGenerator`,
+  `EmailGenerator`, `PhoneNumberGenerator`, `StreetAddressGenerator`, `AddressInfoGenerator`,
+  `CityGenerator`, `StateGenerator`, `PostalCodeGenerator`, `CountryGenerator`, `CurrencyGenerator`,
+  `MoneyGenerator`, `UUIDGenerator`, `WordGenerator`, `SentenceGenerator` and `ParagraphGenerator`.
+  Other built-ins that are not `Seedable`, such as `MiddleNameGenerator` or `CompanyEmailGenerator`,
+  and your own generators that are not `Seedable`, keep their own source.
 
-The Kotlin DSL has the same three switches in `config { ... }`. In 3.x a portable recipe records each
-opt-in only when it is on, as `setting.advancing-convenience-streams=true`, `setting.gaussian.strict-math=true`
-and `setting.object.reseed-built-in-randomizers=true`. A recipe without them, such as every recipe that
-3.1 wrote, replays with them off. A release before 3.2 rejects a recipe that records one, rather than
-replaying it with other values.
-
-From 4.0.0 a recipe is `rdg-recipe/v2`. It records these three and `address.german-street-layout`,
-`true` or `false`, and replay requires all four, so a recipe gives the same values whatever the defaults of
-the release that replays it. A 4.x release rejects a `rdg-recipe/v1` recipe, which every 3.x release
-writes, because its values differ from 4.0.0. The error names the release that wrote it:
-
-```text
-Unsupported recipe version: v1. random-data-generator 4.x replays only rdg-recipe/v2 recipes: a rdg-recipe/v1 recipe was written by random-data-generator 3.x or earlier, and its seeded values differ from 4.0.0. This recipe records library-version 3.2.0: replay it with random-data-generator 3.2.0.
-```
+A recipe is `rdg-recipe/v2`. It records none of these, because none of them can be turned off. A
+recipe that carries a setting this release does not read, such as `setting.child-stream-policy`, is
+rejected at replay with `Unsupported recipe setting: child-stream-policy`, rather than replayed with
+other values.

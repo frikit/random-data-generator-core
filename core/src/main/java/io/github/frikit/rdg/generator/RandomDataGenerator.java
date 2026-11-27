@@ -40,8 +40,7 @@ import org.jspecify.annotations.Nullable;
  * {@code middleName} and {@code pick}: each pair shares one stream.
  * With a seeded configuration, each method's stream is
  * derived from the seed and the method's name with
- * {@link GenerationRecipe#deriveChildSeed(long, String)}, whatever the configured
- * {@link ChildStreamPolicy}. Repeated calls vary, a method's values are unaffected by calls of other
+ * {@link GenerationRecipe#deriveChildSeed(long, String)}. Repeated calls vary, a method's values are unaffected by calls of other
  * methods, and the same seed repeats the same values; {@link #today()} and the dates derived from it
  * follow the configured clock, so fix the clock for dates that are the same on every day. Without a
  * seed, each method draws from fresh, independent randomness. Create one session and reuse it: a

@@ -55,12 +55,7 @@ class GenerationRecipeTest {
             "national-id.safety-policy",
             "identity-document.safety-policy",
             "email.domain-policy",
-            "network.safety-policy",
-            "child-stream-policy",
-            "advancing-convenience-streams",
-            "gaussian.strict-math",
-            "object.reseed-built-in-randomizers",
-            "address.german-street-layout");
+            "network.safety-policy");
 
     @Test
     @DisplayName("serializes a stable human-readable recipe and parses it exactly")
@@ -73,7 +68,6 @@ class GenerationRecipeTest {
                 .locale(Locale.CANADA_FRENCH)
                 .clock(CLOCK_INSTANT, CLOCK_ZONE)
                 .profile("realistic")
-                .safetyPolicy("legacy-unclassified")
                 .constructionPolicy(ObjectConstructionPolicy.SAFE_CONSTRUCTORS)
                 .providerDatasetVersion("builtin-v1")
                 .setting("string.max", "16")
@@ -92,7 +86,6 @@ class GenerationRecipeTest {
             clock-instant=2026-07-10T12%3A34%3A56Z
             clock-zone=Europe%2FLondon
             profile=realistic
-            safety-policy=legacy-unclassified
             construction-policy=safe-constructors
             provider-dataset-version=builtin-v1
             setting.string.max=16
@@ -116,7 +109,6 @@ class GenerationRecipeTest {
                 .locale(Locale.GERMANY)
                 .clock(CLOCK_INSTANT, CLOCK_ZONE)
                 .profile("strict")
-                .safetyPolicy("test-safe")
                 .constructionPolicy(ObjectConstructionPolicy.UNSAFE_CONSTRUCTOR_BYPASS)
                 .providerDatasetVersion("provider-v2")
                 .setting("object.date-min", "2020-01-01")
@@ -131,7 +123,6 @@ class GenerationRecipeTest {
         assertEquals(CLOCK_INSTANT, recipe.getClockInstant());
         assertEquals(CLOCK_ZONE, recipe.getClockZone());
         assertEquals("strict", recipe.getProfile());
-        assertEquals("test-safe", recipe.getSafetyPolicy());
         assertEquals(ObjectConstructionPolicy.UNSAFE_CONSTRUCTOR_BYPASS, recipe.getConstructionPolicy());
         assertEquals("provider-v2", recipe.getProviderDatasetVersion());
         assertEquals(Map.of("object.date-min", "2020-01-01"), recipe.getSettings());
@@ -217,9 +208,7 @@ class GenerationRecipeTest {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("requiredSettings")
-    @DisplayName(
-            "replay requires every safety and email policy setting, the child-stream policy, both sets of unique fields"
-                    + " and the four seeding settings")
+    @DisplayName("replay requires every safety and email policy setting and both sets of unique fields")
     void replayRequiresSetting(String setting) {
         String complete = GeneratorConfig.builder()
                 .seed(42L)
@@ -251,11 +240,6 @@ class GenerationRecipeTest {
         assertEquals(defaults.getObjectDateMin(), replay.getObjectDateMin());
         assertEquals(defaults.getPaymentCardSafetyPolicy(), replay.getPaymentCardSafetyPolicy());
         assertEquals(defaults.getEmailDomainPolicy(), replay.getEmailDomainPolicy());
-        assertEquals(defaults.getChildStreamPolicy(), replay.getChildStreamPolicy());
-        assertEquals(defaults.isAdvancingConvenienceStreams(), replay.isAdvancingConvenienceStreams());
-        assertEquals(defaults.isStrictMathGaussian(), replay.isStrictMathGaussian());
-        assertEquals(defaults.isObjectReseedBuiltInRandomizers(), replay.isObjectReseedBuiltInRandomizers());
-        assertEquals(defaults.isGermanStreetLayout(), replay.isGermanStreetLayout());
     }
 
     @Test
@@ -623,7 +607,6 @@ class GenerationRecipeTest {
                 .locale(Locale.JAPAN)
                 .clock(Clock.fixed(CLOCK_INSTANT, CLOCK_ZONE))
                 .generationProfile("realistic")
-                .safetyPolicy("legacy-unclassified")
                 .providerDatasetVersion("builtin-v1")
                 .stringLength(4, 16)
                 .collectionSize(2, 6)
@@ -647,7 +630,6 @@ class GenerationRecipeTest {
         assertEquals(CLOCK_INSTANT, replay.getClock().instant());
         assertEquals(CLOCK_ZONE, replay.getClock().getZone());
         assertEquals(original.getGenerationProfile(), replay.getGenerationProfile());
-        assertEquals(original.getSafetyPolicy(), replay.getSafetyPolicy());
         assertEquals(original.getProviderDatasetVersion(), replay.getProviderDatasetVersion());
         assertEquals(original.getMinStringLength(), replay.getMinStringLength());
         assertEquals(original.getMaxStringLength(), replay.getMaxStringLength());
@@ -677,13 +659,12 @@ class GenerationRecipeTest {
     }
 
     @Test
-    @DisplayName("locale clock provider data and safety policy change portable recipes")
+    @DisplayName("locale, clock and provider data change portable recipes")
     void environmentMetadataChangesPortableRecipe() {
         GeneratorConfig.Builder base = GeneratorConfig.builder()
                 .seed(101L)
                 .locale(Locale.US)
                 .clock(Clock.fixed(CLOCK_INSTANT, CLOCK_ZONE))
-                .safetyPolicy("test-safe")
                 .providerDatasetVersion("builtin-v1");
         GenerationRecipe recipe = base.build().getGenerationRecipe().orElseThrow();
 
@@ -700,13 +681,6 @@ class GenerationRecipeTest {
                 recipe,
                 base.clock(Clock.fixed(CLOCK_INSTANT, CLOCK_ZONE))
                         .providerDatasetVersion("builtin-v2")
-                        .build()
-                        .getGenerationRecipe()
-                        .orElseThrow());
-        assertNotEquals(
-                recipe,
-                base.providerDatasetVersion("builtin-v1")
-                        .safetyPolicy("checksum-valid")
                         .build()
                         .getGenerationRecipe()
                         .orElseThrow());
@@ -871,8 +845,6 @@ class GenerationRecipeTest {
                 .isEmpty());
         assertThrows(
                 IllegalArgumentException.class, () -> GeneratorConfig.builder().generationProfile("line\nbreak"));
-        assertThrows(
-                IllegalArgumentException.class, () -> GeneratorConfig.builder().safetyPolicy("line\rbreak"));
         assertThrows(
                 IllegalArgumentException.class, () -> GeneratorConfig.builder().providerDatasetVersion(" "));
     }

@@ -127,7 +127,7 @@ public final class EmailGenerator implements Generator<String> {
     private final FirstNameGenerator firstNameGenerator;
     private final LastNameGenerator lastNameGenerator;
     private final Set<String> issuedEmails;
-    /** The company-email child that the advancing opt-in keeps, made when first used. */
+    /** The company-email child kept for company emails, made when first used. */
     private @org.jspecify.annotations.Nullable CompanyEmailGenerator companyEmails;
 
     static {
@@ -142,8 +142,8 @@ public final class EmailGenerator implements Generator<String> {
     void reseedTo(long seed) {
         config = io.github.frikit.rdg.internal.ConfigAccess.withSeed(config, seed);
         random.setSeed(seed);
-        firstNameGenerator.reseedTo(io.github.frikit.rdg.internal.Reseeding.childSeed(config, seed, "firstName"));
-        lastNameGenerator.reseedTo(io.github.frikit.rdg.internal.Reseeding.childSeed(config, seed, "lastName"));
+        firstNameGenerator.reseedTo(io.github.frikit.rdg.generator.GenerationRecipe.deriveChildSeed(seed, "firstName"));
+        lastNameGenerator.reseedTo(io.github.frikit.rdg.generator.GenerationRecipe.deriveChildSeed(seed, "lastName"));
         issuedEmails.clear();
         companyEmails = null;
     }
@@ -309,16 +309,12 @@ public final class EmailGenerator implements Generator<String> {
     /**
      * Generates a company email address.
      *
-     * <p>With {@link GeneratorConfig.Builder#advancingConvenienceStreams(boolean)} on, as it is by default from
-     * 4.0.0, it keeps one {@link CompanyEmailGenerator} and each call gives the next address. With it off, as in
-     * 3.x, each call builds one from the same child stream, so a seeded generator repeats one address.
+     * <p>It keeps one {@link CompanyEmailGenerator}, built from the child stream {@code companyEmail}, so each
+     * call gives the next address.
      *
      * @return a company-style email
      */
     public String generateCompanyEmail() {
-        if (!config.isAdvancingConvenienceStreams()) {
-            return new CompanyEmailGenerator(config.forChildStream("companyEmail")).generate();
-        }
         CompanyEmailGenerator kept = companyEmails;
         if (kept == null) {
             kept = new CompanyEmailGenerator(config.forChildStream("companyEmail"));

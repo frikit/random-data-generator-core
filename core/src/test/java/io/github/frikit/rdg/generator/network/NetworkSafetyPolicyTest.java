@@ -11,7 +11,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import io.github.frikit.rdg.generator.ChildStreamPolicy;
 import io.github.frikit.rdg.generator.EmailDomainPolicy;
 import io.github.frikit.rdg.generator.Generator;
 import io.github.frikit.rdg.generator.GeneratorConfig;
@@ -52,8 +51,8 @@ class NetworkSafetyPolicyTest {
     /**
      * Output under {@link NetworkSafetyPolicy#REALISTIC_UNCLASSIFIED} for seed 42 and {@link Locale#US},
      * unless named otherwise, recorded from the implementation before the policy existed (commit
-     * ed844edd), when {@link ChildStreamPolicy#LEGACY} was the default. One fresh generator per
-     * entry, four draws each.
+     * ed844edd). Only generators that draw from their own stream, with no child generators, are pinned
+     * here. One fresh generator per entry, four draws each.
      */
     private static final Map<String, List<String>> REALISTIC_GOLDEN = Map.ofEntries(
             Map.entry("ipv4", List.of("218.13.174.12", "82.241.70.181", "223.23.231.115", "140.97.70.176")),
@@ -90,24 +89,6 @@ class NetworkSafetyPolicyTest {
             Map.entry("domain de", List.of("digital.de", "vertexsync.org", "code.de", "connecttech.online")),
             Map.entry("domain ar", List.of("digital.online", "syncnet.tech", "cloudflow.com", "makerconnect.tech")),
             Map.entry("domain tld", List.of("us", "com", "app", "us")),
-            Map.entry("hostname", List.of("m.digital.us", "www.vertexsync.org", "m.code.us", "www.connecttech.online")),
-            Map.entry(
-                    "url",
-                    List.of("http://digital.us", "ws://vertexsync.org", "ws://code.us", "wss://connecttech.online")),
-            Map.entry(
-                    "url path query",
-                    List.of(
-                            "http://digital.us/files?id=525&id=918&offset=93",
-                            "ftp://vertexsync.org/list/contact/list?type=170&status=209&page=863",
-                            "https://code.us/admin?format=458",
-                            "ftp://connecttech.online/docs?order=85")),
-            Map.entry(
-                    "uri",
-                    List.of(
-                            "http://digital.us/files?id=525&id=918&offset=93",
-                            "ftp://vertexsync.org/list/contact/list",
-                            "ftp://code.us/docs?format=400&sort=226",
-                            "ws://connecttech.online/v1/docs/profile")),
             Map.entry(
                     "company url",
                     List.of(
@@ -121,24 +102,50 @@ class NetworkSafetyPolicyTest {
                             "https://www.advancedindustries.us",
                             "https://www.unitedanalytics.com",
                             "https://www.globalnetworks.app",
-                            "https://www.advancedassociates.us")),
+                            "https://www.advancedassociates.us")));
+
+    /**
+     * Output of the generators with child generators under {@link NetworkSafetyPolicy#REALISTIC_UNCLASSIFIED}
+     * for seed 42 and {@link Locale#US}, where each child draws from its own named stream. Recorded from
+     * {@code main} {@code 3638668}, whose default configuration gives these values. One fresh generator per
+     * entry, four draws each.
+     */
+    private static final Map<String, List<String>> REALISTIC_COMPOSITE_GOLDEN = Map.ofEntries(
+            Map.entry("hostname", List.of("m.wave.us", "www.quick.com", "m.fastsolutions.site", "www.cloudflow.us")),
+            Map.entry(
+                    "url",
+                    List.of("http://wave.us", "ws://quick.com", "ws://fastsolutions.site", "wss://cloudflow.us")),
+            Map.entry(
+                    "url path query",
+                    List.of(
+                            "http://wave.us/files?id=525&id=918&offset=93",
+                            "ftp://quick.com/list/contact/list?type=170&status=209&page=863",
+                            "https://fastsolutions.site/admin?format=458",
+                            "ftp://cloudflow.us/docs?order=85")),
+            Map.entry(
+                    "uri",
+                    List.of(
+                            "wss://easylabs.com/posts?order=86",
+                            "http://tech.us/services/list/items",
+                            "https://info.tech/v1/contact?sort=819&status=559&limit=631",
+                            "ftp://worldtech.us/data")),
             Map.entry(
                     "avatar",
                     List.of(
-                            "https://ui-avatars.com/api/?name=vsmith553&size=256",
-                            "https://api.dicebear.com/8.x/identicon/svg?seed=kking774",
-                            "https://api.dicebear.com/8.x/identicon/svg?seed=mia_carter",
-                            "https://ui-avatars.com/api/?name=samanthacook825&size=256")),
+                            "https://ui-avatars.com/api/?name=sandramartin486&size=256",
+                            "https://api.dicebear.com/8.x/identicon/svg?seed=kylie.jackson",
+                            "https://api.dicebear.com/8.x/identicon/svg?seed=kayleemorris601",
+                            "https://ui-avatars.com/api/?name=hperez22&size=256")),
             Map.entry(
                     "social link",
                     List.of(
-                            "https://github.com/vsmith553",
-                            "https://linkedin.com/kking774",
-                            "https://x.com/mia_carter",
-                            "https://github.com/samanthacook825")),
+                            "https://github.com/evahall620",
+                            "https://linkedin.com/vflores153",
+                            "https://x.com/alexandra_cook",
+                            "https://github.com/megan-torres")),
             Map.entry(
                     "profile website",
-                    List.of("http://digital.us", "ws://vertexsync.org", "ws://code.us", "wss://connecttech.online")));
+                    List.of("wss://easylabs.com", "wss://tech.us", "https://info.tech", "ws://worldtech.us")));
 
     private static GeneratorConfig reserved(long seed) {
         return GeneratorConfig.builder()
@@ -155,13 +162,6 @@ class NetworkSafetyPolicyTest {
                 .build();
     }
 
-    /** The realistic policy with the legacy child streams under which {@link #REALISTIC_GOLDEN} was recorded. */
-    private static GeneratorConfig recorded(Locale locale) {
-        return realistic(locale).toBuilder()
-                .childStreamPolicy(ChildStreamPolicy.LEGACY)
-                .build();
-    }
-
     private static <T> void assertEveryDraw(Supplier<T> draw, Function<T, String> text, Pattern shape) {
         for (int i = 0; i < DRAWS; i++) {
             String value = text.apply(draw.get());
@@ -174,49 +174,60 @@ class NetworkSafetyPolicyTest {
     }
 
     @Test
-    @DisplayName("the realistic policy with legacy child streams keeps the recorded output draw for draw")
+    @DisplayName("the realistic policy keeps the recorded output draw for draw")
     void theRealisticPolicyKeepsTheRecordedOutputDrawForDraw() {
         Map<String, Supplier<?>> draws = Map.ofEntries(
-                Map.entry("ipv4", new IPv4Generator(recorded(Locale.US))::generate),
-                Map.entry("ipv4 public", new IPv4Generator(recorded(Locale.US))::generatePublic),
-                Map.entry("ipv4 private", new IPv4Generator(recorded(Locale.US))::generatePrivate),
-                Map.entry("ipv4 cidr", new IPv4Generator(recorded(Locale.US))::generateCidr),
-                Map.entry("ipv6", new IPv6Generator(recorded(Locale.US))::generate),
-                Map.entry("ipv6 cidr", new IPv6Generator(recorded(Locale.US))::generateCidr),
-                Map.entry("ip", new IPGenerator(recorded(Locale.US))::generate),
-                Map.entry("mac", new MacAddressGenerator(recorded(Locale.US))::generate),
-                Map.entry("domain", new DomainGenerator(recorded(Locale.US))::generate),
-                Map.entry("domain de", new DomainGenerator(recorded(Locale.GERMANY))::generate),
-                Map.entry("domain ar", new DomainGenerator(recorded(Locale.forLanguageTag("ar-SA")))::generate),
-                Map.entry("domain tld", new DomainGenerator(recorded(Locale.US))::getTLD),
-                Map.entry("hostname", new HostnameGenerator(recorded(Locale.US))::generate),
-                Map.entry("url", new URLGenerator(recorded(Locale.US))::generate),
-                Map.entry("url path query", new URLGenerator(recorded(Locale.US))::generateWithPathAndQuery),
-                Map.entry("uri", new UriGenerator(recorded(Locale.US))::generate),
-                Map.entry("company url", new CompanyUrlGenerator(recorded(Locale.US))::generate),
+                Map.entry("ipv4", new IPv4Generator(realistic(Locale.US))::generate),
+                Map.entry("ipv4 public", new IPv4Generator(realistic(Locale.US))::generatePublic),
+                Map.entry("ipv4 private", new IPv4Generator(realistic(Locale.US))::generatePrivate),
+                Map.entry("ipv4 cidr", new IPv4Generator(realistic(Locale.US))::generateCidr),
+                Map.entry("ipv6", new IPv6Generator(realistic(Locale.US))::generate),
+                Map.entry("ipv6 cidr", new IPv6Generator(realistic(Locale.US))::generateCidr),
+                Map.entry("ip", new IPGenerator(realistic(Locale.US))::generate),
+                Map.entry("mac", new MacAddressGenerator(realistic(Locale.US))::generate),
+                Map.entry("domain", new DomainGenerator(realistic(Locale.US))::generate),
+                Map.entry("domain de", new DomainGenerator(realistic(Locale.GERMANY))::generate),
+                Map.entry("domain ar", new DomainGenerator(realistic(Locale.forLanguageTag("ar-SA")))::generate),
+                Map.entry("domain tld", new DomainGenerator(realistic(Locale.US))::getTLD),
+                Map.entry("company url", new CompanyUrlGenerator(realistic(Locale.US))::generate),
                 Map.entry(
-                        "company url from name", new CompanyUrlGenerator(recorded(Locale.US))::generateFromCompanyName),
-                Map.entry("avatar", new AvatarUrlGenerator(recorded(Locale.US))::generate),
-                Map.entry("social link", socialLinks(new SocialProfileGenerator(recorded(Locale.US)))),
-                Map.entry("profile website", profileWebsites(new ProfileGenerator(recorded(Locale.US)))));
+                        "company url from name",
+                        new CompanyUrlGenerator(realistic(Locale.US))::generateFromCompanyName));
 
-        assertEquals(REALISTIC_GOLDEN.keySet(), draws.keySet());
-        draws.forEach((name, draw) -> {
-            List<String> actual = List.of(
-                    draw.get().toString(),
-                    draw.get().toString(),
-                    draw.get().toString(),
-                    draw.get().toString());
-            assertEquals(REALISTIC_GOLDEN.get(name), actual, name);
-        });
+        Map<String, List<String>> actual = new java.util.TreeMap<>();
+        draws.forEach((name, draw) -> actual.put(
+                name,
+                List.of(
+                        draw.get().toString(),
+                        draw.get().toString(),
+                        draw.get().toString(),
+                        draw.get().toString())));
+        assertEquals(new java.util.TreeMap<>(REALISTIC_GOLDEN), actual);
     }
 
-    private static Supplier<String> socialLinks(SocialProfileGenerator generator) {
-        return () -> generator.generate().profileUrl();
-    }
+    @Test
+    @DisplayName("the realistic policy keeps the recorded output of generators with child streams")
+    void theRealisticPolicyKeepsTheRecordedCompositeOutput() {
+        SocialProfileGenerator social = new SocialProfileGenerator(realistic(Locale.US));
+        ProfileGenerator profiles = new ProfileGenerator(realistic(Locale.US));
+        Map<String, Supplier<?>> draws = Map.ofEntries(
+                Map.entry("hostname", new HostnameGenerator(realistic(Locale.US))::generate),
+                Map.entry("url", new URLGenerator(realistic(Locale.US))::generate),
+                Map.entry("url path query", new URLGenerator(realistic(Locale.US))::generateWithPathAndQuery),
+                Map.entry("uri", new UriGenerator(realistic(Locale.US))::generate),
+                Map.entry("avatar", new AvatarUrlGenerator(realistic(Locale.US))::generate),
+                Map.entry("social link", () -> social.generate().profileUrl()),
+                Map.entry("profile website", () -> profiles.generate().website()));
 
-    private static Supplier<String> profileWebsites(ProfileGenerator generator) {
-        return () -> generator.generate().website();
+        Map<String, List<String>> actual = new java.util.TreeMap<>();
+        draws.forEach((name, draw) -> actual.put(
+                name,
+                List.of(
+                        draw.get().toString(),
+                        draw.get().toString(),
+                        draw.get().toString(),
+                        draw.get().toString())));
+        assertEquals(new java.util.TreeMap<>(REALISTIC_COMPOSITE_GOLDEN), actual);
     }
 
     @Test

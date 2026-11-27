@@ -22,16 +22,13 @@ public final class WordGenerator implements Generator<String> {
         io.github.frikit.rdg.internal.Reseeding.register(WordGenerator.class, WordGenerator::reseedTo);
     }
 
-    /** The configuration this generator was built from, whose child-stream policy a reseed follows. */
-    private final GeneratorConfig config;
-
     /**
      * Reseeds this generator and its syllable stream, which then give what ones built from its configuration
      * with this seed give.
      */
     void reseedTo(long seed) {
         random.setSeed(seed);
-        syllableGenerator.reseedTo(io.github.frikit.rdg.internal.Reseeding.childSeed(config, seed, "syllable"));
+        syllableGenerator.reseedTo(io.github.frikit.rdg.generator.GenerationRecipe.deriveChildSeed(seed, "syllable"));
     }
 
     private final Random random;
@@ -51,7 +48,7 @@ public final class WordGenerator implements Generator<String> {
      * @param config generator configuration; must not be null
      */
     public WordGenerator(GeneratorConfig config) {
-        this.config = Objects.requireNonNull(config, "config must not be null");
+        Objects.requireNonNull(config, "config must not be null");
         this.locale = config.getLocale();
         this.random = config.createRandom();
         this.syllableGenerator = new SyllableGenerator(config.forChildStream("syllable"));

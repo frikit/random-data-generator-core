@@ -43,9 +43,8 @@ import org.jspecify.annotations.Nullable;
  * #RECIPE_VERSION} uses {@value #ALGORITHM}; patch releases must preserve its child-stream and
  * {@link Random} behavior. A future algorithm change requires a new recipe version.
  *
- * <p>A recipe is {@code rdg-recipe/v2}, and it records the four seeding settings that are on by default, on or
- * off, so its replay does not depend on a release's defaults. A recipe that kRandom wrote has the format
- * {@code krandom-recipe}; it is rejected with a message that says how to convert it.
+ * <p>A recipe is {@code rdg-recipe/v2}. A recipe that kRandom wrote has the format {@code krandom-recipe}; it
+ * is rejected with a message that says it replays only with the kRandom release that wrote it.
  *
  * <p>A recipe does not record the Java runtime's time-zone database or locale data, so values that
  * follow them, such as zone IDs, zone offsets and formatted money amounts, can differ on another JDK.
@@ -70,9 +69,6 @@ public final class GenerationRecipe {
     /** Default profile label for configurations that were not created through a named profile. */
     public static final String CUSTOM_PROFILE = "custom";
 
-    /** Default label before the dedicated safety-mode contract is introduced. */
-    public static final String LEGACY_UNCLASSIFIED_SAFETY_POLICY = "legacy-unclassified";
-
     private static final String FORMAT_KEY = "format";
     private static final String RECIPE_VERSION_KEY = "recipe-version";
     private static final String LIBRARY_VERSION_KEY = "library-version";
@@ -83,18 +79,9 @@ public final class GenerationRecipe {
     private static final String CLOCK_INSTANT_KEY = "clock-instant";
     private static final String CLOCK_ZONE_KEY = "clock-zone";
     private static final String PROFILE_KEY = "profile";
-    private static final String SAFETY_POLICY_KEY = "safety-policy";
     private static final String CONSTRUCTION_POLICY_KEY = "construction-policy";
     private static final String PROVIDER_DATASET_VERSION_KEY = "provider-dataset-version";
     private static final String SETTING_PREFIX = "setting.";
-    /*
-     * The four settings that are on by default from 4.0.0. A configuration records each one, on or off, and
-     * replay requires each one, so it never takes them from the replaying release's defaults.
-     */
-    static final String ADVANCING_CONVENIENCE_STREAMS_SETTING = "advancing-convenience-streams";
-    static final String STRICT_MATH_GAUSSIAN_SETTING = "gaussian.strict-math";
-    static final String OBJECT_RESEED_BUILT_IN_RANDOMIZERS_SETTING = "object.reseed-built-in-randomizers";
-    static final String GERMAN_STREET_LAYOUT_SETTING = "address.german-street-layout";
     /** No field names, because a setting cannot be blank. A name holds only letters and digits, so none is this. */
     private static final String NO_FIELD_NAMES = "-";
 
@@ -110,7 +97,6 @@ public final class GenerationRecipe {
     private final Instant clockInstant;
     private final ZoneId clockZone;
     private final String profile;
-    private final String safetyPolicy;
     private final ObjectConstructionPolicy constructionPolicy;
     private final String providerDatasetVersion;
     private final Map<String, String> settings;
@@ -128,7 +114,6 @@ public final class GenerationRecipe {
         this.clockInstant = Objects.requireNonNull(builder.clockInstant, "clockInstant must not be null");
         this.clockZone = Objects.requireNonNull(builder.clockZone, "clockZone must not be null");
         this.profile = requireToken("profile", builder.profile);
-        this.safetyPolicy = requireToken("safetyPolicy", builder.safetyPolicy);
         this.constructionPolicy =
                 Objects.requireNonNull(builder.constructionPolicy, "constructionPolicy must not be null");
         this.providerDatasetVersion = requireToken("providerDatasetVersion", builder.providerDatasetVersion);
@@ -180,7 +165,7 @@ public final class GenerationRecipe {
         }
 
         if (KRANDOM_FORMAT.equals(entries.get(FORMAT_KEY))) {
-            throw new IllegalArgumentException(kRandomRecipeMessage(entries.get(RECIPE_VERSION_KEY)));
+            throw new IllegalArgumentException(kRandomRecipeMessage());
         }
         requireExact(entries, FORMAT_KEY, FORMAT);
         String recipeVersion = required(entries, RECIPE_VERSION_KEY);
@@ -195,7 +180,6 @@ public final class GenerationRecipe {
                         Instant.parse(required(entries, CLOCK_INSTANT_KEY)),
                         ZoneId.of(required(entries, CLOCK_ZONE_KEY)))
                 .profile(required(entries, PROFILE_KEY))
-                .safetyPolicy(required(entries, SAFETY_POLICY_KEY))
                 .constructionPolicy(parseConstructionPolicy(required(entries, CONSTRUCTION_POLICY_KEY)))
                 .providerDatasetVersion(required(entries, PROVIDER_DATASET_VERSION_KEY));
         String seedText = entries.remove(SEED_TEXT_KEY);
@@ -212,7 +196,6 @@ public final class GenerationRecipe {
         entries.remove(CLOCK_INSTANT_KEY);
         entries.remove(CLOCK_ZONE_KEY);
         entries.remove(PROFILE_KEY);
-        entries.remove(SAFETY_POLICY_KEY);
         entries.remove(CONSTRUCTION_POLICY_KEY);
         entries.remove(PROVIDER_DATASET_VERSION_KEY);
         for (Map.Entry<String, String> entry : entries.entrySet()) {
@@ -287,11 +270,6 @@ public final class GenerationRecipe {
         return profile;
     }
 
-    /** @return requested safety-policy label */
-    public String getSafetyPolicy() {
-        return safetyPolicy;
-    }
-
     /** @return object construction policy */
     public ObjectConstructionPolicy getConstructionPolicy() {
         return constructionPolicy;
@@ -320,14 +298,10 @@ public final class GenerationRecipe {
     /**
      * Recreates a portable generator configuration with a fixed clock.
      *
-     * <p>Every safety-policy setting, the email-domain policy, the child-stream policy and both sets
-     * of unique fields are required, because they select which values generators produce; the
-     * serialized form of a seeded configuration always records them. A recipe without
-     * {@code child-stream-policy}, such as one written while {@link ChildStreamPolicy#LEGACY} was
-     * the default and left unrecorded, is rejected rather than replayed under the current default.
-     * For the same reason the four seeding settings that are on by default from 4.0.0,
-     * {@code advancing-convenience-streams}, {@code gaussian.strict-math},
-     * {@code object.reseed-built-in-randomizers} and {@code address.german-street-layout}, are required.
+     * <p>Every safety-policy setting, the email-domain policy and both sets of unique fields are
+     * required, because they select which values generators produce; the serialized form of a seeded
+     * configuration always records them. A setting this library does not recognize is rejected rather
+     * than ignored, so a recipe never replays with other values than it describes.
      *
      * @return replay configuration
      * @throws IllegalArgumentException if this library does not recognize a recorded setting, or a
@@ -339,7 +313,6 @@ public final class GenerationRecipe {
                 .locale(locale)
                 .clock(Clock.fixed(clockInstant, clockZone))
                 .generationProfile(profile)
-                .safetyPolicy(safetyPolicy)
                 .providerDatasetVersion(providerDatasetVersion)
                 .objectConstructionPolicy(constructionPolicy);
         if (seedText != null) {
@@ -384,7 +357,6 @@ public final class GenerationRecipe {
         append(builder, CLOCK_INSTANT_KEY, clockInstant.toString());
         append(builder, CLOCK_ZONE_KEY, clockZone.getId());
         append(builder, PROFILE_KEY, profile);
-        append(builder, SAFETY_POLICY_KEY, safetyPolicy);
         append(builder, CONSTRUCTION_POLICY_KEY, constructionPolicyId(constructionPolicy));
         append(builder, PROVIDER_DATASET_VERSION_KEY, providerDatasetVersion);
         for (Map.Entry<String, String> setting : settings.entrySet()) {
@@ -437,7 +409,6 @@ public final class GenerationRecipe {
         if (streamPolicy != null) {
             builder.objectFieldStreamPolicy(ObjectFieldStreamPolicy.valueOf(streamPolicy));
         }
-        builder.childStreamPolicy(ChildStreamPolicy.valueOf(requiredSetting("child-stream-policy")));
         String charset = settings.get("charset");
         if (charset != null) {
             builder.charset(Charset.forName(charset));
@@ -457,10 +428,6 @@ public final class GenerationRecipe {
         applyInteger(builder, "object.pool-size", builder::objectPoolSize);
         applyBoolean(builder, "object.override-default-initialization", builder::objectOverrideDefaultInitialization);
         applyBoolean(builder, "object.ignore-errors", builder::objectIgnoreErrors);
-        builder.advancingConvenienceStreams(requiredBoolean(ADVANCING_CONVENIENCE_STREAMS_SETTING))
-                .strictMathGaussian(requiredBoolean(STRICT_MATH_GAUSSIAN_SETTING))
-                .objectReseedBuiltInRandomizers(requiredBoolean(OBJECT_RESEED_BUILT_IN_RANDOMIZERS_SETTING))
-                .germanStreetLayout(requiredBoolean(GERMAN_STREET_LAYOUT_SETTING));
         builder.paymentCardSafetyPolicy(PaymentCardSafetyPolicy.valueOf(requiredSetting("payment.card-safety-policy")));
         builder.bankingSafetyPolicy(BankingSafetyPolicy.valueOf(requiredSetting("banking.safety-policy")));
         builder.businessTaxIdentifierSafetyPolicy(
@@ -520,14 +487,6 @@ public final class GenerationRecipe {
         return value;
     }
 
-    private boolean requiredBoolean(String key) {
-        String value = requiredSetting(key);
-        if (!"true".equals(value) && !"false".equals(value)) {
-            throw new IllegalArgumentException("Recipe setting '" + key + "' must be true or false");
-        }
-        return Boolean.parseBoolean(value);
-    }
-
     private @Nullable Integer integerSetting(String key) {
         String value = settings.get(key);
         return value == null ? null : Integer.valueOf(value);
@@ -550,7 +509,6 @@ public final class GenerationRecipe {
     private static boolean isKnownSetting(String key) {
         return switch (key) {
             case "object.field-stream-policy",
-                    "child-stream-policy",
                     "charset",
                     "string.min",
                     "string.max",
@@ -560,7 +518,6 @@ public final class GenerationRecipe {
                     "object.pool-size",
                     "object.override-default-initialization",
                     "object.ignore-errors",
-                    GERMAN_STREET_LAYOUT_SETTING,
                     "object.semantic-mode",
                     "object.null-probability",
                     "object.optional-empty-probability",
@@ -578,10 +535,7 @@ public final class GenerationRecipe {
                     "crypto-address.safety-policy",
                     "securities-identifier.safety-policy",
                     "email.domain-policy",
-                    "network.safety-policy",
-                    ADVANCING_CONVENIENCE_STREAMS_SETTING,
-                    STRICT_MATH_GAUSSIAN_SETTING,
-                    OBJECT_RESEED_BUILT_IN_RANDOMIZERS_SETTING -> true;
+                    "network.safety-policy" -> true;
             default -> false;
         };
     }
@@ -629,23 +583,12 @@ public final class GenerationRecipe {
         return version;
     }
 
-    /** Why a kRandom recipe does not replay as it is, and how to convert it if it can be converted. */
-    private static String kRandomRecipeMessage(@Nullable String recipeVersion) {
-        String rejection =
-                "Unsupported format: " + KRANDOM_FORMAT + ". kRandom wrote this recipe; random-data-generator,"
-                        + " which continues kRandom, names its recipes " + FORMAT + ". ";
-        if (RECIPE_VERSION.equals(recipeVersion)) {
-            return rejection + "A " + KRANDOM_FORMAT + "/" + RECIPE_VERSION
-                    + " recipe, from kRandom 4.x, replays once its"
-                    + " first line reads format=" + FORMAT + "; the members of a library record such as AddressInfo"
-                    + " then take other values than in kRandom.";
-        }
-        if ("v1".equals(recipeVersion)) {
-            return rejection + "A " + KRANDOM_FORMAT + "/v1 recipe, from kRandom 3.x or earlier, replays only with the"
-                    + " kRandom release that its library-version line names.";
-        }
-        return rejection + "Only a " + KRANDOM_FORMAT + "/" + RECIPE_VERSION + " recipe converts, by changing its first"
-                + " line to format=" + FORMAT + ".";
+    /** Why a kRandom recipe does not replay here. */
+    private static String kRandomRecipeMessage() {
+        return "Unsupported format: " + KRANDOM_FORMAT + ". kRandom wrote this recipe; random-data-generator,"
+                + " which continues kRandom, names its recipes " + FORMAT + " and does not replay kRandom recipes."
+                + " A " + KRANDOM_FORMAT + " recipe replays only with the kRandom release that its"
+                + " library-version line names.";
     }
 
     private static String requireSupportedAlgorithm(String value) {
@@ -736,7 +679,6 @@ public final class GenerationRecipe {
         private Instant clockInstant = Instant.EPOCH;
         private ZoneId clockZone = ZoneId.of("UTC");
         private String profile = CUSTOM_PROFILE;
-        private String safetyPolicy = LEGACY_UNCLASSIFIED_SAFETY_POLICY;
         private ObjectConstructionPolicy constructionPolicy = ObjectConstructionPolicy.SAFE_CONSTRUCTORS;
         private String providerDatasetVersion = BUILTIN_PROVIDER_DATASET_VERSION;
         private final Map<String, String> settings = new TreeMap<>();
@@ -789,11 +731,6 @@ public final class GenerationRecipe {
 
         public Builder profile(String profile) {
             this.profile = requireToken("profile", profile);
-            return this;
-        }
-
-        public Builder safetyPolicy(String safetyPolicy) {
-            this.safetyPolicy = requireToken("safetyPolicy", safetyPolicy);
             return this;
         }
 

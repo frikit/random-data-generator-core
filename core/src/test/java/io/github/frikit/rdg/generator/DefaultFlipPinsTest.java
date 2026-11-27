@@ -6,7 +6,6 @@
 package io.github.frikit.rdg.generator;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 import io.github.frikit.rdg.generator.base.ByteGenerator;
 import io.github.frikit.rdg.generator.base.NormalDistributionGenerator;
@@ -40,74 +39,25 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * Seeded values of the four settings that 4.0 turns on by default, {@code advancingConvenienceStreams},
- * {@code strictMathGaussian}, {@code objectReseedBuiltInRandomizers} and {@code germanStreetLayout}, with all
- * four set off and with all four set on, recorded on {@code main} at 3.2.0 before any default changed. With
- * every setting given explicitly, these values do not depend on the defaults, so they stay the same when the
- * defaults change.
+ * Seeded values of the convenience methods that advance their child stream, the street-first layout of the
+ * German locales, reseeded built-in randomizers and {@link StrictMath} Gaussian draws, through generators, the
+ * session, a schema and object generation.
  *
  * <p>Values that follow the Java runtime are checked against an oracle rather than pinned: a price tag's amount
- * is formatted with the runtime's locale data, and {@link Math} may differ in its last bit between platforms.
+ * is formatted with the runtime's locale data.
+ *
+ * <p>Object generation derives a member's stream from its owner's class name, so the {@code object},
+ * {@code randomizers} and {@code built-in randomizers} lines follow the names of {@link Resident} and
+ * {@link WithRandomizers}, nested in this class. Renaming this class changes those values.
  */
-@DisplayName("the four 4.0 default flips, each set explicitly, keep their seeded values")
+@DisplayName("seeded child streams, street layout, randomizers and Gaussian draws keep their values")
 class DefaultFlipPinsTest {
 
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-07-10T12:00:00Z"), ZoneOffset.UTC);
 
-    /** The 3.x behaviour of all four. */
-    static final UnaryOperator<GeneratorConfig.Builder> ALL_OFF = builder -> builder.advancingConvenienceStreams(false)
-            .strictMathGaussian(false)
-            .objectReseedBuiltInRandomizers(false)
-            .germanStreetLayout(false);
-
-    /** The 4.0 behaviour of all four. */
-    static final UnaryOperator<GeneratorConfig.Builder> ALL_ON = builder -> builder.advancingConvenienceStreams(true)
-            .strictMathGaussian(true)
-            .objectReseedBuiltInRandomizers(true)
-            .germanStreetLayout(true);
-
     static final List<String> LOCALES = List.of("de", "de-DE", "de-AT", "de-CH", "nl-NL", "en-US");
 
-    static final String OFF_VALUES = """
-            company emails [aharris@advancedassociatesco.test, aharris@advancedassociatesco.test, aharris@advancedassociatesco.test]
-            middle names [Caroline Hazel Tran, Steven Hazel Mitchell, Olivia Ellie Taylor, Carter H. Green, Stephanie H. Reyes, Hunter D. Bell]
-            session mnelson@example.org | Walter Ross
-            de street 7389 Schloss Anger | 9180 Rosen Strasse | 1014 Kant Gart., Konstanz, Baden-Württemberg 78462, Deutschland
-            de info 8680 Tulpen Pfad | 8680 Tulpen Pfad, Mönchengladbach, Nordrhein-Westfalen 41061, Deutschland
-            de schema [{street=3876 Tannen Höhe, email=waltervogt@example.net}, {street=1951 Park Berg, email=laura_becker@example.com}]
-            de session 7072 Beethoven Ring
-            de object Ayse, 855 Dom Al., 9051 Park Br. | Tim, 4164 Beethoven G., 2993 Bismarck Pl.
-            de-DE street 7389 Schloss Anger | 9180 Rosen Strasse | 1014 Kant Gart., Konstanz, Baden-Württemberg 78462, Deutschland
-            de-DE info 8680 Tulpen Pfad | 8680 Tulpen Pfad, Mönchengladbach, Nordrhein-Westfalen 41061, Deutschland
-            de-DE schema [{street=3876 Tannen Höhe, email=waltervogt@example.net}, {street=1951 Park Berg, email=laura_becker@example.com}]
-            de-DE session 7072 Beethoven Ring
-            de-DE object Ayse, 7448 Mozart Wall, 9051 Park Br. | Tim, 2922 Wald Aue, 2993 Bismarck Pl.
-            de-AT street 7389 Schloss Anger | 9180 Rosen Strasse | 1014 Kant Gart., Rostock, Baden-Württemberg 9342, Österreich
-            de-AT info 8680 Tulpen Pfad | 8680 Tulpen Pfad, Oldenburg, Rheinland-Pfalz 9342, Österreich
-            de-AT schema [{street=3876 Tannen Höhe, email=waltervogt@example.net}, {street=1951 Park Berg, email=laura_becker@example.com}]
-            de-AT session 7072 Beethoven Ring
-            de-AT object Ayse, 7448 Mozart Wall, 9051 Park Br. | Tim, 2922 Wald Aue, 2993 Bismarck Pl.
-            de-CH street 7389 Schloss Anger | 9180 Rosen Strasse | 1014 Kant Gart., Rostock, Baden-Württemberg 9342, Schweiz
-            de-CH info 8680 Tulpen Pfad | 8680 Tulpen Pfad, Oldenburg, Rheinland-Pfalz 9342, Schweiz
-            de-CH schema [{street=3876 Tannen Höhe, email=waltervogt@example.net}, {street=1951 Park Berg, email=laura_becker@example.com}]
-            de-CH session 7072 Beethoven Ring
-            de-CH object Ayse, 7448 Mozart Wall, 9051 Park Br. | Tim, 2922 Wald Aue, 2993 Bismarck Pl.
-            nl-NL street 7389 Molenstraat pad | 9180 Dorpsstraat Plantsoen | 1014 Beatrixstraat erf, Reusel, GR 8649 ST, Nederland
-            nl-NL info 8680 Boslaan bn. | 8680 Boslaan bn., Helmond, DR 8649 ST, Nederland
-            nl-NL schema [{street=3876 Wilhelminastraat gr., email=mariusveenstra@example.net}, {street=1951 Stationsstraat wg., email=charlotte_vanschaik@example.com}]
-            nl-NL session 7072 Hoofdstraat wg.
-            nl-NL object Merel, 7448 Julianastraat pad, 9051 Stationsstraat ln. | Ivo, 2922 Wilhelminastraat erf, 2993 Waterstraat sgl.
-            en-US street 7389 River Park | 9180 Jefferson Grove | 1014 Willow Xing, Renton, WA 98056, United States
-            en-US info 8680 Lakeview Holw | 8680 Lakeview Holw, Fontana, CA 92335, United States
-            en-US schema [{street=3876 Elm Knl, email=landonhill@example.net}, {street=1951 Cherry Mnr, email=savannah_edwards@example.com}]
-            en-US session 7072 Fairview Pt
-            en-US object Piper, 7448 Washington Anx, 9051 Cherry Jct | Charles, 2922 Elm Hl, 2993 Lincoln Blvd
-            randomizers -126 1320854254 QSPIiiDvTKHfe
-            randomizers -42 -1375916062 xMRrSmzG
-            randomizers -56 -946313064 ExwAN
-            """;
-
-    static final String ON_VALUES = """
+    static final String VALUES = """
             company emails [aharris@advancedassociatesco.test, juliagarcia@advancedresourcesltd.test, edavis@alpharesourcescorp.test]
             middle names [Caroline Hazel Tran, Steven Audrey Mitchell, Olivia Amanda Taylor, Carter L. Green, Stephanie J. Reyes, Hunter P. Bell]
             session mnelson@example.org | Walter Ross
@@ -151,66 +101,58 @@ class DefaultFlipPinsTest {
             """;
 
     @Test
-    @DisplayName("with all four off, the 3.x values")
-    void offValues() {
-        assertEquals(OFF_VALUES, values(ALL_OFF));
+    @DisplayName("a seeded configuration gives the pinned values")
+    void pinnedValues() {
+        assertEquals(VALUES, values(UnaryOperator.identity()));
     }
 
     @Test
-    @DisplayName("with all four on, the 4.0 values")
-    void onValues() {
-        assertEquals(ON_VALUES, values(ALL_ON));
+    @DisplayName("a configuration replayed from its recipe gives the pinned values")
+    void replayedValues() {
+        assertEquals(
+                VALUES,
+                values(config -> GenerationRecipe.parse(
+                                config.getGenerationRecipe().orElseThrow().serialize())
+                        .toGeneratorConfig()));
     }
 
     @Test
-    @DisplayName("with all four off, a built-in @Randomizer that is not Seedable draws from its own source")
-    void offBuiltInRandomizersAreUnseeded() {
-        assertNotEquals(builtIns(ALL_OFF), builtIns(ALL_OFF));
-    }
-
-    @Test
-    @DisplayName("with all four off, each price tag is the first amount of the money stream; on, the next one")
+    @DisplayName("each price tag is the next amount of the money stream")
     void priceTags() {
-        GeneratorConfig off = seeded(42L, "en-US", ALL_OFF);
-        CurrencyGenerator offTags = new CurrencyGenerator(off);
-        GeneratorConfig on = seeded(42L, "en-US", ALL_ON);
-        CurrencyGenerator onTags = new CurrencyGenerator(on);
-        MoneyGenerator onMoney = new MoneyGenerator(on.forChildStream("money"));
-        for (int i = 0; i < 4; i++) {
-            assertEquals(new MoneyGenerator(off.forChildStream("money")).generate(), offTags.generatePriceTag());
-            assertEquals(onMoney.generate(), onTags.generatePriceTag());
+        for (long seed = 0; seed < 50; seed++) {
+            GeneratorConfig config = seeded(seed, "en-US", UnaryOperator.identity());
+            CurrencyGenerator tags = new CurrencyGenerator(config);
+            MoneyGenerator money = new MoneyGenerator(config.forChildStream("money"));
+            for (int i = 0; i < 4; i++) {
+                assertEquals(money.generate(), tags.generatePriceTag(), "seed " + seed);
+            }
         }
     }
 
     @Test
-    @DisplayName("with all four off, Gaussian draws use Math; on, StrictMath")
+    @DisplayName("Gaussian draws use StrictMath")
     void gaussianDraws() {
         for (long seed = 0; seed < 200; seed++) {
             assertEquals(
-                    boxMuller(seed, false),
-                    new NormalDistributionGenerator(seeded(seed, "en-US", ALL_OFF)).generateList(6),
-                    "seed " + seed);
-            assertEquals(
-                    boxMuller(seed, true),
-                    new NormalDistributionGenerator(seeded(seed, "en-US", ALL_ON)).generateList(6),
+                    boxMuller(seed),
+                    new NormalDistributionGenerator(seeded(seed, "en-US", UnaryOperator.identity())).generateList(6),
                     "seed " + seed);
         }
     }
 
-    static GeneratorConfig seeded(long seed, String tag, UnaryOperator<GeneratorConfig.Builder> settings) {
+    static GeneratorConfig seeded(long seed, String tag, UnaryOperator<GeneratorConfig> settings) {
         return settings.apply(GeneratorConfig.builder()
-                        .seed(seed)
-                        .locale(Locale.forLanguageTag(tag))
-                        .clock(CLOCK))
-                .build();
+                .seed(seed)
+                .locale(Locale.forLanguageTag(tag))
+                .clock(CLOCK)
+                .build());
     }
 
     /**
-     * The pinned values under {@code settings}, one line for each group. With the reseed on, the built-in
-     * randomizers replay and are pinned too, and with StrictMath on, the Gaussian values are the same on every
-     * platform and are pinned too.
+     * The pinned values of configurations that {@code settings} makes from seeded ones, one line for each group.
+     * The built-in randomizers replay, and the Gaussian values are the same on every platform, so both are pinned.
      */
-    static String values(UnaryOperator<GeneratorConfig.Builder> settings) {
+    static String values(UnaryOperator<GeneratorConfig> settings) {
         List<String> out = new ArrayList<>();
         GeneratorConfig us = seeded(42L, "en-US", settings);
         EmailGenerator emails = new EmailGenerator(us);
@@ -254,21 +196,16 @@ class DefaultFlipPinsTest {
             WithRandomizers value = objects.generate();
             out.add("randomizers " + value.seedable + " " + value.plain + " " + value.text);
         }
-        if (seeded(42L, "en-US", settings).isObjectReseedBuiltInRandomizers()) {
-            out.add("built-in randomizers " + builtIns(settings));
-        }
-        if (seeded(42L, "en-US", settings).isStrictMathGaussian()) {
-            for (long seed : List.of(10L, 14L, 42L)) {
-                out.add("gaussian " + seed + " "
-                        + new NormalDistributionGenerator(seeded(seed, "en-US", settings)).generateList(4) + " "
-                        + new NormalDistributionGenerator(100.0, 15.0, seeded(seed, "en-US", settings))
-                                .generateList(2));
-            }
+        out.add("built-in randomizers " + builtIns(settings));
+        for (long seed : List.of(10L, 14L, 42L)) {
+            out.add("gaussian " + seed + " "
+                    + new NormalDistributionGenerator(seeded(seed, "en-US", settings)).generateList(4) + " "
+                    + new NormalDistributionGenerator(100.0, 15.0, seeded(seed, "en-US", settings)).generateList(2));
         }
         return String.join("\n", out) + "\n";
     }
 
-    private static List<String> builtIns(UnaryOperator<GeneratorConfig.Builder> settings) {
+    private static List<String> builtIns(UnaryOperator<GeneratorConfig> settings) {
         ObjectGenerator<WithRandomizers> objects =
                 new ObjectGenerator<>(WithRandomizers.class, seeded(42L, "en-US", settings));
         List<String> values = new ArrayList<>();
@@ -279,8 +216,8 @@ class DefaultFlipPinsTest {
         return values;
     }
 
-    /** Box-Muller over the seed's own {@link Random}, with {@link StrictMath} or with {@link Math}. */
-    private static List<Double> boxMuller(long seed, boolean strict) {
+    /** Box-Muller over the seed's own {@link Random}, with {@link StrictMath}. */
+    private static List<Double> boxMuller(long seed) {
         Random random = new Random(seed);
         List<Double> values = new ArrayList<>();
         while (values.size() < 6) {
@@ -290,9 +227,9 @@ class DefaultFlipPinsTest {
                 u1 = random.nextDouble();
             }
             double angle = 2.0 * Math.PI * u2;
-            double magnitude = strict ? StrictMath.sqrt(-2.0 * StrictMath.log(u1)) : Math.sqrt(-2.0 * Math.log(u1));
-            values.add(0.0 + magnitude * (strict ? StrictMath.cos(angle) : Math.cos(angle)) * 1.0);
-            values.add(0.0 + magnitude * (strict ? StrictMath.sin(angle) : Math.sin(angle)) * 1.0);
+            double magnitude = StrictMath.sqrt(-2.0 * StrictMath.log(u1));
+            values.add(0.0 + magnitude * StrictMath.cos(angle) * 1.0);
+            values.add(0.0 + magnitude * StrictMath.sin(angle) * 1.0);
         }
         return values;
     }

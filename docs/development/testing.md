@@ -37,7 +37,7 @@ test of the core is a plain JUnit test that loops over cases from a fixed-seed `
 | Pattern | Example | Use it when |
 | --- | --- | --- |
 | Pin test: exact values for fixed seeds | `generator/location/StreetAddressPinsTest`, `GenerationRecipeGoldenStreamTest` | You must prove seeded output did not change. See [determinism](determinism-and-compatibility.md#how-to-check-that-you-changed-nothing). |
-| Off/on pins for a setting | `SeedingDefaultsPinTest`, `DefaultFlipPinsTest` | You add a setting that changes output when on. |
+| Pins across entry points | `DefaultFlipPinsTest` | A behaviour reaches generators, the session, a schema and the object engine, and you must pin all of them. |
 | Oracle: reseeded equals freshly built | `internal/ReseedAsBuiltTest`, `generator/schema/SchemaFreshBuildOracleTest` | You add a reseed hook or touch `Schema` column reuse. |
 | Catalog sweep over every factory | `GeneratorCatalogEnvironmentTest`, `GeneratorCatalogNetworkSafetyTest` | Automatic: they reflect over `Generators`, so a new factory is swept without a change. List a factory's expected locale refusals in `GeneratorCatalogEnvironmentTest`. |
 | Scalar, text and date-time factories | `BuiltInGeneratorCatalogTest` | You add a numeric, text or date-time factory. |
