@@ -162,7 +162,7 @@ the last release of the previous major line, and the check subtracts the breaks 
 A pass names the accepted breaks:
 
 ```text
-random-data-generator-core: compatible with the 3.2.0 public API (0 additions; 1 accepted break in core/api/accepted-breaks-4.0.txt).
+random-data-generator-core: compatible with the 1.2.0 public API (0 additions; 1 accepted break in core/api/accepted-breaks-2.0.txt).
 ```
 
 To add an entry:
