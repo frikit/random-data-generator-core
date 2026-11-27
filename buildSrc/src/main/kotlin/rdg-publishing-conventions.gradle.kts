@@ -38,7 +38,6 @@ afterEvaluate {
     val componentName =
         when {
             components.names.contains("java") -> "java"
-            components.names.contains("kotlin") -> "kotlin"
             components.names.contains("javaPlatform") -> "javaPlatform"
             else -> null
         }

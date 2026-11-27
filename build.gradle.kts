@@ -2,7 +2,6 @@ plugins {
     // JVM attribute rules and Maven POM variant derivation for the root-owned API baseline classpaths
     // below; adds no tasks.
     `jvm-ecosystem`
-    alias(libs.plugins.kotlin.jvm) apply false
     alias(libs.plugins.spotless) apply false
     alias(libs.plugins.cyclonedx)
     alias(libs.plugins.nmcp.aggregation)
@@ -33,12 +32,6 @@ configure<com.diffplug.gradle.spotless.SpotlessExtension> {
                 .get(),
         )
         formatAnnotations()
-        licenseHeaderFile(file("LICENSE_HEADER"))
-    }
-    kotlin {
-        target("examples/**/src/**/*.kt")
-        targetExclude("**/build/**")
-        ktlint(libs.versions.ktlint.get())
         licenseHeaderFile(file("LICENSE_HEADER"))
     }
     kotlinGradle {
@@ -204,9 +197,6 @@ tasks.register("verifyReleaseSboms") {
 //   dependency classpath of each, limited to public and protected API in the public-API packages: the
 //   unqualified exports of the released random-data-generator-core module descriptor and the one package of each
 //   integration module. The JPMS module name must stay, and so must the export of each of those packages.
-// - Kotlin modules: the Kotlin Gradle plugin dumps the ABI of the current code, leaving out `internal`
-//   declarations that are public in bytecode, and every declaration of the baseline dump committed as
-//   <module>/api/<module>-<apiBaselineVersion>.api must still be there with compatible modifiers.
 // During a major line each check subtracts the breaks that <module>/api/accepted-breaks-N.0.txt accepts
 // (see acceptedBreaksVerdict below).
 // Before the first release apiBaselineVersion is empty: there is no released API to protect, so
@@ -215,8 +205,7 @@ val apiBaselineVersion = providers.gradleProperty("apiBaselineVersion").getOrEls
 val integrationApiPackages = emptyMap<String, String>()
 val javaApiModules = setOf("core") + integrationApiPackages.keys
 val apiBaselineModules = if (apiBaselineVersion.isEmpty()) emptySet() else javaApiModules
-val kotlinApiModules = emptySet<String>()
-check(javaApiModules + kotlinApiModules == jarModules) {
+check(javaApiModules == jarModules) {
     "The API compatibility check must cover exactly the published jar modules: $jarModules"
 }
 val apiCompatibilityAdvice =
@@ -681,249 +670,6 @@ val javaApiCompatibilityTasks =
         }
     }
 
-// A class of a Kotlin ABI dump (the binary-compatibility-validator format): header and member lines.
-data class KotlinAbiClass(
-    val header: String,
-    val members: List<String>,
-)
-
-fun kotlinAbiClasses(dump: File): Map<String, KotlinAbiClass> {
-    val classes = linkedMapOf<String, KotlinAbiClass>()
-    var header: String? = null
-    val members = mutableListOf<String>()
-    dump.readLines().forEach { line ->
-        when {
-            line.isBlank() -> {
-                Unit
-            }
-
-            line == "}" -> {
-                val classHeader = checkNotNull(header) { "Unbalanced '}' in $dump" }
-                classes[classHeader.substringBefore(" : ").substringAfterLast(' ')] =
-                    KotlinAbiClass(classHeader, members.toList())
-                header = null
-                members.clear()
-            }
-
-            line.startsWith("\t") -> {
-                members += line.trim()
-            }
-
-            line.endsWith(" {") -> {
-                header = line.removeSuffix(" {")
-            }
-
-            else -> {
-                throw GradleException("Unexpected line in $dump: $line")
-            }
-        }
-    }
-    check(header == null) { "Unterminated class in $dump" }
-    return classes
-}
-
-// Modifier changes a dependant compiled against the old declaration survives: wider visibility, a
-// removed `final` or `abstract`. A changed `static`, a narrower visibility, or an added `final`,
-// `abstract` or `synthetic` (hidden from source) breaks it; for classes every other token, such as
-// `interface` or `annotation`, must stay too.
-fun kotlinAbiModifiersCompatible(
-    old: Set<String>,
-    new: Set<String>,
-    isClass: Boolean,
-): Boolean {
-    fun visibility(modifiers: Set<String>): Int =
-        when {
-            "public" in modifiers -> 2
-            "protected" in modifiers -> 1
-            else -> 0
-        }
-    val relaxable = setOf("public", "protected", "final", "abstract")
-    return visibility(new) >= visibility(old) &&
-        ("final" !in new || "final" in old) &&
-        ("abstract" !in new || "abstract" in old) &&
-        ("static" in new) == ("static" in old) &&
-        ("synthetic" !in new || "synthetic" in old) &&
-        (!isClass || new - relaxable == old - relaxable)
-}
-
-// Splits `public final fun name (desc)ret` or `public static final field NAME Ltype;` into its
-// modifiers and its signature (`fun name (desc)ret`, `field NAME Ltype;`).
-fun kotlinAbiMember(line: String): Pair<Set<String>, String> {
-    val start =
-        listOf(" fun ", " field ")
-            .map { keyword -> line.indexOf(keyword) }
-            .filter { index -> index >= 0 }
-            .minOrNull() ?: throw GradleException("Unexpected member in Kotlin ABI dump: $line")
-    return line.substring(0, start).split(' ').toSet() to line.substring(start + 1)
-}
-
-// Declarations of the baseline dump that the current dump removes or changes incompatibly. A member
-// may move to a supertype in the current dump; a class may gain supertypes, never lose one. A type
-// that code outside the module can implement, extend, or apply (any type that is not final) must not
-// gain an abstract member: existing implementations would lack it, and so would existing usages of an
-// annotation unless the new element has a default value, which the dump does not show.
-fun kotlinAbiBreaks(
-    baseline: Map<String, KotlinAbiClass>,
-    current: Map<String, KotlinAbiClass>,
-): List<String> {
-    fun displayName(internalName: String) = internalName.replace('/', '.')
-
-    fun headerModifiers(header: String) =
-        header
-            .substringBefore(" : ")
-            .split(' ')
-            .dropLast(1)
-            .toSet()
-
-    fun supertypes(header: String): Set<String> =
-        header
-            .substringAfter(" : ", missingDelimiterValue = "")
-            .split(", ")
-            .filter(String::isNotEmpty)
-            .toSet()
-
-    fun findMember(
-        className: String,
-        signature: String,
-        visited: MutableSet<String> = mutableSetOf(),
-    ): Set<String>? {
-        val type = current[className] ?: return null
-        if (!visited.add(className)) return null
-        type.members
-            .map(::kotlinAbiMember)
-            .firstOrNull { (_, candidate) -> candidate == signature }
-            ?.let { (modifiers, _) -> return modifiers }
-        if (signature.startsWith("fun <init> ")) return null
-        return supertypes(type.header).firstNotNullOfOrNull { supertype -> findMember(supertype, signature, visited) }
-    }
-
-    return baseline.flatMap { (className, oldClass) ->
-        val newClass =
-            current[className] ?: return@flatMap listOf("${displayName(className)}: removed `${oldClass.header}`")
-        val headerBreaks =
-            if (
-                kotlinAbiModifiersCompatible(
-                    headerModifiers(oldClass.header),
-                    headerModifiers(newClass.header),
-                    true,
-                ) &&
-                supertypes(newClass.header).containsAll(supertypes(oldClass.header))
-            ) {
-                emptyList()
-            } else {
-                listOf("${displayName(className)}: `${oldClass.header}` is now `${newClass.header}`")
-            }
-        val oldSignatures = oldClass.members.map { line -> kotlinAbiMember(line).second }.toSet()
-        val newHeaderModifiers = headerModifiers(newClass.header)
-        val consequence =
-            if ("annotation" in newHeaderModifiers) {
-                "which existing usages lack unless it has a default value"
-            } else {
-                "which existing implementations lack"
-            }
-        val newAbstractMembers =
-            if ("final" in newHeaderModifiers) {
-                emptyList()
-            } else {
-                newClass.members
-                    .filter { line ->
-                        val (modifiers, signature) = kotlinAbiMember(line)
-                        "abstract" in modifiers && signature !in oldSignatures
-                    }.map { line -> "${displayName(className)}: added `$line`, $consequence" }
-            }
-        headerBreaks + newAbstractMembers +
-            oldClass.members.mapNotNull { line ->
-                val (oldModifiers, signature) = kotlinAbiMember(line)
-                val newModifiers = findMember(className, signature)
-                when {
-                    newModifiers == null -> {
-                        "${displayName(className)}: removed `$line`"
-                    }
-
-                    !kotlinAbiModifiersCompatible(oldModifiers, newModifiers, false) -> {
-                        "${displayName(className)}: `$line` is now `${newModifiers.joinToString(" ")} $signature`"
-                    }
-
-                    else -> {
-                        null
-                    }
-                }
-            }
-    }
-}
-
-subprojects {
-    if (name in kotlinApiModules) {
-        pluginManager.withPlugin("org.jetbrains.kotlin.jvm") {
-            configure<org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension> {
-                @OptIn(org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation::class)
-                abiValidation {
-                    // updateKotlinAbi writes the dump of the current code here, never over the committed
-                    // baseline under api/.
-                    referenceDumpDir.set(layout.buildDirectory.dir("api-compatibility/current"))
-                    // checkKotlinAbi requires the dump to equal its reference, which would reject additions;
-                    // the root checkApiCompatibility applies the VERSIONING.md rule to the baseline instead.
-                    checkTaskProvider.configure { enabled = false }
-                }
-            }
-        }
-    }
-}
-
-fun kotlinCurrentAbiDump(moduleName: String): File =
-    project(":$moduleName")
-        .layout.buildDirectory
-        .file("api-compatibility/current/$moduleName.api")
-        .get()
-        .asFile
-
-fun kotlinBaselineAbiDump(moduleName: String): File =
-    project(":$moduleName")
-        .layout.projectDirectory
-        .file("api/$moduleName-$apiBaselineVersion.api")
-        .asFile
-
-val kotlinApiCompatibilityTasks =
-    kotlinApiModules.map { moduleName ->
-        val currentDump = kotlinCurrentAbiDump(moduleName)
-        val baselineDump = kotlinBaselineAbiDump(moduleName)
-
-        tasks.register("check${apiTaskSuffix(moduleName)}ApiCompatibility") {
-            group = "verification"
-            description =
-                "Checks that random-data-generator-$moduleName keeps the public API of $apiBaselineVersion (Kotlin ABI dump)."
-            dependsOn(":$moduleName:updateKotlinAbi")
-            inputs.files(baselineDump, currentDump, acceptedBreaksFiles(moduleName))
-            // No declared outputs: the check always runs, so every run prints its result line.
-
-            doLast {
-                if (!baselineDump.isFile) {
-                    throw GradleException(
-                        "No $apiBaselineVersion API baseline for random-data-generator-$moduleName at " +
-                            "${baselineDump.relativeTo(rootDir)}: run ./gradlew updateKotlinApiBaseline on the " +
-                            "$apiBaselineVersion release commit (docs/release-runbook.md).",
-                    )
-                }
-                val baseline = kotlinAbiClasses(baselineDump)
-                val current = kotlinAbiClasses(currentDump)
-                val problems = kotlinAbiBreaks(baseline, current).distinct()
-                val (failure, accepted) = acceptedBreaksVerdict(moduleName, problems)
-                if (failure != null) {
-                    throw GradleException(
-                        "$failure\nBaseline: ${baselineDump.relativeTo(rootDir)}; current: $currentDump",
-                    )
-                }
-                val additions =
-                    current.entries.sumOf { (className, type) ->
-                        val old = baseline[className] ?: return@sumOf 1
-                        val oldSignatures = old.members.map { line -> kotlinAbiMember(line).second }.toSet()
-                        type.members.count { line -> kotlinAbiMember(line).second !in oldSignatures }
-                    }
-                logger.lifecycle(apiCompatibleLine(moduleName, additions, accepted))
-            }
-        }
-    }
-
 tasks.register("checkApiCompatibility") {
     group = "verification"
     if (apiBaselineVersion.isEmpty()) {
@@ -933,7 +679,7 @@ tasks.register("checkApiCompatibility") {
         }
     } else {
         description = "Checks that every published jar keeps the public API of $apiBaselineVersion."
-        dependsOn(javaApiCompatibilityTasks, kotlinApiCompatibilityTasks)
+        dependsOn(javaApiCompatibilityTasks)
     }
 }
 
@@ -972,44 +718,6 @@ subprojects {
 
 tasks.named("check") {
     dependsOn("checkApiCompatibility")
-}
-
-tasks.register("updateKotlinApiBaseline") {
-    group = "verification"
-    description =
-        "Records the current Kotlin ABI as the $apiBaselineVersion baseline: on the release commit after a release, " +
-        "or for a compatible change the check rejects (docs/release-runbook.md)."
-    kotlinApiModules.forEach { moduleName -> dependsOn(":$moduleName:updateKotlinAbi") }
-    val dumps =
-        kotlinApiModules.map { moduleName ->
-            kotlinCurrentAbiDump(moduleName) to
-                kotlinBaselineAbiDump(moduleName)
-        }
-    val kotlinAcceptedBreaksFiles = kotlinApiModules.flatMap(::acceptedBreaksFiles)
-
-    doLast {
-        // The current dump lacks each accepted break, so recording it would drop the released declarations
-        // from the baseline and leave the accepted entries stale.
-        val listing = kotlinAcceptedBreaksFiles.filter { file -> acceptedBreaksEntries(file).isNotEmpty() }
-        if (listing.isNotEmpty()) {
-            throw GradleException(
-                "updateKotlinApiBaseline would record the accepted breaks in " +
-                    listing.joinToString(", ") { file -> file.relativeTo(rootDir).path } +
-                    " as the $apiBaselineVersion baseline. During a major line, edit only the lines of a compatible " +
-                    "change into the baseline dump by hand; at the major release's close-out, delete the " +
-                    "accepted-breaks files first (docs/release-runbook.md, Accepted breaks).",
-            )
-        }
-        dumps.forEach { (currentDump, baselineDump) ->
-            baselineDump.parentFile.mkdirs()
-            baselineDump.parentFile
-                .listFiles { file -> file.name.endsWith(".api") }
-                .orEmpty()
-                .forEach { previous -> previous.delete() }
-            currentDump.copyTo(baselineDump)
-            logger.lifecycle("Recorded ${baselineDump.relativeTo(rootDir)}")
-        }
-    }
 }
 
 // Integration modules generate JaCoCo reports (build/reports/jacoco/test) and enforce the line and
@@ -1088,7 +796,7 @@ subprojects {
     }
 
     afterEvaluate {
-        // Palantir Java Format for Java, ktlint for Kotlin sources and Gradle scripts; `.editorconfig`
+        // Palantir Java Format for Java, ktlint for Gradle scripts; `.editorconfig`
         // holds the shared indentation and line-length settings. Formatting runs before the license
         // header step so the header is applied to the final layout.
         configure<com.diffplug.gradle.spotless.SpotlessExtension> {
@@ -1101,12 +809,6 @@ subprojects {
                 // Keeps type-use annotations such as @Nullable on the line of the type they annotate.
                 formatAnnotations()
                 licenseHeaderFile(rootProject.file("LICENSE_HEADER"))
-            }
-            if (plugins.hasPlugin("org.jetbrains.kotlin.jvm")) {
-                kotlin {
-                    ktlint(libs.versions.ktlint.get())
-                    licenseHeaderFile(rootProject.file("LICENSE_HEADER"))
-                }
             }
             kotlinGradle {
                 ktlint(libs.versions.ktlint.get())

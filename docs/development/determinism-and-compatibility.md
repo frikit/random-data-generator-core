@@ -15,9 +15,8 @@ alter it. The user-facing policy is [VERSIONING.md](../../VERSIONING.md); this g
 - **Recipes.** A release replays a `rdg-recipe/v2` recipe that an earlier release of its major line
   wrote. `GenerationRecipe` is the format; `GeneratorConfig.getGenerationRecipe()` writes it.
 - **String seeds.** `fnv1a64-v1`, the derivation of a seed from text, never changes.
-- **Public API.** The public types and members of the packages `random-data-generator-core` exports, the packages of
-  the Java integration modules, the public declarations of the Kotlin modules, and the `krandom.*`
-  Spring properties. A minor or patch release only adds; removals and incompatible changes wait for a
+- **Public API.** The public types and members of the packages `random-data-generator-core` exports. The
+  integration modules of the `-java`, `-kotlin` and `-scala` repositories define their own. A minor or patch release only adds; removals and incompatible changes wait for a
   major release, after a deprecation in a minor release that names the replacement.
 
 Anything in `io.github.frikit.rdg.internal`, or otherwise not exported, can change freely.
@@ -93,8 +92,7 @@ these; do not try to pin them in tests.
 `./gradlew checkApiCompatibility` (part of `check` and of the gate) compares the current build with the
 release named by `apiBaselineVersion` in `gradle.properties`:
 
-- the Java modules' jars, with japicmp, against the baseline jars from Maven Central;
-- the Kotlin modules' ABI dumps against the committed `<module>/api/<module>-<baseline>.api` files.
+- the core jar, with japicmp, against the baseline jar from Maven Central.
 
 Additions pass; a removed or incompatibly changed declaration fails, one line per declaration. The
 report is under `build/reports/api-compatibility/<module>/`. The check does not see everything:
