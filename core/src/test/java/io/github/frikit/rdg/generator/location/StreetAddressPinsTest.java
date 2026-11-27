@@ -25,15 +25,14 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Seeded street addresses, address records, the address schema columns and the session's place methods of the
- * Dutch and US locales, and the recipe text of a seeded configuration. The German locales' street-first values
- * are pinned in {@code DefaultFlipPinsTest} and {@code GermanStreetLayoutTest}.
+ * Dutch, US and German locales, and the recipe text of a seeded configuration.
  */
 @DisplayName("seeded addresses and recipes keep their values")
 class StreetAddressPinsTest {
 
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-07-10T12:00:00Z"), ZoneOffset.UTC);
 
-    static final List<String> LOCALES = List.of("nl-NL", "en-US");
+    static final List<String> LOCALES = List.of("nl-NL", "en-US", "de", "de-DE", "de-AT", "de-CH");
 
     static final String PINNED_VALUES = """
                 nl-NL street 7389 Molenstraat pad | 9180 Dorpsstraat Plantsoen | 1014 Beatrixstraat erf, Reusel, GR 8649 ST, Nederland
@@ -44,6 +43,22 @@ class StreetAddressPinsTest {
                 en-US info 8680 Lakeview Holw | 8680 Lakeview Holw, Fontana, CA 92335, United States
                 en-US schema [{street=3876 Elm Knl, info=AddressInfo[address=6924 Lincoln Ct, Jersey City, NJ 07310, United States, street=6924 Lincoln Ct, streetNumber=6924, streetName=Lincoln, streetSuffix=Ct, streetPrefix=, streetUnit=, city=Jersey City, state=New Jersey, stateAbbr=NJ, zip=07310, country=United States, countryAbbr=US]}, {street=1951 Cherry Mnr, info=AddressInfo[address=770 Liberty Lndg, Burlington, VT 05401, United States, street=770 Liberty Lndg, streetNumber=770, streetName=Liberty, streetSuffix=Lndg, streetPrefix=, streetUnit=, city=Burlington, state=Vermont, stateAbbr=VT, zip=05401, country=United States, countryAbbr=US]}]
                 en-US session 6848 Lincoln Park | Elk Grove | 57692
+                de street Schlossanger 7389 | Rosenstrasse 9180 | Kantgart. 1014, Konstanz, Baden-Württemberg 78462, Deutschland
+                de info Tulpenpfad 8680 | Tulpenpfad 8680, Mönchengladbach, Nordrhein-Westfalen 41061, Deutschland
+                de schema [{street=Tannenhöhe 3876, info=AddressInfo[address=Lindensteig 6924, Würzburg, Bayern 97070, Deutschland, street=Lindensteig 6924, streetNumber=6924, streetName=Linden, streetSuffix=Steig, streetPrefix=, streetUnit=, city=Würzburg, state=Bayern, stateAbbr=, zip=97070, country=Deutschland, countryAbbr=DE]}, {street=Parkberg 1951, info=AddressInfo[address=Lindenufer 770, Oberhausen, Nordrhein-Westfalen 46045, Deutschland, street=Lindenufer 770, streetNumber=770, streetName=Linden, streetSuffix=Ufer, streetPrefix=, streetUnit=, city=Oberhausen, state=Nordrhein-Westfalen, stateAbbr=, zip=46045, country=Deutschland, countryAbbr=DE]}]
+                de session Schilleranger 6848 | Worms | 85201
+                de-DE street Schlossanger 7389 | Rosenstrasse 9180 | Kantgart. 1014, Konstanz, Baden-Württemberg 78462, Deutschland
+                de-DE info Tulpenpfad 8680 | Tulpenpfad 8680, Mönchengladbach, Nordrhein-Westfalen 41061, Deutschland
+                de-DE schema [{street=Tannenhöhe 3876, info=AddressInfo[address=Lindensteig 6924, Würzburg, Bayern 97070, Deutschland, street=Lindensteig 6924, streetNumber=6924, streetName=Linden, streetSuffix=Steig, streetPrefix=, streetUnit=, city=Würzburg, state=Bayern, stateAbbr=, zip=97070, country=Deutschland, countryAbbr=DE]}, {street=Parkberg 1951, info=AddressInfo[address=Lindenufer 770, Oberhausen, Nordrhein-Westfalen 46045, Deutschland, street=Lindenufer 770, streetNumber=770, streetName=Linden, streetSuffix=Ufer, streetPrefix=, streetUnit=, city=Oberhausen, state=Nordrhein-Westfalen, stateAbbr=, zip=46045, country=Deutschland, countryAbbr=DE]}]
+                de-DE session Schilleranger 6848 | Worms | 85201
+                de-AT street Schlossanger 7389 | Rosenstrasse 9180 | Kantgart. 1014, Rostock, Baden-Württemberg 9342, Österreich
+                de-AT info Tulpenpfad 8680 | Tulpenpfad 8680, Oldenburg, Rheinland-Pfalz 9342, Österreich
+                de-AT schema [{street=Tannenhöhe 3876, info=AddressInfo[address=Lindensteig 6924, Stralsund, Saarland 9719, Österreich, street=Lindensteig 6924, streetNumber=6924, streetName=Linden, streetSuffix=Steig, streetPrefix=, streetUnit=, city=Stralsund, state=Saarland, stateAbbr=, zip=9719, country=Österreich, countryAbbr=AT]}, {street=Parkberg 1951, info=AddressInfo[address=Lindenufer 770, Regensburg, Berlin 4714, Österreich, street=Lindenufer 770, streetNumber=770, streetName=Linden, streetSuffix=Ufer, streetPrefix=, streetUnit=, city=Regensburg, state=Berlin, stateAbbr=, zip=4714, country=Österreich, countryAbbr=AT]}]
+                de-AT session Schilleranger 6848 | Worms | 3358
+                de-CH street Schlossanger 7389 | Rosenstrasse 9180 | Kantgart. 1014, Rostock, Baden-Württemberg 9342, Schweiz
+                de-CH info Tulpenpfad 8680 | Tulpenpfad 8680, Oldenburg, Rheinland-Pfalz 9342, Schweiz
+                de-CH schema [{street=Tannenhöhe 3876, info=AddressInfo[address=Lindensteig 6924, Stralsund, Saarland 9719, Schweiz, street=Lindensteig 6924, streetNumber=6924, streetName=Linden, streetSuffix=Steig, streetPrefix=, streetUnit=, city=Stralsund, state=Saarland, stateAbbr=, zip=9719, country=Schweiz, countryAbbr=CH]}, {street=Parkberg 1951, info=AddressInfo[address=Lindenufer 770, Regensburg, Berlin 4714, Schweiz, street=Lindenufer 770, streetNumber=770, streetName=Linden, streetSuffix=Ufer, streetPrefix=, streetUnit=, city=Regensburg, state=Berlin, stateAbbr=, zip=4714, country=Schweiz, countryAbbr=CH]}]
+                de-CH session Schilleranger 6848 | Worms | 3358
                 """;
 
     @Test

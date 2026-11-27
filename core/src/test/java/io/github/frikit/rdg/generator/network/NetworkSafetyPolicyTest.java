@@ -104,6 +104,49 @@ class NetworkSafetyPolicyTest {
                             "https://www.globalnetworks.app",
                             "https://www.advancedassociates.us")));
 
+    /**
+     * Output of the generators with child generators under {@link NetworkSafetyPolicy#REALISTIC_UNCLASSIFIED}
+     * for seed 42 and {@link Locale#US}, where each child draws from its own named stream. Recorded from
+     * {@code main} {@code 3638668}, whose default configuration gives these values. One fresh generator per
+     * entry, four draws each.
+     */
+    private static final Map<String, List<String>> REALISTIC_COMPOSITE_GOLDEN = Map.ofEntries(
+            Map.entry("hostname", List.of("m.wave.us", "www.quick.com", "m.fastsolutions.site", "www.cloudflow.us")),
+            Map.entry(
+                    "url",
+                    List.of("http://wave.us", "ws://quick.com", "ws://fastsolutions.site", "wss://cloudflow.us")),
+            Map.entry(
+                    "url path query",
+                    List.of(
+                            "http://wave.us/files?id=525&id=918&offset=93",
+                            "ftp://quick.com/list/contact/list?type=170&status=209&page=863",
+                            "https://fastsolutions.site/admin?format=458",
+                            "ftp://cloudflow.us/docs?order=85")),
+            Map.entry(
+                    "uri",
+                    List.of(
+                            "wss://easylabs.com/posts?order=86",
+                            "http://tech.us/services/list/items",
+                            "https://info.tech/v1/contact?sort=819&status=559&limit=631",
+                            "ftp://worldtech.us/data")),
+            Map.entry(
+                    "avatar",
+                    List.of(
+                            "https://ui-avatars.com/api/?name=sandramartin486&size=256",
+                            "https://api.dicebear.com/8.x/identicon/svg?seed=kylie.jackson",
+                            "https://api.dicebear.com/8.x/identicon/svg?seed=kayleemorris601",
+                            "https://ui-avatars.com/api/?name=hperez22&size=256")),
+            Map.entry(
+                    "social link",
+                    List.of(
+                            "https://github.com/evahall620",
+                            "https://linkedin.com/vflores153",
+                            "https://x.com/alexandra_cook",
+                            "https://github.com/megan-torres")),
+            Map.entry(
+                    "profile website",
+                    List.of("wss://easylabs.com", "wss://tech.us", "https://info.tech", "ws://worldtech.us")));
+
     private static GeneratorConfig reserved(long seed) {
         return GeneratorConfig.builder()
                 .seed(seed)
@@ -160,6 +203,31 @@ class NetworkSafetyPolicyTest {
                         draw.get().toString(),
                         draw.get().toString())));
         assertEquals(new java.util.TreeMap<>(REALISTIC_GOLDEN), actual);
+    }
+
+    @Test
+    @DisplayName("the realistic policy keeps the recorded output of generators with child streams")
+    void theRealisticPolicyKeepsTheRecordedCompositeOutput() {
+        SocialProfileGenerator social = new SocialProfileGenerator(realistic(Locale.US));
+        ProfileGenerator profiles = new ProfileGenerator(realistic(Locale.US));
+        Map<String, Supplier<?>> draws = Map.ofEntries(
+                Map.entry("hostname", new HostnameGenerator(realistic(Locale.US))::generate),
+                Map.entry("url", new URLGenerator(realistic(Locale.US))::generate),
+                Map.entry("url path query", new URLGenerator(realistic(Locale.US))::generateWithPathAndQuery),
+                Map.entry("uri", new UriGenerator(realistic(Locale.US))::generate),
+                Map.entry("avatar", new AvatarUrlGenerator(realistic(Locale.US))::generate),
+                Map.entry("social link", () -> social.generate().profileUrl()),
+                Map.entry("profile website", () -> profiles.generate().website()));
+
+        Map<String, List<String>> actual = new java.util.TreeMap<>();
+        draws.forEach((name, draw) -> actual.put(
+                name,
+                List.of(
+                        draw.get().toString(),
+                        draw.get().toString(),
+                        draw.get().toString(),
+                        draw.get().toString())));
+        assertEquals(new java.util.TreeMap<>(REALISTIC_COMPOSITE_GOLDEN), actual);
     }
 
     @Test

@@ -63,10 +63,8 @@ and collection bounds, object settings, and safety and construction policies, so
 `krandom.*` generation property above is rejected next to it instead of silently overriding part of
 the recorded configuration. The error names each conflicting property; blank values count as unset.
 
-From 4.0.0 `krandom.recipe` must be a `rdg-recipe/v2` recipe. A `rdg-recipe/v1` recipe, which a 3.x
-starter logs, fails at context startup with `Invalid krandom.recipe: Unsupported recipe version: v1. ...` and
-names the release that wrote it, such as `This recipe records library-version 3.2.0: replay it with random-data-generator
-3.2.0.`
+`krandom.recipe` must be a `rdg-recipe/v2` recipe. A `krandom-recipe` recipe, which kRandom wrote, fails at
+context startup: it replays only with the kRandom release that its `library-version` line names.
 
 Invalid combinations fail at context startup with an actionable message: a recipe combined with any
 property it defines, a `krandom.clock-zone` without `krandom.clock`, or malformed recipe/clock

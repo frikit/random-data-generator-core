@@ -20,6 +20,7 @@ import io.github.frikit.rdg.generator.file.FilePathGenerator;
 import io.github.frikit.rdg.generator.finance.BankInfoGenerator;
 import io.github.frikit.rdg.generator.finance.BankingSafetyPolicy;
 import io.github.frikit.rdg.generator.finance.CreditCardInfoGenerator;
+import io.github.frikit.rdg.generator.finance.CurrencyGenerator;
 import io.github.frikit.rdg.generator.finance.InvoiceInfoGenerator;
 import io.github.frikit.rdg.generator.finance.PaymentInfo;
 import io.github.frikit.rdg.generator.finance.PaymentInfoGenerator;
@@ -75,9 +76,8 @@ class ChildStreamsTest {
 
     /**
      * Fingerprints of the first three values of every composite generator, whose children draw from
-     * named child streams. The convenience methods that keep and advance a child stream
-     * ({@code generateCompanyEmail}, the middle-name methods and {@code generatePriceTag}) are pinned in
-     * {@code DefaultFlipPinsTest} and {@code ConvenienceStreamsAndGaussianTest}.
+     * named child streams, including the convenience methods that keep and advance a child stream
+     * ({@code generateCompanyEmail}, the middle-name methods and {@code generatePriceTag}).
      */
     private static final Map<String, String> FINGERPRINTS = Map.ofEntries(
             Map.entry("sentence", "ef455c60ad7bd1c55e42c413"),
@@ -110,7 +110,11 @@ class ChildStreamsTest {
             Map.entry("simpleProfile", "bbe06d5e09be6535ea4af6ed"),
             Map.entry("bankInfo", "79da71fb019e2d16c55c379a"),
             Map.entry("paymentInfo", "03aeb1462e48eb61df9ea5fe"),
-            Map.entry("creditCardInfo", "c9a336712de7a0bbbabae13a"));
+            Map.entry("creditCardInfo", "c9a336712de7a0bbbabae13a"),
+            Map.entry("fullNameWithMiddle", "dc81d22e69c6347ef888b1a8"),
+            Map.entry("fullNameWithInitial", "f30b2286d04ef39834028be2"),
+            Map.entry("emailCompany", "6ceac5f8372f721ffa9605ba"),
+            Map.entry("priceTag", "2616c2999ecdf06951a2d7d5"));
 
     @Test
     @DisplayName("composites keep their seeded output")
@@ -291,6 +295,10 @@ class ChildStreamsTest {
         composites.put("bankInfo", c -> new BankInfoGenerator(c)::generate);
         composites.put("paymentInfo", c -> new PaymentInfoGenerator(c)::generate);
         composites.put("creditCardInfo", c -> new CreditCardInfoGenerator(c)::generate);
+        composites.put("fullNameWithMiddle", c -> new FullNameGenerator(c)::generateWithMiddleName);
+        composites.put("fullNameWithInitial", c -> new FullNameGenerator(c)::generateWithMiddleInitial);
+        composites.put("emailCompany", c -> new EmailGenerator(c)::generateCompanyEmail);
+        composites.put("priceTag", c -> new CurrencyGenerator(c)::generatePriceTag);
 
         Map<String, String> result = new LinkedHashMap<>();
         composites.forEach((name, factory) -> {

@@ -103,7 +103,7 @@ public final class CurrencyGenerator implements Generator<String> {
     private GeneratorConfig config;
 
     private final Random random;
-    /** The money child that the advancing opt-in keeps for price tags, made when first used. */
+    /** The money child kept for price tags, made when first used. */
     private @org.jspecify.annotations.Nullable MoneyGenerator priceTags;
 
     /**

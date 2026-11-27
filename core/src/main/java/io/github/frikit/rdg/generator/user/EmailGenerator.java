@@ -127,7 +127,7 @@ public final class EmailGenerator implements Generator<String> {
     private final FirstNameGenerator firstNameGenerator;
     private final LastNameGenerator lastNameGenerator;
     private final Set<String> issuedEmails;
-    /** The company-email child that the advancing opt-in keeps, made when first used. */
+    /** The company-email child kept for company emails, made when first used. */
     private @org.jspecify.annotations.Nullable CompanyEmailGenerator companyEmails;
 
     static {
