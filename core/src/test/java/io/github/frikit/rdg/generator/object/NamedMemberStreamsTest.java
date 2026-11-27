@@ -197,5 +197,25 @@ class NamedMemberStreamsTest {
         assertEquals(first.name, second.name);
         assertEquals(first.age, second.age);
         assertEquals(first.values, second.values);
+
+        // Excluding a member leaves out its draws, so the members after it read other values from the
+        // shared sequence; with a seed each member keeps its own stream and they would not move.
+        ObjectGenerator<Fixture> plain = new ObjectGenerator<>(
+                Fixture.class, config.toBuilder().random(new Random(42)).build());
+        ObjectGenerator<Fixture> excluded = new ObjectGenerator<>(
+                Fixture.class,
+                config.toBuilder()
+                        .random(new Random(42))
+                        .objectExcludeField("name")
+                        .build());
+        List<String> plainRest = new java.util.ArrayList<>();
+        List<String> excludedRest = new java.util.ArrayList<>();
+        for (int i = 0; i < 5; i++) {
+            Fixture p = plain.generate();
+            Fixture e = excluded.generate();
+            plainRest.add(p.age + " " + p.values);
+            excludedRest.add(e.age + " " + e.values);
+        }
+        assertNotEquals(plainRest, excludedRest);
     }
 }

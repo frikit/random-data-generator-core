@@ -20,7 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   safety extension is `x-rdg-safety`, and the system property that supplies a development build's library version
   is `rdg.version`. kRandom data packs and schema exports use the old names and need the new ones.
 - A seed gives generators and `RandomDataGenerator` methods the same values as in kRandom 4.1.0: the seed
-  derivation and stream keys are unchanged. Generated objects do not keep their kRandom 4.1.0 values: object
+  derivation and stream keys are unchanged. Generated objects can take other values than in kRandom 4.1.0: object
   generation derives every member's stream and every semantic provider's seed by name (see `ObjectFieldStreamPolicy`
   under Removed), and a member's stream follows its owner's class name, which is in `io.github.frikit.rdg` for the
   library's own records (`AddressInfo`, `PersonInfo`, `PostalLocality`, `CountryCodes` and the other `*Info`
@@ -65,7 +65,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   draws its members from one shared sequence. Since the derivation changes, a recipe is now `rdg-recipe/v3`; a `v2`
   recipe is rejected as unsupported, and one that carries `setting.object.field-stream-policy` is rejected at
   replay with `Unsupported recipe setting`. A seeded configuration with custom rules, exclusions or modules now
-  derives a stream for each member, which is slower than one shared sequence: the last measurement, on kRandom
-  2.3.0, gave about a third of the throughput for such a fixture.
+  derives a stream for each member, which is slower than one shared sequence; the last measurement is the
+  [2.3.0 benchmark record](docs/benchmarks/2.3.0/README.md). The generation report names such a member's seed
+  source `DERIVED_STREAM` where it said `EXPLICIT_SEED`.
 
 [Unreleased]: https://github.com/frikit/random-data-generator-core/commits/main

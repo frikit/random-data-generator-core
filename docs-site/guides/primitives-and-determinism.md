@@ -97,7 +97,7 @@ field override, so the faker generates without a recipe, but the other seeded me
 configuration's recipe. See
 [Root rules that keep the recipe]({{ '/guides/object-generation/' | relative_url }}#root-rules-that-keep-the-recipe-32).
 
-Named member streams can cost more for customized fixtures because each member receives its own
+A seeded object costs more to generate than an unseeded one, because each member receives its own
 resolver stream. Benchmark your own fixture before bulk-generation adoption.
 
 ### Composite child streams

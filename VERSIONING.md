@@ -48,7 +48,7 @@ the seed.
 
 The core starts from kRandom 4.1.0. A seed gives generators and `RandomDataGenerator` methods the same values as
 there, but not generated objects: object generation derives every member's stream and every semantic provider's
-seed by name, so seeded objects take other values than in kRandom 4.1.0. The [changelog](CHANGELOG.md) lists the
+seed by name, so seeded objects can take other values than in kRandom 4.1.0. The [changelog](CHANGELOG.md) lists the
 change.
 
 A seed fixes random-data-generator's own draws, not the Java runtime under them:
