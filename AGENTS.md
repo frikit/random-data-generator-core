@@ -25,7 +25,8 @@ Most rules below exist to protect those two promises.
    edit. It rewrites formatting before it checks, so commit what it leaves.
 4. **Never weaken a gate to pass it.** Reach 100% core coverage with real tests, never by excluding
    code. Never lower a coverage floor, a PIT threshold or a test's pinned values to make a build pass.
-5. **Never use jqwik.** Property-based tests use Kotest, in the Kotlin modules.
+5. **Never use jqwik.** A property test of the core is a plain JUnit test over cases from a fixed-seed
+   `java.util.Random` (see `RegexGeneratorPropertyTest`); Kotest property tests live in the Kotlin repository.
 6. **Keep the Java modules on Java 17.** Main and test code compile with `--release 17`: no
    `List.getFirst`/`getLast`/`reversed`, `Math.clamp`, `Locale.of`, pattern-matching `switch` or other
    Java 18+ API. Tests that need Java 21 go in `core/src/java21Test/java`.

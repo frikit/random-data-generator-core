@@ -14,8 +14,9 @@ build files are the source of truth for their values.
 | `benchmarks/` | JMH | `scripts/run_benchmarks.sh` | Performance; CI skips its tests. |
 | `examples/` | each project's own | `scripts/verify_examples_local.sh` | Standalone Java consumer builds (Gradle, Maven, JPMS) against the local snapshot. |
 
-Java tests use JUnit Jupiter's own `Assertions`; there is no AssertJ. **jqwik is forbidden**: property
-tests are written with Kotest in the Kotlin modules. Test classes end in `Test`, carry a class-level
+Java tests use JUnit Jupiter's own `Assertions`; there is no AssertJ. **jqwik is forbidden**: a property
+test of the core is a plain JUnit test that loops over cases from a fixed-seed `java.util.Random`, as
+`RegexGeneratorPropertyTest` does; Kotest property tests live in the Kotlin repository. Test classes end in `Test`, carry a class-level
 `@DisplayName` in sentence form, and pin and oracle tests state their contract in Javadoc.
 
 ## Coverage and mutation testing
