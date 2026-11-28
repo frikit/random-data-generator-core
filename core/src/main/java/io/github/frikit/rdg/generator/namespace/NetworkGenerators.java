@@ -49,8 +49,8 @@ public final class NetworkGenerators {
         return new HostnameGenerator(config);
     }
 
-    public URLGenerator url() {
-        return new URLGenerator(config);
+    public UrlGenerator url() {
+        return new UrlGenerator(config);
     }
 
     public UriGenerator uri() {

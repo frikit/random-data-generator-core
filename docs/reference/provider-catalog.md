@@ -37,10 +37,10 @@ A classified schema reference exports the same claims through its `x-rdg-safety`
 | `address.country` | `CountryGenerator` | `country` | `country` | `unclassified` | `address.country` (aliases: `country`) |
 | `address.phone_number` | `PhoneNumberGenerator` | `phone_number` | `phone` | format: `GUARANTEED`; checksum: `NOT_APPLICABLE`; semantics: `CONFIGURATION_DEPENDENT`; test safety: `CONFIGURATION_DEPENDENT` | `address.phone_number` (aliases: `phone_number`) (safety: format: `GUARANTEED`; checksum: `NOT_APPLICABLE`; semantics: `CONFIGURATION_DEPENDENT`; test safety: `CONFIGURATION_DEPENDENT`) |
 | `address` | `StreetAddressGenerator` |  |  | `unclassified` |  |
-| `internet.url` | `URLGenerator` | `network`, `url` | `url` | format: `GUARANTEED`; checksum: `NOT_APPLICABLE`; semantics: `CONFIGURATION_DEPENDENT`; test safety: `CONFIGURATION_DEPENDENT` | `internet.url` (aliases: `network`, `url`) (safety: format: `GUARANTEED`; checksum: `NOT_APPLICABLE`; semantics: `CONFIGURATION_DEPENDENT`; test safety: `CONFIGURATION_DEPENDENT`) |
+| `internet.url` | `UrlGenerator` | `network`, `url` | `url` | format: `GUARANTEED`; checksum: `NOT_APPLICABLE`; semantics: `CONFIGURATION_DEPENDENT`; test safety: `CONFIGURATION_DEPENDENT` | `internet.url` (aliases: `network`, `url`) (safety: format: `GUARANTEED`; checksum: `NOT_APPLICABLE`; semantics: `CONFIGURATION_DEPENDENT`; test safety: `CONFIGURATION_DEPENDENT`) |
 | `internet.domain` | `DomainGenerator` | `domain` | `domain` | format: `GUARANTEED`; checksum: `NOT_APPLICABLE`; semantics: `CONFIGURATION_DEPENDENT`; test safety: `CONFIGURATION_DEPENDENT` | `internet.domain` (aliases: `domain`) (safety: format: `GUARANTEED`; checksum: `NOT_APPLICABLE`; semantics: `CONFIGURATION_DEPENDENT`; test safety: `CONFIGURATION_DEPENDENT`) |
 | `internet.hostname` | `HostnameGenerator` | `hostname` |  | format: `GUARANTEED`; checksum: `NOT_APPLICABLE`; semantics: `CONFIGURATION_DEPENDENT`; test safety: `CONFIGURATION_DEPENDENT` | `internet.hostname` (aliases: `hostname`) (safety: format: `GUARANTEED`; checksum: `NOT_APPLICABLE`; semantics: `CONFIGURATION_DEPENDENT`; test safety: `CONFIGURATION_DEPENDENT`) |
-| `internet` | `URLGenerator` |  |  | format: `GUARANTEED`; checksum: `NOT_APPLICABLE`; semantics: `CONFIGURATION_DEPENDENT`; test safety: `CONFIGURATION_DEPENDENT` | `internet` (safety: format: `GUARANTEED`; checksum: `NOT_APPLICABLE`; semantics: `CONFIGURATION_DEPENDENT`; test safety: `CONFIGURATION_DEPENDENT`) |
+| `internet` | `UrlGenerator` |  |  | format: `GUARANTEED`; checksum: `NOT_APPLICABLE`; semantics: `CONFIGURATION_DEPENDENT`; test safety: `CONFIGURATION_DEPENDENT` | `internet` (safety: format: `GUARANTEED`; checksum: `NOT_APPLICABLE`; semantics: `CONFIGURATION_DEPENDENT`; test safety: `CONFIGURATION_DEPENDENT`) |
 | `commerce.product_info` | `ProductInfoGenerator` | `product_info` |  | `unclassified` | `commerce.product_info` (aliases: `product_info`) |
 | `commerce.order_info` | `OrderInfoGenerator` | `order_info` |  | `unclassified` | `commerce.order_info` (aliases: `order_info`) |
 | `commerce.shipment_info` | `ShipmentInfoGenerator` | `shipment_info` |  | `unclassified` | `commerce.shipment_info` (aliases: `shipment_info`) |
@@ -59,8 +59,8 @@ A classified schema reference exports the same claims through its `x-rdg-safety`
 | `text.paragraph` | `ParagraphGenerator` | `paragraph` |  | `unclassified` | `text.paragraph` (aliases: `paragraph`) |
 | `text.format` | `TextFormatProvider` | `format` |  | `unclassified` | `text.format` (aliases: `format`) |
 | `text` | `WordGenerator` |  |  | `unclassified` | `text` |
-| `code.uuid` | `UUIDGenerator` | `identifier`, `uuid` | `uuid` | `unclassified` | `code.uuid4` (aliases: `code.uuid`, `identifier`, `uuid`) |
-| `code` | `UUIDGenerator` |  |  | `unclassified` |  |
+| `code.uuid` | `UuidGenerator` | `identifier`, `uuid` | `uuid` | `unclassified` | `code.uuid4` (aliases: `code.uuid`, `identifier`, `uuid`) |
+| `code` | `UuidGenerator` |  |  | `unclassified` |  |
 
 ## Schema-only providers
 

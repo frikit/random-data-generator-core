@@ -489,7 +489,7 @@ public final class RegexGenerator implements Generator<String> {
 
     /**
      * A node of a parsed pattern. Code that handles each kind tests for them in the order of this
-     * {@code permits} clause and treats a node that is none of the first five as a {@link QuantifierNode}.
+     * {@code permits} clause and treats a node that is none of the first five as a {@code QuantifierNode}.
      */
     private sealed interface Node
             permits LiteralNode, CharClassNode, AssertionNode, SequenceNode, AlternationNode, QuantifierNode {}

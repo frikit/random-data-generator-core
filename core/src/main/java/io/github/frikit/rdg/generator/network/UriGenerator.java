@@ -17,7 +17,7 @@ import java.util.Random;
 public final class UriGenerator implements Generator<String> {
 
     private final Random random;
-    private final URLGenerator urlGenerator;
+    private final UrlGenerator urlGenerator;
 
     public UriGenerator() {
         this(GeneratorConfig.defaults());
@@ -30,7 +30,7 @@ public final class UriGenerator implements Generator<String> {
     public UriGenerator(GeneratorConfig config) {
         GeneratorConfig effective = Objects.requireNonNull(config, "config must not be null");
         this.random = effective.createRandom();
-        this.urlGenerator = new URLGenerator(effective.forChildStream("uRL"));
+        this.urlGenerator = new UrlGenerator(effective.forChildStream("uRL"));
     }
 
     @Override

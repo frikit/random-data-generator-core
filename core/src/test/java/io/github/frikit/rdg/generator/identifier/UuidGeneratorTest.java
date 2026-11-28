@@ -20,17 +20,17 @@ import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
-class UUIDGeneratorTest {
+class UuidGeneratorTest {
 
     @Test
     void testDefaultConstructor() {
-        UUIDGenerator gen = new UUIDGenerator();
+        UuidGenerator gen = new UuidGenerator();
         assertNotNull(gen);
     }
 
     @Test
     void testGenerateV4() {
-        UUIDGenerator gen = new UUIDGenerator();
+        UuidGenerator gen = new UuidGenerator();
         UUID uuid = gen.generateV4();
 
         assertNotNull(uuid);
@@ -40,7 +40,7 @@ class UUIDGeneratorTest {
 
     @Test
     void testGenerate() {
-        UUIDGenerator gen = new UUIDGenerator();
+        UuidGenerator gen = new UuidGenerator();
         UUID uuid = gen.generate();
 
         assertNotNull(uuid);
@@ -50,7 +50,7 @@ class UUIDGeneratorTest {
 
     @Test
     void testGenerateString() {
-        UUIDGenerator gen = new UUIDGenerator();
+        UuidGenerator gen = new UuidGenerator();
         String uuidStr = gen.generateString();
 
         assertNotNull(uuidStr);
@@ -59,7 +59,7 @@ class UUIDGeneratorTest {
 
     @Test
     void testGenerateV4String() {
-        UUIDGenerator gen = new UUIDGenerator();
+        UuidGenerator gen = new UuidGenerator();
         String uuidStr = gen.generateV4String();
 
         assertNotNull(uuidStr);
@@ -68,7 +68,7 @@ class UUIDGeneratorTest {
 
     @Test
     void testGenerateV7() {
-        UUIDGenerator gen = new UUIDGenerator();
+        UuidGenerator gen = new UuidGenerator();
         UUID uuid = gen.generateV7();
         assertNotNull(uuid);
         assertEquals(7, uuid.version());
@@ -83,7 +83,7 @@ class UUIDGeneratorTest {
                 .clock(Clock.fixed(instant, ZoneOffset.UTC))
                 .build();
 
-        UUID uuid = new UUIDGenerator(config).generateV7();
+        UUID uuid = new UuidGenerator(config).generateV7();
 
         assertEquals(instant.toEpochMilli(), uuid.getMostSignificantBits() >>> 16);
     }
@@ -94,21 +94,21 @@ class UUIDGeneratorTest {
                 .seed(42L)
                 .clock(Clock.fixed(Instant.EPOCH, ZoneOffset.UTC))
                 .build();
-        UUIDGenerator generator = new UUIDGenerator(config);
+        UuidGenerator generator = new UuidGenerator(config);
 
         assertNotEquals(generator.generateV7(), generator.generateV7());
     }
 
     @Test
     void testGenerateV7String() {
-        UUIDGenerator gen = new UUIDGenerator();
+        UuidGenerator gen = new UuidGenerator();
         String uuidStr = gen.generateV7String();
         assertTrue(uuidStr.matches("[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}"));
     }
 
     @Test
     void testGenerateV5WithName() {
-        UUIDGenerator gen = new UUIDGenerator();
+        UuidGenerator gen = new UuidGenerator();
         UUID uuid = gen.generateV5("example.com");
 
         assertNotNull(uuid);
@@ -118,7 +118,7 @@ class UUIDGeneratorTest {
 
     @Test
     void testGenerateV5String() {
-        UUIDGenerator gen = new UUIDGenerator();
+        UuidGenerator gen = new UuidGenerator();
         String uuidStr = gen.generateV5String("example.com");
 
         assertNotNull(uuidStr);
@@ -127,8 +127,8 @@ class UUIDGeneratorTest {
 
     @Test
     void testGenerateV5WithNamespace() {
-        UUIDGenerator gen = new UUIDGenerator();
-        UUID namespace = UUIDGenerator.getDnsNamespace();
+        UuidGenerator gen = new UuidGenerator();
+        UUID namespace = UuidGenerator.getDnsNamespace();
         UUID uuid = gen.generateV5(namespace, "example.com");
 
         assertNotNull(uuid);
@@ -138,8 +138,8 @@ class UUIDGeneratorTest {
 
     @Test
     void testGenerateV5StringWithNamespace() {
-        UUIDGenerator gen = new UUIDGenerator();
-        UUID namespace = UUIDGenerator.getUrlNamespace();
+        UuidGenerator gen = new UuidGenerator();
+        UUID namespace = UuidGenerator.getUrlNamespace();
         String uuidStr = gen.generateV5String(namespace, "https://example.com");
 
         assertNotNull(uuidStr);
@@ -148,7 +148,7 @@ class UUIDGeneratorTest {
 
     @Test
     void testGenerateV5IsDeterministic() {
-        UUIDGenerator gen = new UUIDGenerator();
+        UuidGenerator gen = new UuidGenerator();
         UUID uuid1 = gen.generateV5("example.com");
         UUID uuid2 = gen.generateV5("example.com");
 
@@ -157,7 +157,7 @@ class UUIDGeneratorTest {
 
     @Test
     void testGenerateV5DifferentNames() {
-        UUIDGenerator gen = new UUIDGenerator();
+        UuidGenerator gen = new UuidGenerator();
         UUID uuid1 = gen.generateV5("example.com");
         UUID uuid2 = gen.generateV5("different.com");
 
@@ -166,9 +166,9 @@ class UUIDGeneratorTest {
 
     @Test
     void testGenerateV5DifferentNamespaces() {
-        UUIDGenerator gen = new UUIDGenerator();
-        UUID uuid1 = gen.generateV5(UUIDGenerator.getDnsNamespace(), "example.com");
-        UUID uuid2 = gen.generateV5(UUIDGenerator.getUrlNamespace(), "example.com");
+        UuidGenerator gen = new UuidGenerator();
+        UUID uuid1 = gen.generateV5(UuidGenerator.getDnsNamespace(), "example.com");
+        UUID uuid2 = gen.generateV5(UuidGenerator.getUrlNamespace(), "example.com");
 
         assertNotEquals(uuid1, uuid2);
     }
@@ -176,7 +176,7 @@ class UUIDGeneratorTest {
     @Test
     void testSeededV4Generation() {
         GeneratorConfig config = GeneratorConfig.builder().seed(12345L).build();
-        UUIDGenerator generator = new UUIDGenerator(config);
+        UuidGenerator generator = new UuidGenerator(config);
 
         UUID uuid = generator.generateV4();
 
@@ -186,8 +186,8 @@ class UUIDGeneratorTest {
     @Test
     void testSeededGenerate() {
         GeneratorConfig config = GeneratorConfig.builder().seed(67890L).build();
-        UUIDGenerator gen1 = new UUIDGenerator(config);
-        UUIDGenerator gen2 = new UUIDGenerator(config);
+        UuidGenerator gen1 = new UuidGenerator(config);
+        UuidGenerator gen2 = new UuidGenerator(config);
 
         UUID uuid1 = gen1.generate();
         UUID uuid2 = gen2.generate();
@@ -197,36 +197,36 @@ class UUIDGeneratorTest {
 
     @Test
     void testNullConfigThrowsException() {
-        assertThrows(NullPointerException.class, () -> new UUIDGenerator(null));
+        assertThrows(NullPointerException.class, () -> new UuidGenerator(null));
     }
 
     @Test
     void testGenerateV5NullNameThrowsException() {
-        UUIDGenerator gen = new UUIDGenerator();
+        UuidGenerator gen = new UuidGenerator();
         assertThrows(NullPointerException.class, () -> gen.generateV5((String) null));
     }
 
     @Test
     void testGenerateV5NullNamespaceThrowsException() {
-        UUIDGenerator gen = new UUIDGenerator();
+        UuidGenerator gen = new UuidGenerator();
         assertThrows(NullPointerException.class, () -> gen.generateV5((UUID) null, "example.com"));
     }
 
     @Test
     void testGenerateV5NullNameWithNamespaceThrowsException() {
-        UUIDGenerator gen = new UUIDGenerator();
-        UUID namespace = UUIDGenerator.getDnsNamespace();
+        UuidGenerator gen = new UuidGenerator();
+        UUID namespace = UuidGenerator.getDnsNamespace();
         assertThrows(NullPointerException.class, () -> gen.generateV5(namespace, null));
     }
 
     @Test
     void testMessageDigestInvalidAlgorithmThrows() {
-        assertThrows(RuntimeException.class, () -> UUIDGenerator.messageDigest("NOT_A_REAL_ALGO"));
+        assertThrows(RuntimeException.class, () -> UuidGenerator.messageDigest("NOT_A_REAL_ALGO"));
     }
 
     @Test
     void testGenerateMultipleV4UUIDs() {
-        UUIDGenerator gen = new UUIDGenerator();
+        UuidGenerator gen = new UuidGenerator();
         Set<UUID> uuids = new HashSet<>();
 
         for (int i = 0; i < 1000; i++) {
@@ -239,7 +239,7 @@ class UUIDGeneratorTest {
 
     @Test
     void testV4Format() {
-        UUIDGenerator gen = new UUIDGenerator();
+        UuidGenerator gen = new UuidGenerator();
         String uuidStr = gen.generateV4String();
 
         // Check format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
@@ -262,7 +262,7 @@ class UUIDGeneratorTest {
 
     @Test
     void testV5Format() {
-        UUIDGenerator gen = new UUIDGenerator();
+        UuidGenerator gen = new UuidGenerator();
         String uuidStr = gen.generateV5String("example.com");
 
         // Check format: xxxxxxxx-xxxx-5xxx-yxxx-xxxxxxxxxxxx
@@ -279,30 +279,30 @@ class UUIDGeneratorTest {
 
     @Test
     void testGetDnsNamespace() {
-        UUID namespace = UUIDGenerator.getDnsNamespace();
+        UUID namespace = UuidGenerator.getDnsNamespace();
         assertNotNull(namespace);
         assertEquals("6ba7b810-9dad-11d1-80b4-00c04fd430c8", namespace.toString());
     }
 
     @Test
     void testGetUrlNamespace() {
-        UUID namespace = UUIDGenerator.getUrlNamespace();
+        UUID namespace = UuidGenerator.getUrlNamespace();
         assertNotNull(namespace);
         assertEquals("6ba7b811-9dad-11d1-80b4-00c04fd430c8", namespace.toString());
     }
 
     @Test
     void testV5KnownVectorDns() {
-        UUIDGenerator gen = new UUIDGenerator();
-        UUID uuid = gen.generateV5(UUIDGenerator.getDnsNamespace(), "www.example.com");
+        UuidGenerator gen = new UuidGenerator();
+        UUID uuid = gen.generateV5(UuidGenerator.getDnsNamespace(), "www.example.com");
 
         assertEquals(UUID.fromString("2ed6657d-e927-568b-95e1-2665a8aea6a2"), uuid);
     }
 
     @Test
     void testV5Consistency() {
-        UUIDGenerator gen1 = new UUIDGenerator();
-        UUIDGenerator gen2 = new UUIDGenerator();
+        UuidGenerator gen1 = new UuidGenerator();
+        UuidGenerator gen2 = new UuidGenerator();
 
         UUID uuid1 = gen1.generateV5("test");
         UUID uuid2 = gen2.generateV5("test");
@@ -312,7 +312,7 @@ class UUIDGeneratorTest {
 
     @Test
     void testV4Randomness() {
-        UUIDGenerator gen = new UUIDGenerator();
+        UuidGenerator gen = new UuidGenerator();
         UUID uuid1 = gen.generateV4();
         UUID uuid2 = gen.generateV4();
 
@@ -322,12 +322,12 @@ class UUIDGeneratorTest {
     @Test
     void testGenerateStringMatchesGenerate() {
         GeneratorConfig config = GeneratorConfig.builder().seed(99999L).build();
-        UUIDGenerator gen = new UUIDGenerator(config);
+        UuidGenerator gen = new UuidGenerator(config);
 
         UUID uuid = gen.generate();
 
         GeneratorConfig config2 = GeneratorConfig.builder().seed(99999L).build();
-        UUIDGenerator gen2 = new UUIDGenerator(config2);
+        UuidGenerator gen2 = new UuidGenerator(config2);
         String uuidStr = gen2.generateString();
 
         assertEquals(uuid.toString(), uuidStr);
@@ -335,7 +335,7 @@ class UUIDGeneratorTest {
 
     @Test
     void testV5EmptyString() {
-        UUIDGenerator gen = new UUIDGenerator();
+        UuidGenerator gen = new UuidGenerator();
         UUID uuid = gen.generateV5("");
 
         assertNotNull(uuid);
@@ -344,7 +344,7 @@ class UUIDGeneratorTest {
 
     @Test
     void testV5SpecialCharacters() {
-        UUIDGenerator gen = new UUIDGenerator();
+        UuidGenerator gen = new UuidGenerator();
         UUID uuid = gen.generateV5("example.com/path?query=value&special=!@#$%");
 
         assertNotNull(uuid);
@@ -353,7 +353,7 @@ class UUIDGeneratorTest {
 
     @Test
     void testV5Unicode() {
-        UUIDGenerator gen = new UUIDGenerator();
+        UuidGenerator gen = new UuidGenerator();
         UUID uuid = gen.generateV5("例え.com");
 
         assertNotNull(uuid);
@@ -365,9 +365,9 @@ class UUIDGeneratorTest {
         long seed = 54321L;
         GeneratorConfig config = GeneratorConfig.builder().seed(seed).build();
 
-        UUIDGenerator gen1 = new UUIDGenerator(config);
-        UUIDGenerator gen2 = new UUIDGenerator(config);
-        UUIDGenerator gen3 = new UUIDGenerator(config);
+        UuidGenerator gen1 = new UuidGenerator(config);
+        UuidGenerator gen2 = new UuidGenerator(config);
+        UuidGenerator gen3 = new UuidGenerator(config);
 
         UUID uuid1 = gen1.generate();
         UUID uuid2 = gen2.generate();
@@ -379,7 +379,7 @@ class UUIDGeneratorTest {
 
     @Test
     void testV5StringMatchesV5() {
-        UUIDGenerator gen = new UUIDGenerator();
+        UuidGenerator gen = new UuidGenerator();
         UUID uuid = gen.generateV5("test-name");
         String uuidStr = gen.generateV5String("test-name");
 
@@ -388,8 +388,8 @@ class UUIDGeneratorTest {
 
     @Test
     void testV5WithCustomNamespaceStringMatchesUUID() {
-        UUIDGenerator gen = new UUIDGenerator();
-        UUID namespace = UUIDGenerator.getUrlNamespace();
+        UuidGenerator gen = new UuidGenerator();
+        UUID namespace = UuidGenerator.getUrlNamespace();
 
         UUID uuid = gen.generateV5(namespace, "test-name");
         String uuidStr = gen.generateV5String(namespace, "test-name");
@@ -400,12 +400,12 @@ class UUIDGeneratorTest {
     @Test
     void testV4StringMatchesV4() {
         GeneratorConfig config = GeneratorConfig.builder().seed(111L).build();
-        UUIDGenerator gen = new UUIDGenerator(config);
+        UuidGenerator gen = new UuidGenerator(config);
 
         UUID uuid = gen.generateV4();
 
         GeneratorConfig config2 = GeneratorConfig.builder().seed(111L).build();
-        UUIDGenerator gen2 = new UUIDGenerator(config2);
+        UuidGenerator gen2 = new UuidGenerator(config2);
         String uuidStr = gen2.generateV4String();
 
         assertEquals(uuid.toString(), uuidStr);
@@ -413,16 +413,16 @@ class UUIDGeneratorTest {
 
     @Test
     void testDnsNamespaceIsConstant() {
-        UUID ns1 = UUIDGenerator.getDnsNamespace();
-        UUID ns2 = UUIDGenerator.getDnsNamespace();
+        UUID ns1 = UuidGenerator.getDnsNamespace();
+        UUID ns2 = UuidGenerator.getDnsNamespace();
 
         assertEquals(ns1, ns2);
     }
 
     @Test
     void testUrlNamespaceIsConstant() {
-        UUID ns1 = UUIDGenerator.getUrlNamespace();
-        UUID ns2 = UUIDGenerator.getUrlNamespace();
+        UUID ns1 = UuidGenerator.getUrlNamespace();
+        UUID ns2 = UuidGenerator.getUrlNamespace();
 
         assertEquals(ns1, ns2);
     }

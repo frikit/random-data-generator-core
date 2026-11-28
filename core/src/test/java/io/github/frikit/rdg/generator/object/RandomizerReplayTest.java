@@ -14,7 +14,7 @@ import io.github.frikit.rdg.generator.GenerationRecipe;
 import io.github.frikit.rdg.generator.Generator;
 import io.github.frikit.rdg.generator.GeneratorConfig;
 import io.github.frikit.rdg.generator.base.ByteGenerator;
-import io.github.frikit.rdg.generator.identifier.UUIDGenerator;
+import io.github.frikit.rdg.generator.identifier.UuidGenerator;
 import io.github.frikit.rdg.generator.user.EmailGenerator;
 import io.github.frikit.rdg.generator.user.FirstNameGenerator;
 import java.time.Clock;
@@ -64,7 +64,7 @@ class RandomizerReplayTest {
         @Randomizer(ByteGenerator.class)
         public byte seedable;
 
-        @Randomizer(UUIDGenerator.class)
+        @Randomizer(UuidGenerator.class)
         public UUID id;
 
         @Randomizer(FirstNameGenerator.class)
@@ -111,7 +111,7 @@ class RandomizerReplayTest {
     }
 
     public static class IdChild {
-        @Randomizer(UUIDGenerator.class)
+        @Randomizer(UuidGenerator.class)
         public UUID id;
     }
 

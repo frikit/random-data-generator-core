@@ -11,7 +11,7 @@ import io.github.frikit.rdg.generator.base.ByteGenerator;
 import io.github.frikit.rdg.generator.base.NormalDistributionGenerator;
 import io.github.frikit.rdg.generator.finance.CurrencyGenerator;
 import io.github.frikit.rdg.generator.finance.MoneyGenerator;
-import io.github.frikit.rdg.generator.identifier.UUIDGenerator;
+import io.github.frikit.rdg.generator.identifier.UuidGenerator;
 import io.github.frikit.rdg.generator.location.AddressInfo;
 import io.github.frikit.rdg.generator.location.AddressInfoGenerator;
 import io.github.frikit.rdg.generator.location.StreetAddressGenerator;
@@ -249,7 +249,7 @@ class SeededDefaultsPinsTest {
         @Randomizer(ByteGenerator.class)
         public byte seedable;
 
-        @Randomizer(UUIDGenerator.class)
+        @Randomizer(UuidGenerator.class)
         public UUID uuid;
 
         @Randomizer(FirstNameGenerator.class)

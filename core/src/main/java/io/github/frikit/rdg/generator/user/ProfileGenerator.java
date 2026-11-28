@@ -7,7 +7,7 @@ package io.github.frikit.rdg.generator.user;
 
 import io.github.frikit.rdg.generator.Generator;
 import io.github.frikit.rdg.generator.GeneratorConfig;
-import io.github.frikit.rdg.generator.network.URLGenerator;
+import io.github.frikit.rdg.generator.network.UrlGenerator;
 import java.util.Locale;
 import java.util.Objects;
 
@@ -19,7 +19,7 @@ public final class ProfileGenerator implements Generator<UserProfile> {
     private final SimpleProfileGenerator simpleProfileGenerator;
     private final CompanyNameGenerator companyNameGenerator;
     private final ProfessionGenerator professionGenerator;
-    private final URLGenerator urlGenerator;
+    private final UrlGenerator urlGenerator;
 
     public ProfileGenerator() {
         this(GeneratorConfig.defaults());
@@ -34,7 +34,7 @@ public final class ProfileGenerator implements Generator<UserProfile> {
         this.simpleProfileGenerator = new SimpleProfileGenerator(effective.forChildStream("simpleProfile"));
         this.companyNameGenerator = new CompanyNameGenerator(effective.forChildStream("companyName"));
         this.professionGenerator = new ProfessionGenerator(effective.forChildStream("profession"));
-        this.urlGenerator = new URLGenerator(effective.forChildStream("uRL"));
+        this.urlGenerator = new UrlGenerator(effective.forChildStream("uRL"));
     }
 
     /**

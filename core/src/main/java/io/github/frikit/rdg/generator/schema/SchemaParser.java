@@ -14,11 +14,11 @@ import io.github.frikit.rdg.generator.datetime.DateGenerator;
 import io.github.frikit.rdg.generator.datetime.LocalDateTimeGenerator;
 import io.github.frikit.rdg.generator.datetime.OffsetDateTimeGenerator;
 import io.github.frikit.rdg.generator.datetime.OffsetTimeGenerator;
-import io.github.frikit.rdg.generator.identifier.UUIDGenerator;
+import io.github.frikit.rdg.generator.identifier.UuidGenerator;
 import io.github.frikit.rdg.generator.network.HostnameGenerator;
 import io.github.frikit.rdg.generator.network.IPv4Generator;
 import io.github.frikit.rdg.generator.network.IPv6Generator;
-import io.github.frikit.rdg.generator.network.URLGenerator;
+import io.github.frikit.rdg.generator.network.UrlGenerator;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
@@ -1137,8 +1137,8 @@ public final class SchemaParser {
             case "email", "idn-email" -> Generators::ofEmail;
             // Every URI is also a URI reference, an IRI, and an IRI reference, and one without quotes or
             // braces, as these are, is a URI template that expands to itself.
-            case "uri", "url", "uri-reference", "iri", "iri-reference", "uri-template" -> URLGenerator::new;
-            case "uuid" -> UUIDGenerator::new;
+            case "uri", "url", "uri-reference", "iri", "iri-reference", "uri-template" -> UrlGenerator::new;
+            case "uuid" -> UuidGenerator::new;
             case "date" -> DateGenerator::new;
             // RFC 3339 writes the seconds and an offset, which toString() can leave out.
             case "date-time" ->

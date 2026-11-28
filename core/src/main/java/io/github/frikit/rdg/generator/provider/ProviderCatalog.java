@@ -28,8 +28,8 @@ import io.github.frikit.rdg.generator.finance.PaymentInfoGenerator;
 import io.github.frikit.rdg.generator.identifier.EanGenerator;
 import io.github.frikit.rdg.generator.identifier.HashGenerator;
 import io.github.frikit.rdg.generator.identifier.IsbnGenerator;
-import io.github.frikit.rdg.generator.identifier.UUIDGenerator;
 import io.github.frikit.rdg.generator.identifier.UpcGenerator;
+import io.github.frikit.rdg.generator.identifier.UuidGenerator;
 import io.github.frikit.rdg.generator.location.AddressInfo;
 import io.github.frikit.rdg.generator.location.AddressInfoGenerator;
 import io.github.frikit.rdg.generator.location.CityGenerator;
@@ -40,7 +40,7 @@ import io.github.frikit.rdg.generator.location.StateGenerator;
 import io.github.frikit.rdg.generator.location.StreetAddressGenerator;
 import io.github.frikit.rdg.generator.network.DomainGenerator;
 import io.github.frikit.rdg.generator.network.HostnameGenerator;
-import io.github.frikit.rdg.generator.network.URLGenerator;
+import io.github.frikit.rdg.generator.network.UrlGenerator;
 import io.github.frikit.rdg.generator.text.ParagraphGenerator;
 import io.github.frikit.rdg.generator.text.SentenceGenerator;
 import io.github.frikit.rdg.generator.text.WordGenerator;
@@ -71,7 +71,13 @@ import java.util.Set;
 import java.util.function.BiFunction;
 
 /**
- * Canonical built-in provider definitions shared by every provider-facing API.
+ * The read-only catalog of the built-in providers: their keys, aliases, provider types, semantic keys,
+ * safety metadata and schema projections.
+ *
+ * <p>It is public so that you can discover what is built in: {@link #builtIns()} and
+ * {@link #schemaBuiltIns()} return unmodifiable lists of {@link ProviderDescriptor}s. The library reads
+ * the same lists for {@link ProviderHub}, schema columns and the object engine's semantic fields, and the
+ * published provider reference ({@code docs/reference/provider-catalog.md}) is generated from them.
  *
  * <p>Custom runtime registrations remain scoped to an individual {@link ProviderHub}. This
  * catalog only defines the built-ins shipped with random-data-generator and rejects canonical-key or alias
@@ -431,9 +437,9 @@ public final class ProviderCatalog {
                                         "phone_number")
                                 .withSafetyMetadata(PHONE_NUMBER_SAFETY))),
                 descriptor("address", StreetAddressGenerator.class, StreetAddressGenerator::new, List.of()),
-                descriptor("internet.url", URLGenerator.class, URLGenerator::new, List.of("network", "url"), "url")
+                descriptor("internet.url", UrlGenerator.class, UrlGenerator::new, List.of("network", "url"), "url")
                         .withSafetyMetadata(NETWORK_SAFETY)
-                        .withSchemaProjections(projections(ProviderCatalog.<URLGenerator>stringFormat(
+                        .withSchemaProjections(projections(ProviderCatalog.<UrlGenerator>stringFormat(
                                         "internet.url",
                                         (provider, config) -> provider.generate(),
                                         "uri",
@@ -453,9 +459,9 @@ public final class ProviderCatalog {
                                         "hostname",
                                         "hostname")
                                 .withSafetyMetadata(NETWORK_SAFETY))),
-                descriptor("internet", URLGenerator.class, URLGenerator::new, List.of())
+                descriptor("internet", UrlGenerator.class, UrlGenerator::new, List.of())
                         .withSafetyMetadata(NETWORK_SAFETY)
-                        .withSchemaProjections(projections(ProviderCatalog.<URLGenerator>stringFormat(
+                        .withSchemaProjections(projections(ProviderCatalog.<UrlGenerator>stringFormat(
                                         "internet", (provider, config) -> provider.generate(), "uri")
                                 .withSafetyMetadata(NETWORK_SAFETY))),
                 descriptor(
@@ -587,7 +593,7 @@ public final class ProviderCatalog {
                 descriptor("text", WordGenerator.class, WordGenerator::new, List.of())
                         .withSchemaProjections(
                                 projections(string("text", (provider, config) -> provider.generateWord()))),
-                descriptor("code.uuid", UUIDGenerator.class, UUIDGenerator::new, List.of("uuid", "identifier"), "uuid")
+                descriptor("code.uuid", UuidGenerator.class, UuidGenerator::new, List.of("uuid", "identifier"), "uuid")
                         .withSchemaProjections(projections(stringFormat(
                                 "code.uuid4",
                                 (provider, config) -> provider.generateV4().toString(),
@@ -595,7 +601,7 @@ public final class ProviderCatalog {
                                 "code.uuid",
                                 "uuid",
                                 "identifier"))),
-                descriptor("code", UUIDGenerator.class, UUIDGenerator::new, List.of()));
+                descriptor("code", UuidGenerator.class, UuidGenerator::new, List.of()));
     }
 
     private static List<ProviderDescriptor<?>> buildSchemaOnlyBuiltIns() {

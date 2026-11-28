@@ -25,8 +25,8 @@ public final class IdentifierGenerators {
         this.config = config;
     }
 
-    public UUIDGenerator uuid() {
-        return new UUIDGenerator(config);
+    public UuidGenerator uuid() {
+        return new UuidGenerator(config);
     }
 
     public HashGenerator hash() {

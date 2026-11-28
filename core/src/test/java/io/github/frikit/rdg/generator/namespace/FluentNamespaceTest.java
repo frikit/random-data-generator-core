@@ -46,8 +46,8 @@ import io.github.frikit.rdg.generator.identifier.EanGenerator;
 import io.github.frikit.rdg.generator.identifier.HashGenerator;
 import io.github.frikit.rdg.generator.identifier.IdentifierMaskGenerator;
 import io.github.frikit.rdg.generator.identifier.IsbnGenerator;
-import io.github.frikit.rdg.generator.identifier.UUIDGenerator;
 import io.github.frikit.rdg.generator.identifier.UpcGenerator;
+import io.github.frikit.rdg.generator.identifier.UuidGenerator;
 import io.github.frikit.rdg.generator.location.AddressInfoGenerator;
 import io.github.frikit.rdg.generator.location.AddressPurposeGenerator;
 import io.github.frikit.rdg.generator.location.AddressTypeGenerator;
@@ -69,8 +69,8 @@ import io.github.frikit.rdg.generator.network.IPv6Generator;
 import io.github.frikit.rdg.generator.network.MacAddressGenerator;
 import io.github.frikit.rdg.generator.network.PortGenerator;
 import io.github.frikit.rdg.generator.network.SlugGenerator;
-import io.github.frikit.rdg.generator.network.URLGenerator;
 import io.github.frikit.rdg.generator.network.UriGenerator;
+import io.github.frikit.rdg.generator.network.UrlGenerator;
 import io.github.frikit.rdg.generator.network.UserAgentGenerator;
 import io.github.frikit.rdg.generator.text.LoremIpsumGenerator;
 import io.github.frikit.rdg.generator.text.ParagraphGenerator;
@@ -381,7 +381,7 @@ class FluentNamespaceTest {
         assertSameFirstValue(new MacAddressGenerator(seeded), network.macAddress());
         assertSameFirstValue(new DomainGenerator(seeded), network.domain());
         assertSameFirstValue(new HostnameGenerator(seeded), network.hostname());
-        assertSameFirstValue(new URLGenerator(seeded), network.url());
+        assertSameFirstValue(new UrlGenerator(seeded), network.url());
         assertSameFirstValue(new UriGenerator(seeded), network.uri());
         assertSameFirstValue(new PortGenerator(seeded), network.port());
         assertSameFirstValue(new SlugGenerator(seeded), network.slug());
@@ -390,7 +390,7 @@ class FluentNamespaceTest {
         assertSameFirstValue(new HttpMethodGenerator(seeded), network.httpMethod());
 
         IdentifierGenerators identifier = Generators.identifier(seeded);
-        assertSameFirstValue(new UUIDGenerator(seeded), identifier.uuid());
+        assertSameFirstValue(new UuidGenerator(seeded), identifier.uuid());
         assertSameFirstValue(new HashGenerator(seeded), identifier.hash());
         assertSameFirstValue(new IsbnGenerator(seeded), identifier.isbn());
         assertSameFirstValue(

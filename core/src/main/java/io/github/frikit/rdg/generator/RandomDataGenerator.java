@@ -126,6 +126,12 @@ public final class RandomDataGenerator {
      * each draw fresh randomness. Equal names give equal streams, so build each generator once and
      * keep it.
      *
+     * <p>Names that start with {@code krandom.} are the session's own: each method draws from a stream
+     * named {@code krandom.} and its kind of value, such as {@code krandom.firstName} for
+     * {@link #firstName()}, a prefix kept from kRandom so that a seed gives the values of kRandom
+     * 4.1.0's session methods. A stream of your own under such a name repeats a method's values, so
+     * pick another name.
+     *
      * @param name a stable, non-blank, single-line stream name
      * @return the configuration for that stream
      * @throws IllegalArgumentException if {@code name} is blank or spans lines

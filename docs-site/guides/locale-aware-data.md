@@ -233,6 +233,12 @@ Fallback tiers are productized compatibility behavior, not hidden implementation
 
 The 35 native datasets satisfy the current resource coverage gates. The 15 regional variants remain explicitly fallback-backed until equivalent native datasets are contributed.
 
+`de_AT` and `de_CH` use the German places for now: their cities, states and street names come from `de_DE`, so
+an address pairs a German city and state with `Österreich` or `Schweiz` and a four-digit postal code, such as
+`Rostock, Baden-Württemberg 9342, Österreich`. They have no postal places, so `postalLocality()` throws for them
+unless you register places for Austria or Switzerland. This stays so until sourced Austrian and Swiss place
+data is added.
+
 ## Locale contribution quality bar
 
 Native locale additions are expected to ship real dataset coverage, not only registration hooks.

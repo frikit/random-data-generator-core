@@ -94,8 +94,8 @@ import io.github.frikit.rdg.generator.identifier.EanGenerator;
 import io.github.frikit.rdg.generator.identifier.HashGenerator;
 import io.github.frikit.rdg.generator.identifier.IdentifierMaskGenerator;
 import io.github.frikit.rdg.generator.identifier.IsbnGenerator;
-import io.github.frikit.rdg.generator.identifier.UUIDGenerator;
 import io.github.frikit.rdg.generator.identifier.UpcGenerator;
+import io.github.frikit.rdg.generator.identifier.UuidGenerator;
 import io.github.frikit.rdg.generator.locale.RandomLocaleGenerator;
 import io.github.frikit.rdg.generator.location.AddressInfoGenerator;
 import io.github.frikit.rdg.generator.location.AddressPurposeGenerator;
@@ -129,8 +129,8 @@ import io.github.frikit.rdg.generator.network.IPv6Generator;
 import io.github.frikit.rdg.generator.network.MacAddressGenerator;
 import io.github.frikit.rdg.generator.network.PortGenerator;
 import io.github.frikit.rdg.generator.network.SlugGenerator;
-import io.github.frikit.rdg.generator.network.URLGenerator;
 import io.github.frikit.rdg.generator.network.UriGenerator;
+import io.github.frikit.rdg.generator.network.UrlGenerator;
 import io.github.frikit.rdg.generator.network.UserAgentGenerator;
 import io.github.frikit.rdg.generator.object.ObjectFaker;
 import io.github.frikit.rdg.generator.object.ObjectGenerator;
@@ -304,7 +304,7 @@ public final class Generators {
         REGISTRY.put(Calendar.class, CalendarGenerator::new);
         REGISTRY.put(GregorianCalendar.class, CalendarGenerator::new);
         REGISTRY.put(Locale.class, RandomLocaleGenerator::new);
-        REGISTRY.put(UUID.class, UUIDGenerator::new);
+        REGISTRY.put(UUID.class, UuidGenerator::new);
         REGISTRY.put(URI.class, Generators::ofUriObject);
         REGISTRY.put(java.net.URL.class, Generators::ofUrlObject);
         REGISTRY.put(java.util.Date.class, UtilDateGenerator::new);
@@ -1133,8 +1133,8 @@ public final class Generators {
      * {@code ofUri}, {@code ofTimezone}); factories returning the JDK value object end in
      * {@code Object} ({@link #ofUrlObject()}, {@link #ofUriObject()}, {@link #ofTimeZoneObject()}).
      */
-    public static URLGenerator ofUrl() {
-        return new URLGenerator();
+    public static UrlGenerator ofUrl() {
+        return new UrlGenerator();
     }
 
     /**
@@ -1143,8 +1143,8 @@ public final class Generators {
      * @param config generator configuration; must not be {@code null}
      * @return URL-string generator
      */
-    public static URLGenerator ofUrl(GeneratorConfig config) {
-        return new URLGenerator(config);
+    public static UrlGenerator ofUrl(GeneratorConfig config) {
+        return new UrlGenerator(config);
     }
 
     /**
@@ -1201,7 +1201,7 @@ public final class Generators {
      * @return {@code java.net.URL} generator
      */
     public static Generator<java.net.URL> ofUrlObject(GeneratorConfig config) {
-        URLGenerator generator = new URLGenerator(config);
+        UrlGenerator generator = new UrlGenerator(config);
         return () -> toUrl(URI.create(generator.generate("https")));
     }
 
@@ -4094,8 +4094,8 @@ public final class Generators {
     /**
      * Returns a generator that produces UUID values.
      */
-    public static UUIDGenerator ofUuid() {
-        return new UUIDGenerator();
+    public static UuidGenerator ofUuid() {
+        return new UuidGenerator();
     }
 
     /**
@@ -4104,8 +4104,8 @@ public final class Generators {
      * @param config generator configuration; must not be {@code null}
      * @return UUID generator
      */
-    public static UUIDGenerator ofUuid(GeneratorConfig config) {
-        return new UUIDGenerator(config);
+    public static UuidGenerator ofUuid(GeneratorConfig config) {
+        return new UuidGenerator(config);
     }
 
     /**
