@@ -83,6 +83,9 @@ tasks.test {
     useJUnitPlatform()
     jvmArgs("-Xmx512m")
     systemProperty("rdg.rootDir", rootProject.projectDir.absolutePath)
+    // -Prdg.baseline.write=true rewrites the committed seeded-output baseline of the generator catalog instead of
+    // comparing with it (GeneratorCatalogSeededBaselineTest). Unset, the test only compares, and its inputs stay the same.
+    providers.gradleProperty("rdg.baseline.write").orNull?.let { systemProperty("rdg.baseline.write", it) }
     finalizedBy(tasks.jacocoTestReport)
 }
 

@@ -43,7 +43,7 @@ order or meaning of those draws changes every value after it. The usual causes:
   `internal/StreamSeeds.java`. A change to any one of them changes seeds everywhere.
 
 Some values depend on the Java runtime rather than on random-data-generator: time-zone and locale data (TZDB, CLDR).
-`VERSIONING.md` documents these; do not try to pin them in tests.
+`VERSIONING.md` documents these; do not try to pin them in tests. The catalog baseline below leaves them out.
 
 ## How to check that you changed nothing
 
@@ -59,7 +59,16 @@ Some values depend on the Java runtime rather than on random-data-generator: tim
 3. **Run the oracles.** `ReseedAsBuiltTest` checks that a reseeded generator gives what a freshly
    built one gives; `SchemaFreshBuildOracleTest` checks the same for `Schema` columns. Both pick up new
    generators that register a reseed hook.
-4. A pinned value that changes is a finding, not a test to update. Never edit an expected value to
+4. **The catalog baseline** catches what no pin test covers. `GeneratorCatalogSeededBaselineTest`
+   sweeps the factories of `GeneratorCatalogEnvironmentTest` (every `Generators` factory that takes one
+   `GeneratorConfig`, in six locales, seed 42 and a fixed clock) and draws the first three values of each
+   `generate*()` method from a fresh generator. It compares one digest per factory, method and locale
+   with `core/src/test/resources/rdg-baseline/catalog-fingerprints.txt` and fails with a count of
+   the `changed:`, `missing:` and `new:` lines and the first 50 of them, each naming the `factory.method locale`. It leaves out the values that follow the runtime's TZDB or CLDR
+   data, each listed in the test with its reason, and compares floating-point values by their bits.
+   Regenerate the file only as [regenerating the catalog baseline](#regenerating-the-catalog-baseline)
+   describes.
+5. A pinned value that changes is a finding, not a test to update. Never edit an expected value to
    make a test pass unless the change is approved, as below.
 
 ## How to make an intended change
@@ -84,6 +93,27 @@ Some values depend on the Java runtime rather than on random-data-generator: tim
     required recipe key is a change of the recipe format, which only a new recipe version may do.
 - **Data changes** to an existing dataset change output for that locale, so by the policy above they
   are a change of output. Ask before making one, unless it only fixes invalid entries.
+
+### Regenerating the catalog baseline
+
+`./gradlew :core:test --tests '*GeneratorCatalogSeededBaselineTest' -Prdg.baseline.write=true` rewrites
+`core/src/test/resources/rdg-baseline/catalog-fingerprints.txt` from the current code instead of
+comparing with it; the test then reports itself as skipped. Without the property the test only compares,
+so the gate never rewrites the file. Regenerate only in one of three cases:
+
+- **(a) Only `new:` lines.** A new factory, or a new `generate*()` method on an existing generator,
+  adds lines and changes none, because every method draws from its own fresh generator. Regenerate in
+  the pull request that adds it, and check that the diff of the file only adds lines.
+- **(b) A reviewed seeded-output change.** A `changed:` or `missing:` line is a change of seeded output
+  (a removed factory or method is one too), unless (c) applies: regenerate only once the change is
+  approved and listed in the changelog with the values it affects, as above. Otherwise find the cause.
+- **(c) A change of the test itself.** A new `RUNTIME_VALUES` exclusion gives `missing:` lines, a new
+  `NAMES_THE_LOCALE_COUNTRY` mask gives `changed:` lines, and a change of the sweep can change any line:
+  moving or renaming `GeneratorCatalogSweep.FixtureShape` changes the `object.generate` lines, because
+  the object engine derives each member's stream from the owner class name. No seeded output changed, so
+  there is no changelog entry; the pull request says why no seeded output changed.
+
+Run it on the build's default JDK 21 toolchain, then review the diff of the file.
 
 ## Public API
 
