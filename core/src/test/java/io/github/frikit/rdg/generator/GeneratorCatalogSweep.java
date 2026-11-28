@@ -175,6 +175,11 @@ final class GeneratorCatalogSweep {
         return String.valueOf(value);
     }
 
+    /**
+     * The object the sweep generates in each locale. Its fully qualified name is part of the catalog baseline
+     * ({@link GeneratorCatalogSeededBaselineTest}), because the object engine derives each member's stream from the
+     * owner class name: moving or renaming it changes the {@code object.generate} lines.
+     */
     record FixtureShape(
             String firstName,
             String lastName,

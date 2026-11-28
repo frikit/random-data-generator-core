@@ -54,7 +54,8 @@ Brazil's CPF.
    did. A new factory or `generate*()` method also fails `GeneratorCatalogSeededBaselineTest` with `new:` lines until you
    regenerate its baseline, as [regenerating the catalog baseline](determinism-and-compatibility.md#regenerating-the-catalog-baseline)
    describes; if its values read the runtime's TZDB or CLDR data, list them in that test's
-   `RUNTIME_VALUES` with the reason instead. Test the new namespace and `RandomDataGenerator` methods in `FluentNamespaceTest` and `RandomDataGeneratorTest`.
+   `RUNTIME_VALUES` with the reason instead, and if its values contain an address with the country
+   name, add the factory to `NAMES_THE_LOCALE_COUNTRY`. Test the new namespace and `RandomDataGenerator` methods in `FluentNamespaceTest` and `RandomDataGeneratorTest`.
 5. **Reuse in `Schema` (optional).** If the generator is expensive to build and will be a schema column,
    register a package-private `reseedTo(long)` hook with `internal.Reseeding` in a static initializer, as
    `generator/location/CityGenerator.java` does. `ReseedAsBuiltTest` then checks it.
