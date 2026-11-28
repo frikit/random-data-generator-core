@@ -57,7 +57,7 @@ and skips itself on an older test Java.
   by tests. The integration modules, with their per-module line and branch floors, live in the
   language repositories (`random-data-generator-java`, `random-data-generator-kotlin`).
 - **Mutation testing**: deterministic, safety-sensitive, object, and schema paths must retain at
-  least an 85% mutation score and 98% mutated-class line coverage. Expand targets incrementally
+  least a 90% mutation score and 98% mutated-class line coverage. Expand targets incrementally
   around meaningful branching, review survivors by behavior, and do not treat 100% as a goal when
   equivalent or implementation-only mutations remain.
 - **Nullness**: every `random-data-generator-core` package is `@NullMarked` (JSpecify), and `compileJava` runs

@@ -13,10 +13,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-# Job timeouts are 4-5x the slowest successful runs observed in September 2026 (build 7 min,
-# native image 4.5 min, mutation 6 min, examples 6 min), so they only stop hung jobs. The API
-# compatibility job, added in November 2026, took 15 s locally from a clean build with cached
-# dependencies; its 10 minutes leave room for a cold dependency cache until CI runs are measured.
+# Job timeouts only stop hung jobs. Slowest successful runs seen in November 2026: build 5 min,
+# native image 3.5 min, API compatibility 1.5 min, examples 2.5 min, and mutation 45 min, whose
+# limit is 90 minutes.
 jobs:
   build:
     name: Test & Coverage (Java ${{ matrix.java }})
@@ -58,7 +57,11 @@ jobs:
         with:
           java-version: ${{ matrix.build-java }}
           distribution: 'temurin'
-          cache: 'gradle'
+
+      # Caches the Gradle user home per job (a matrix entry is its own job); pull requests read the caches
+      # that main saved and write none, so no job waits on a key another job reserved.
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
 
       - name: Make gradlew executable
         run: chmod +x gradlew
@@ -112,7 +115,11 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
-          cache: 'gradle'
+
+      # Caches the Gradle user home per job (a matrix entry is its own job); pull requests read the caches
+      # that main saved and write none, so no job waits on a key another job reserved.
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
 
       - name: Make gradlew executable
         run: chmod +x gradlew
@@ -137,7 +144,11 @@ jobs:
           java-version: '25'
           distribution: graalvm
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          cache: gradle
+
+      # Caches the Gradle user home per job (a matrix entry is its own job); pull requests read the caches
+      # that main saved and write none, so no job waits on a key another job reserved.
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
 
       - name: Make gradlew executable
         run: chmod +x gradlew
@@ -150,9 +161,8 @@ jobs:
   mutation-pilot:
     name: Critical-path Mutation (Java 21)
     runs-on: ubuntu-latest
-    # The object engine, GeneratorConfig and GenerationRecipe joined the mutation targets on
-    # 2026-09-27, roughly tripling the analysis (about 7 minutes locally); re-measure on CI.
-    timeout-minutes: 60
+    # PIT runs on one thread for repeatable results: 29 to 45 minutes on CI, about 17 locally.
+    timeout-minutes: 90
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -165,7 +175,11 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
-          cache: 'gradle'
+
+      # Caches the Gradle user home per job (a matrix entry is its own job); pull requests read the caches
+      # that main saved and write none, so no job waits on a key another job reserved.
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
 
       - name: Make gradlew executable
         run: chmod +x gradlew
@@ -196,7 +210,11 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
-          cache: 'gradle'
+
+      # Caches the Gradle user home per job (a matrix entry is its own job); pull requests read the caches
+      # that main saved and write none, so no job waits on a key another job reserved.
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
 
       - name: Make gradle wrappers executable
         run: chmod +x gradlew examples/java-gradle/gradlew
