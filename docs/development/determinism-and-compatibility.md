@@ -78,8 +78,8 @@ Some values depend on the Java runtime rather than on random-data-generator: tim
     `GenerationRecipe.toGeneratorConfig()` rejects a recipe that misses a required setting, so a new
     required key would stop every older recipe of the major line from replaying.
   - Pin both the off and the on values.
-  - Expose it where users configure random-data-generator: the Kotlin DSL's `config { }` and a `krandom.*` Spring
-    property, if the other settings of its kind are there.
+  - Tell the integration repositories (`-java`, `-kotlin`, `-scala`) about it, so each can expose it where its
+    users configure the library, if the other settings of its kind are there.
   - Turning it on by default is a change of output, so only a major release does it. Making it a
     required recipe key is a change of the recipe format, which only a new recipe version may do.
 - **Data changes** to an existing dataset change output for that locale, so by the policy above they

@@ -2,15 +2,15 @@
 
 **Reviewed:** 2026-09-24
 **Status:** Active
-**Stable release:** `4.1.0`
-**Development line:** `4.2.0-SNAPSHOT`
+**Stable release:** none yet; the first is `1.0.0`
+**Development line:** read `developmentVersion` in `gradle.properties`
 
 random-data-generator should compete on trustworthy fixture generation, not on raw provider count. The durable
 advantages are deterministic replay, coherent object fixtures, explicit safety contracts, honest
 performance evidence, and a small extension boundary.
 
-The latest delivery record is in [`release-2.5.0-plan.md`](release-2.5.0-plan.md). This roadmap sets
-product priorities; it does not authorize a tag or publication.
+This roadmap sets product priorities; it does not authorize a tag or publication. It started as the
+kRandom roadmap, which this library continues.
 
 ## Product principles
 
@@ -44,7 +44,7 @@ with current random-data-generator guidance.
 
 ## Ordered priorities
 
-From 3.0.0, random-data-generator follows Semantic Versioning ([VERSIONING.md](../../VERSIONING.md)). A priority
+random-data-generator follows Semantic Versioning ([VERSIONING.md](../../VERSIONING.md)). From 1.0.0, a priority
 that removes API, changes it incompatibly, or changes existing seeded output beyond a contract fix
 waits for a major release, and deprecates the API it replaces first.
 
@@ -79,7 +79,7 @@ A release candidate requires all of the following:
 
 - exact 100% JaCoCo instruction, line, branch, complexity, method, and class coverage;
 - measured critical-path mutation thresholds;
-- Java 21 and current-JDK CI, native-image smoke, JPMS, and all consumer examples;
+- Java 17, 21 and 25 CI, native-image smoke, JPMS, and all consumer examples;
 - a changelog entry for every user-visible change, including removed or changed API;
 - release rehearsal, Central-only verification, SBOMs, provenance, and recoverable publication.
 

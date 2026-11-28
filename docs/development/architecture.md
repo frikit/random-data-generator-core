@@ -9,12 +9,7 @@ that start with a module name are relative to the repository root.
 
 | Module | Artifact | Role |
 | --- | --- | --- |
-| `core` | `random-data-generator-core` | Everything that generates data. The other modules only adapt it. |
-| `jackson` | `random-data-generator-jackson` | Jackson 3 (`tools.jackson`) module: serializes a `Schema` as its JSON Schema. |
-| `junit` | `random-data-generator-junit` | JUnit Jupiter extension: a seed per test, injection, replay commands on failure. |
-| `spring-boot-starter` | `random-data-generator-spring-boot-starter` | Auto-configuration from `krandom.*` properties and a `@RandomDataGeneratorTest` slice. |
-| `kotest-extensions` | `random-data-generator-kotest-extensions` | Kotest `Arb`s backed by seeded random-data-generator configurations. |
-| `kotlin-dsl` | `random-data-generator-kotlin-dsl` | Kotlin builders (`krandom<T> { }`) and an adapter for Kotlin primary constructors. |
+| `core` | `random-data-generator-core` | Everything that generates data. The integration repositories only adapt it. |
 | `bom` | `random-data-generator-bom` | Version alignment only; no jar. |
 
 The published modules are listed in `publishedModules` in `gradle.properties`. That list drives
@@ -128,16 +123,12 @@ A typical generator:
 | Object engine | `generator/object/` | `ObjectGenerator` fills records, classes and sealed types; `FieldGeneratorResolver` decides each field (overrides, `@Randomizer`, Bean Validation, semantic names), and with a seed gives each member and each semantic provider a stream derived by name; `SemanticFieldRegistry` maps field names such as `email` to generators. Kotlin constructors are handled by an adapter found through `ServiceLoader`. |
 | Safety policies | `generator/network`, `generator/finance`, `generator/user`, `generator/location` | Each generator enforces its own policy, for example reserved IP ranges and `.test` domains by default. `ProviderSafetyMetadata` and `ProviderValidity` record the claims. |
 
-## Integration modules
+## Integration repositories
 
-- **jackson:** `KrandomJacksonModule` and the `KrandomJackson` helpers. Jackson 3 only.
-- **junit:** `KrandomExtension` and `@KrandomSeed`. On failure it prints the seed or recipe with
-  Gradle and Maven commands to replay it; replay reads `krandom.junit.*` settings.
-- **spring-boot-starter:** `KrandomAutoConfiguration` builds a `GeneratorConfig` from
-  `KrandomProperties` (`krandom.*`). `krandom.recipe` excludes the individual properties.
-- **kotest-extensions:** `KrandomArb.kt`. Each sample's configuration is a child of a recipe, so the
-  configuration must be recipe-portable.
-- **kotlin-dsl:** `KrandomDsl.kt` and `KotlinPrimaryConstructorAdapter`.
+The Jackson, JUnit and Spring Boot integrations live in `random-data-generator-java`, the Kotlin DSL and Kotest
+in `random-data-generator-kotlin`, and the Scala API in `random-data-generator-scala`. They call only the
+core's public API; the object engine finds the Kotlin constructor adapter through `ServiceLoader`
+(`ObjectConstructionAdapter`).
 
 ## Things that surprise newcomers
 
