@@ -24,9 +24,9 @@ test of the core is a plain JUnit test that loops over cases from a fixed-seed `
 - **Core coverage is exactly 100%** on instructions, lines, branches, complexity, methods and classes
   (JaCoCo rules in `core/build.gradle.kts`). There are no exclusions; reach it with tests through
   behaviour, not by excluding code or adding test-only branches.
-- **Other published jar modules** would have line and branch floors in `integrationCoverageFloors` in the
-  root `build.gradle.kts`. This repository has none, so the map is empty; the language repositories keep the
-  floors of their integration modules.
+- **Core is the only published jar module.** The root `build.gradle.kts` fails if another one is added
+  without a coverage rule of its own; the language repositories keep the floors of their integration
+  modules.
 - **PIT** runs on a list of critical classes and tests (`pitest { targetClasses / targetTests }` in
   `core/build.gradle.kts`) with mutation-score and line-coverage thresholds. A new class on a
   deterministic, safety or schema path belongs in `targetClasses`, and a new test class that should kill
@@ -62,8 +62,8 @@ Paths are under `core/src/test/java/io/github/frikit/rdg/`.
 7. builds the core Javadoc;
 8. runs every test, forced to rerun, and `java21Test`;
 9. runs PIT on the core (`:core:pitest`);
-10. verifies coverage for every module, prints the coverage tables, and only then fails if a module is
-    under its rule.
+10. verifies the core coverage, prints the coverage table, and only then fails if the core is under its
+    rule.
 
 `--fast` skips the SBOMs and PIT and reuses up-to-date test results. It still rewrites formatting. Use
 it while iterating; run the full gate before every commit.

@@ -210,9 +210,9 @@ else
     fi
 fi
 
-step "Enforce coverage thresholds (core exact 100%, integration module floors)"
+step "Enforce coverage thresholds (core exact 100%)"
 COVERAGE_OK=0
-# The unqualified task name runs the verification of every module that defines one.
+# Only core defines the verification; the unqualified task name finds it.
 "${GRADLEW}" jacocoTestCoverageVerification --quiet && COVERAGE_OK=1 || true
 
 # ── Coverage report — always printed ──────────────────────────────────────────
@@ -301,23 +301,6 @@ END     { printf "%-73s\n", "─────────────────
 echo ""
 printf "! = below %s%% threshold\n" "${COVERAGE_THRESHOLD}"
 
-# ── Integration modules: reported, not gated ──────────────────────────────────
-echo ""
-echo "Integration module coverage (line/branch floors enforced by each module's jacocoTestCoverageVerification):"
-for report in "${REPO_ROOT}"/*/build/reports/jacoco/test/jacocoTestReport.csv; do
-    [ -f "${report}" ] || continue
-    module="${report#"${REPO_ROOT}/"}"
-    module="${module%%/*}"
-    awk -F',' -v module="${module}" '
-    NR == 1 { next }
-    { lm += $8; lc += $9; bm += $6; bc += $7 }
-    END {
-        lines = lm + lc; branches = bm + bc
-        printf "  %-22s line %6.1f%%   branch %6.1f%%\n", module,
-            (lines > 0 ? lc * 100 / lines : 100), (branches > 0 ? bc * 100 / branches : 100)
-    }' "${report}"
-done
-
 # ── Summary ───────────────────────────────────────────────────────────────────
 
 echo
@@ -333,6 +316,6 @@ elif [ "${COVERAGE_OK}" -eq 1 ]; then
     echo -e " All pre-commit checks passed. Safe to commit."
     echo -e "============================================${RESET}"
 else
-    fail "Coverage below threshold — see core/build/jacoco/html/index.html or <module>/build/reports/jacoco/test/html/index.html"
+    fail "Coverage below threshold — see core/build/jacoco/html/index.html"
     exit 1
 fi

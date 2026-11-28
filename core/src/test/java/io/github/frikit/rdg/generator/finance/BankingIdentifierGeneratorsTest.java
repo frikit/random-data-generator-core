@@ -21,8 +21,8 @@ import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-@DisplayName("Phase 2 finance generators")
-class Phase2FinanceGeneratorsTest {
+@DisplayName("banking, tax and security identifier generators")
+class BankingIdentifierGeneratorsTest {
 
     @Test
     @DisplayName("IBAN generator returns country+check+body format")

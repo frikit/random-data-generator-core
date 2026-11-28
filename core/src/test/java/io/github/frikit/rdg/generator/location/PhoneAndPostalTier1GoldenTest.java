@@ -21,12 +21,12 @@ import org.junit.jupiter.params.provider.MethodSource;
 /**
  * Golden seeded output for the phone and postal formats that existed before locale resolution
  * moved from exact locale keys to resolved countries. The expected strings were captured from
- * the 2.5.0 implementation and must stay byte-identical, including for the language-only and
+ * the kRandom 2.5.0 implementation and must stay byte-identical, including for the language-only and
  * legacy Norwegian keys that the old switches served from the same branch.
  *
  * <p>One deliberate change since then: under the default {@link PhoneNumberSafetyPolicy}, en_GB
  * phone numbers come from Ofcom's TV and radio drama ranges, so the default-policy en_GB phone
- * rows were captured again. The 2.5.0 en_GB phone strings are kept unchanged as the
+ * rows were captured again. The kRandom 2.5.0 en_GB phone strings are kept unchanged as the
  * {@link PhoneNumberSafetyPolicy#REALISTIC_UNCLASSIFIED} rows.
  */
 @DisplayName("Tier-1 phone and postal seeded output stays byte-identical")
@@ -299,7 +299,7 @@ class PhoneAndPostalTier1GoldenTest {
                     20260927L,
                     "87145 14108|044 06795785|9035411446|048468216488|70018 74582|033 33941999|044 97247891|8688166745|67915 48386"));
 
-    // The PHONE sequence under PhoneNumberSafetyPolicy.REALISTIC_UNCLASSIFIED: the 2.5.0 en_GB output.
+    // The PHONE sequence under PhoneNumberSafetyPolicy.REALISTIC_UNCLASSIFIED: the kRandom 2.5.0 en_GB output.
     private static final List<Golden> REALISTIC_PHONE = List.of(
             row(
                     "en_GB",
@@ -454,7 +454,7 @@ class PhoneAndPostalTier1GoldenTest {
 
     @ParameterizedTest(name = "{0} seed {1}")
     @MethodSource("realisticPhoneCases")
-    @DisplayName("realistic-policy phone numbers match the captured 2.5.0 output")
+    @DisplayName("realistic-policy phone numbers match the captured kRandom 2.5.0 output")
     void realisticPhoneNumbersMatchGoldenOutput(String localeKey, long seed, String expected) {
         PhoneNumberGenerator generator = new PhoneNumberGenerator(builder(localeKey, seed)
                 .phoneNumberSafetyPolicy(PhoneNumberSafetyPolicy.REALISTIC_UNCLASSIFIED)

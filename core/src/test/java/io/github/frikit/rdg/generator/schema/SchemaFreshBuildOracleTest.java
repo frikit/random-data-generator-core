@@ -33,7 +33,7 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Each built-in reference in a seeded Schema gives, for each value, what a generator built for that value
- * gives: the definition of the named streams since 3.0.1, whichever way FieldLookup gets there.
+ * gives: the definition of the named streams since kRandom 3.0.1, whichever way FieldLookup gets there.
  */
 @DisplayName("built-in references in a seeded Schema give what a build for each value gives")
 class SchemaFreshBuildOracleTest {

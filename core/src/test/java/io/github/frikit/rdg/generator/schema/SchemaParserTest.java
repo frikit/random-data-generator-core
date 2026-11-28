@@ -2119,7 +2119,7 @@ class SchemaParserTest {
         }
 
         @Test
-        @DisplayName("an object const matches an enum member that writes its number differently, as in 2.9.0")
+        @DisplayName("an object const matches an enum member that writes its number differently, as in kRandom 2.9.0")
         void objectConstMatchesEnumMemberWithNumberWrittenDifferently() {
             assertSameJson(Map.of("id", 1), Map.of("id", 1.0));
             assertSameJson(Map.of("id", 1.0), Map.of("id", 1));

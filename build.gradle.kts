@@ -195,15 +195,14 @@ tasks.register("verifyReleaseSboms") {
 // fails `checkApiCompatibility`, which `check` runs.
 // - Java modules: japicmp compares the jar with the released jar from Maven Central, together with the
 //   dependency classpath of each, limited to public and protected API in the public-API packages: the
-//   unqualified exports of the released random-data-generator-core module descriptor and the one package of each
-//   integration module. The JPMS module name must stay, and so must the export of each of those packages.
+//   unqualified exports of the released random-data-generator-core module descriptor. The JPMS module name must
+//   stay, and so must the export of each of those packages.
 // During a major line each check subtracts the breaks that <module>/api/accepted-breaks-N.0.txt accepts
 // (see acceptedBreaksVerdict below).
 // Before the first release apiBaselineVersion is empty: there is no released API to protect, so
 // checkApiCompatibility only says so, and the first release sets it (docs/release-runbook.md).
 val apiBaselineVersion = providers.gradleProperty("apiBaselineVersion").getOrElse("")
-val integrationApiPackages = emptyMap<String, String>()
-val javaApiModules = setOf("core") + integrationApiPackages.keys
+val javaApiModules = setOf("core")
 val apiBaselineModules = if (apiBaselineVersion.isEmpty()) emptySet() else javaApiModules
 check(javaApiModules == jarModules) {
     "The API compatibility check must cover exactly the published jar modules: $jarModules"
@@ -376,9 +375,8 @@ fun Configuration.requestJvmJars(usage: String) {
 // annotations are analysed instead of failing as missing classes. Each side unions the compile
 // (java-api) and runtime graphs: JUnit publishes its org.apiguardian annotations only for
 // compilation, and implementation dependencies only at runtime. compileOnly dependencies are absent
-// from published metadata, yet japicmp must load the types they contribute to the API (the Spring
-// test meta-annotations on @RandomDataGeneratorTest). Keep this in sync with the module build files: a missing
-// entry fails the check with "Could not load".
+// from published metadata, yet japicmp must load the types they contribute to the API. Keep this in
+// sync with the module build files: a missing entry fails the check with "Could not load".
 val apiCompileOnlyDependencies = emptyMap<String, List<Provider<MinimalExternalModuleDependency>>>()
 
 fun apiGraphs(
@@ -602,13 +600,11 @@ val javaApiCompatibilityTasks =
                     moduleProblems += "JPMS module name: $oldModuleName is now $newModuleName"
                 }
                 val apiPackages =
-                    integrationApiPackages[moduleName]?.let(::setOf) ?: exportedPackages(oldJar).also { exported ->
+                    exportedPackages(oldJar).also { exported ->
                         check(
                             exported.isNotEmpty(),
                         ) { "random-data-generator-$moduleName $apiBaselineVersion exports no package" }
                     }
-                // An integration module is an automatic module that exports every package; an explicit
-                // descriptor added later must still export its public-API package.
                 val stillExported = exportedPackages(newJar)
                 apiPackages.filterNot(stillExported::contains).forEach { lost ->
                     moduleProblems += "$lost: no longer exported by module $newModuleName"
@@ -720,73 +716,10 @@ tasks.named("check") {
     dependsOn("checkApiCompatibility")
 }
 
-// Integration modules generate JaCoCo reports (build/reports/jacoco/test) and enforce the line and
-// branch floors below so coverage cannot regress silently. Only :core enforces the exact 100% gate
-// (core/build.gradle.kts) and uploads to Codecov.
-val coverageReportModules = jarModules - "core"
-val jacocoToolVersion = libs.versions.jacoco.get()
-
-// Line and branch coverage floors of each published jar module other than core, which must stay at 100%.
-// This repository publishes no other jar module, so the map is empty.
-// Raise a floor when tests are added; never lower one without a changelog entry explaining why.
-val integrationCoverageFloors = emptyMap<String, Pair<String, String>>()
-check(integrationCoverageFloors.keys == coverageReportModules) {
-    "integrationCoverageFloors must list exactly the integration modules: $coverageReportModules"
-}
-
-subprojects {
-    if (name in coverageReportModules) {
-        apply(plugin = "jacoco")
-        configure<JacocoPluginExtension> {
-            toolVersion = jacocoToolVersion
-        }
-        tasks.withType<JacocoReport>().configureEach {
-            reports {
-                csv.required = true
-                xml.required = true
-                html.required = true
-            }
-        }
-        tasks.withType<Test>().configureEach {
-            finalizedBy("jacocoTestReport")
-        }
-        val (lineFloor, branchFloor) = integrationCoverageFloors.getValue(name)
-        // The module applies its JVM plugin after this block runs, so wire the tasks lazily.
-        pluginManager.withPlugin("java-base") {
-            // JaCoCo skips verification silently when no execution data exists; fail loudly instead.
-            val executionData = layout.buildDirectory.file("jacoco/test.exec")
-            val requireExecutionData =
-                tasks.register("requireJacocoExecutionData") {
-                    description = "Fails when the test task left no JaCoCo execution data to verify."
-                    dependsOn("test")
-                    doLast {
-                        check(executionData.get().asFile.isFile) {
-                            "No JaCoCo execution data at ${executionData.get().asFile}; the coverage floor cannot be verified"
-                        }
-                    }
-                }
-            tasks.withType<JacocoCoverageVerification>().configureEach {
-                dependsOn(requireExecutionData)
-                violationRules {
-                    rule {
-                        limit {
-                            counter = "LINE"
-                            value = "COVEREDRATIO"
-                            minimum = lineFloor.toBigDecimal()
-                        }
-                        limit {
-                            counter = "BRANCH"
-                            value = "COVEREDRATIO"
-                            minimum = branchFloor.toBigDecimal()
-                        }
-                    }
-                }
-            }
-            tasks.named("check") {
-                dependsOn("jacocoTestCoverageVerification")
-            }
-        }
-    }
+// Only :core has a coverage rule: the exact 100% gate in core/build.gradle.kts, uploaded to Codecov.
+// Another published jar module needs a coverage rule of its own before it can be added.
+check(jarModules == setOf("core")) {
+    "Only core has a coverage rule (core/build.gradle.kts); give each published jar module one: $jarModules"
 }
 
 subprojects {

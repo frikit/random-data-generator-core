@@ -15,8 +15,8 @@ import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-@DisplayName("Phase 1 network generators")
-class NetworkPhase1GeneratorsTest {
+@DisplayName("hostname, URI and HTTP method generators")
+class HostnameUriAndHttpMethodGeneratorTest {
 
     @Test
     @DisplayName("hostname generator produces subdomain plus domain")

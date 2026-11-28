@@ -14,8 +14,8 @@ import java.math.BigDecimal;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-@DisplayName("Phase 2 base generators")
-class Phase2BaseGeneratorsTest {
+@DisplayName("nullable boolean and pydecimal generators")
+class NullableBooleanAndPyDecimalGeneratorTest {
 
     @Test
     @DisplayName("nullable boolean produces true/false/null")
