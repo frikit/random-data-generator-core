@@ -153,7 +153,7 @@ class EmailGeneratorTest {
 
     @Test
     void testGetFreeEmailProvider() {
-        String provider = realistic(Locale.US).getFreeEmailProvider();
+        String provider = realistic(Locale.US).generateFreeEmailDomain();
         assertNotNull(provider);
         assertFalse(provider.isBlank());
         assertFalse(provider.contains("@"));
@@ -178,26 +178,26 @@ class EmailGeneratorTest {
 
     @Test
     void testGetFreeEmailProviderLocaleAware() {
-        String provider = realistic(Locale.GERMANY).getFreeEmailProvider();
+        String provider = realistic(Locale.GERMANY).generateFreeEmailDomain();
         assertTrue(List.of("gmx.de", "web.de", "gmail.com", "outlook.com").contains(provider));
     }
 
     @Test
     void testGetFreeEmailProviderAllLocaleBranches() {
         assertTrue(List.of("gmx.de", "web.de", "gmail.com", "outlook.com")
-                .contains(realistic(Locale.GERMANY).getFreeEmailProvider()));
+                .contains(realistic(Locale.GERMANY).generateFreeEmailDomain()));
         assertTrue(List.of("orange.fr", "laposte.net", "gmail.com", "outlook.com")
-                .contains(realistic(Locale.FRANCE).getFreeEmailProvider()));
+                .contains(realistic(Locale.FRANCE).generateFreeEmailDomain()));
         assertTrue(List.of("hotmail.es", "gmail.com", "outlook.com", "yahoo.com")
-                .contains(realistic(new Locale("es", "ES")).getFreeEmailProvider()));
+                .contains(realistic(new Locale("es", "ES")).generateFreeEmailDomain()));
         assertTrue(List.of("libero.it", "gmail.com", "outlook.com", "yahoo.com")
-                .contains(realistic(Locale.ITALY).getFreeEmailProvider()));
+                .contains(realistic(Locale.ITALY).generateFreeEmailDomain()));
         assertTrue(List.of("uol.com.br", "bol.com.br", "gmail.com", "outlook.com")
-                .contains(realistic(new Locale("pt", "BR")).getFreeEmailProvider()));
+                .contains(realistic(new Locale("pt", "BR")).generateFreeEmailDomain()));
         assertTrue(List.of("yahoo.co.jp", "gmail.com", "outlook.com")
-                .contains(realistic(Locale.JAPAN).getFreeEmailProvider()));
+                .contains(realistic(Locale.JAPAN).generateFreeEmailDomain()));
         assertTrue(List.of("qq.com", "163.com", "126.com", "gmail.com")
-                .contains(realistic(Locale.CHINA).getFreeEmailProvider()));
+                .contains(realistic(Locale.CHINA).generateFreeEmailDomain()));
         assertTrue(List.of(
                         "gmail.com",
                         "yahoo.com",
@@ -211,7 +211,7 @@ class EmailGeneratorTest {
                         "gmx.com",
                         "yandex.com",
                         "qq.com")
-                .contains(realistic(Locale.US).getFreeEmailProvider()));
+                .contains(realistic(Locale.US).generateFreeEmailDomain()));
     }
 
     @Test

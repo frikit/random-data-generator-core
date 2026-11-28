@@ -89,7 +89,7 @@ public final class CompanyUrlGenerator implements Generator<String> {
             slug = slug.substring(0, MAX_LABEL_LENGTH);
         }
         String tld = networkSafetyPolicy == NetworkSafetyPolicy.REALISTIC_UNCLASSIFIED
-                ? domainGenerator.getTLD()
+                ? domainGenerator.generateTld()
                 : RESERVED_TLD;
         return "https://www." + slug + "." + tld;
     }

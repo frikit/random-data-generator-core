@@ -243,7 +243,7 @@ class CurrencyGeneratorTest {
 
     @Test
     void testGetName() {
-        String name = generator.getName();
+        String name = generator.generateCurrencyName();
         assertNotNull(name);
         assertFalse(name.isEmpty());
     }
@@ -251,20 +251,20 @@ class CurrencyGeneratorTest {
     @Test
     void testGetNameForLocaleUS() {
         Locale locale = new Locale("en", "US");
-        String name = generator.getName(locale);
+        String name = generator.generateCurrencyName(locale);
         assertEquals("United States Dollar", name);
     }
 
     @Test
     void testGetNameForLocaleEUR() {
         Locale locale = new Locale("de", "DE");
-        String name = generator.getName(locale);
+        String name = generator.generateCurrencyName(locale);
         assertEquals("Euro", name);
     }
 
     @Test
     void testGetNameForNullLocale() {
-        String name = generator.getName(null);
+        String name = generator.generateCurrencyName(null);
         assertNotNull(name);
         assertFalse(name.isEmpty());
     }
@@ -273,7 +273,7 @@ class CurrencyGeneratorTest {
 
     @Test
     void testGetSymbol() {
-        String symbol = generator.getSymbol();
+        String symbol = generator.generateCurrencySymbol();
         assertNotNull(symbol);
         assertFalse(symbol.isEmpty());
     }
@@ -281,27 +281,27 @@ class CurrencyGeneratorTest {
     @Test
     void testGetSymbolForLocaleUS() {
         Locale locale = new Locale("en", "US");
-        String symbol = generator.getSymbol(locale);
+        String symbol = generator.generateCurrencySymbol(locale);
         assertEquals("$", symbol);
     }
 
     @Test
     void testGetSymbolForLocaleGB() {
         Locale locale = new Locale("en", "GB");
-        String symbol = generator.getSymbol(locale);
+        String symbol = generator.generateCurrencySymbol(locale);
         assertEquals("£", symbol);
     }
 
     @Test
     void testGetSymbolForLocaleEUR() {
         Locale locale = new Locale("fr", "FR");
-        String symbol = generator.getSymbol(locale);
+        String symbol = generator.generateCurrencySymbol(locale);
         assertEquals("€", symbol);
     }
 
     @Test
     void testGetSymbolForNullLocale() {
-        String symbol = generator.getSymbol(null);
+        String symbol = generator.generateCurrencySymbol(null);
         assertNotNull(symbol);
         assertFalse(symbol.isEmpty());
     }
@@ -310,7 +310,7 @@ class CurrencyGeneratorTest {
 
     @Test
     void testGetNumericCode() {
-        String numericCode = generator.getNumericCode();
+        String numericCode = generator.generateCurrencyNumericCode();
         assertNotNull(numericCode);
         assertEquals(3, numericCode.length());
         assertTrue(numericCode.matches("\\d{3}"));
@@ -319,20 +319,20 @@ class CurrencyGeneratorTest {
     @Test
     void testGetNumericCodeForLocaleUS() {
         Locale locale = new Locale("en", "US");
-        String numericCode = generator.getNumericCode(locale);
+        String numericCode = generator.generateCurrencyNumericCode(locale);
         assertEquals("840", numericCode);
     }
 
     @Test
     void testGetNumericCodeForLocaleEUR() {
         Locale locale = new Locale("es", "ES");
-        String numericCode = generator.getNumericCode(locale);
+        String numericCode = generator.generateCurrencyNumericCode(locale);
         assertEquals("978", numericCode);
     }
 
     @Test
     void testGetNumericCodeForNullLocale() {
-        String numericCode = generator.getNumericCode(null);
+        String numericCode = generator.generateCurrencyNumericCode(null);
         assertNotNull(numericCode);
         assertEquals(3, numericCode.length());
     }

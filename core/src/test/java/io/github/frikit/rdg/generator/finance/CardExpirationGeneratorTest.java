@@ -323,7 +323,7 @@ class CardExpirationGeneratorTest {
 
     @Test
     void testGetMonth() {
-        String month = generator.getMonth();
+        String month = generator.generateMonth();
         assertNotNull(month);
         assertTrue(month.matches("\\d{2}"), "Month should be 2 digits");
         int monthValue = Integer.parseInt(month);
@@ -334,7 +334,7 @@ class CardExpirationGeneratorTest {
     void testGetMonthMultiple() {
         Set<String> months = new HashSet<>();
         for (int i = 0; i < 200; i++) {
-            String month = generator.getMonth();
+            String month = generator.generateMonth();
             assertNotNull(month);
             int monthValue = Integer.parseInt(month);
             assertTrue(monthValue >= 1 && monthValue <= 12);
@@ -345,7 +345,7 @@ class CardExpirationGeneratorTest {
 
     @Test
     void testGetMonthWithFutureDateRange() {
-        String month = generator.getMonth(DateRange.FUTURE);
+        String month = generator.generateMonth(DateRange.FUTURE);
         assertNotNull(month);
         assertTrue(month.matches("\\d{2}"));
         int monthValue = Integer.parseInt(month);
@@ -354,7 +354,7 @@ class CardExpirationGeneratorTest {
 
     @Test
     void testGetMonthWithAnyDateRange() {
-        String month = generator.getMonth(DateRange.ANY);
+        String month = generator.generateMonth(DateRange.ANY);
         assertNotNull(month);
         assertTrue(month.matches("\\d{2}"));
         int monthValue = Integer.parseInt(month);
@@ -365,21 +365,21 @@ class CardExpirationGeneratorTest {
 
     @Test
     void testGetYear() {
-        String year = generator.getYear();
+        String year = generator.generateYear();
         assertNotNull(year);
         assertTrue(year.matches("\\d{2}"), "Default should be 2-digit year");
     }
 
     @Test
     void testGetYearShort() {
-        String year = generator.getYear(false);
+        String year = generator.generateYear(false);
         assertNotNull(year);
         assertTrue(year.matches("\\d{2}"), "Short year should be 2 digits");
     }
 
     @Test
     void testGetYearFull() {
-        String year = generator.getYear(true);
+        String year = generator.generateYear(true);
         assertNotNull(year);
         assertTrue(year.matches("\\d{4}"), "Full year should be 4 digits");
         int yearValue = Integer.parseInt(year);
@@ -388,10 +388,10 @@ class CardExpirationGeneratorTest {
 
     @Test
     void testGetYearWithDateRangeParameters() {
-        String shortFuture = generator.getYear(false, DateRange.FUTURE);
-        String fullFuture = generator.getYear(true, DateRange.FUTURE);
-        String shortAny = generator.getYear(false, DateRange.ANY);
-        String fullAny = generator.getYear(true, DateRange.ANY);
+        String shortFuture = generator.generateYear(false, DateRange.FUTURE);
+        String fullFuture = generator.generateYear(true, DateRange.FUTURE);
+        String shortAny = generator.generateYear(false, DateRange.ANY);
+        String fullAny = generator.generateYear(true, DateRange.ANY);
 
         assertTrue(shortFuture.matches("\\d{2}"));
         assertTrue(fullFuture.matches("\\d{4}"));
@@ -405,7 +405,7 @@ class CardExpirationGeneratorTest {
         int currentYear = LocalDate.now().getYear();
 
         for (int i = 0; i < 50; i++) {
-            String yearStr = futureGen.getYear(true);
+            String yearStr = futureGen.generateYear(true);
             int year = Integer.parseInt(yearStr);
             assertTrue(year >= currentYear, "Future-only generator should produce current or future years");
         }
@@ -430,8 +430,8 @@ class CardExpirationGeneratorTest {
         CardExpirationGenerator gen1 = new CardExpirationGenerator(config);
         CardExpirationGenerator gen2 = new CardExpirationGenerator(config);
 
-        assertEquals(gen1.getMonth(), gen2.getMonth());
-        assertEquals(gen1.getMonth(), gen2.getMonth());
+        assertEquals(gen1.generateMonth(), gen2.generateMonth());
+        assertEquals(gen1.generateMonth(), gen2.generateMonth());
     }
 
     @Test
@@ -440,8 +440,8 @@ class CardExpirationGeneratorTest {
         CardExpirationGenerator gen1 = new CardExpirationGenerator(config);
         CardExpirationGenerator gen2 = new CardExpirationGenerator(config);
 
-        assertEquals(gen1.getYear(), gen2.getYear());
-        assertEquals(gen1.getYear(true), gen2.getYear(true));
+        assertEquals(gen1.generateYear(), gen2.generateYear());
+        assertEquals(gen1.generateYear(true), gen2.generateYear(true));
     }
 
     @Test
@@ -506,7 +506,7 @@ class CardExpirationGeneratorTest {
     @Test
     void testMonthFormat() {
         for (int i = 0; i < 100; i++) {
-            String month = generator.getMonth();
+            String month = generator.generateMonth();
             assertEquals(2, month.length(), "Month should always be 2 digits");
             assertTrue(month.charAt(0) == '0' || month.charAt(0) == '1', "Month first digit should be 0 or 1");
         }
@@ -515,7 +515,7 @@ class CardExpirationGeneratorTest {
     @Test
     void testYearShortFormat() {
         for (int i = 0; i < 100; i++) {
-            String year = generator.getYear(false);
+            String year = generator.generateYear(false);
             assertEquals(2, year.length(), "Short year should be 2 digits");
         }
     }
@@ -523,7 +523,7 @@ class CardExpirationGeneratorTest {
     @Test
     void testYearFullFormat() {
         for (int i = 0; i < 100; i++) {
-            String year = generator.getYear(true);
+            String year = generator.generateYear(true);
             assertEquals(4, year.length(), "Full year should be 4 digits");
             assertTrue(year.startsWith("20"), "Full year should start with 20");
         }

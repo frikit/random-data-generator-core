@@ -50,9 +50,9 @@ import java.util.Random;
  * String anyExpiry = anyGen.generate();        // Could be past or future
  *
  * // Get just the month or year
- * String month = gen.getMonth();               // "07"
- * String year = gen.getYear();                 // "28"
- * String fullYear = gen.getYear(true);         // "2028"
+ * String month = gen.generateMonth();          // "07"
+ * String year = gen.generateYear();            // "28"
+ * String fullYear = gen.generateYear(true);    // "2028"
  * }</pre>
  *
  * <p><strong>Locale-Aware Formatting:</strong>
@@ -195,8 +195,8 @@ public final class CardExpirationGenerator implements Generator<String> {
      *
      * @return a month string (e.g., "01", "07", "12"); never {@code null}
      */
-    public String getMonth() {
-        return getMonth(dateRange);
+    public String generateMonth() {
+        return generateMonth(dateRange);
     }
 
     /**
@@ -205,7 +205,7 @@ public final class CardExpirationGenerator implements Generator<String> {
      * @param dateRange the date range to use (PAST, FUTURE, or ANY)
      * @return a month string (e.g., "01", "07", "12"); never {@code null}
      */
-    public String getMonth(DateRange dateRange) {
+    public String generateMonth(DateRange dateRange) {
         YearMonth expiryDate = generateYearMonth(dateRange);
         return expiryDate.format(MONTH_FORMATTER);
     }
@@ -217,8 +217,8 @@ public final class CardExpirationGenerator implements Generator<String> {
      *
      * @return a 2-digit year string; never {@code null}
      */
-    public String getYear() {
-        return getYear(false, dateRange);
+    public String generateYear() {
+        return generateYear(false, dateRange);
     }
 
     /**
@@ -227,8 +227,8 @@ public final class CardExpirationGenerator implements Generator<String> {
      * @param fullYear if true, returns 4-digit year (e.g., "2026"); if false, returns 2-digit (e.g., "26")
      * @return a year string; never {@code null}
      */
-    public String getYear(boolean fullYear) {
-        return getYear(fullYear, dateRange);
+    public String generateYear(boolean fullYear) {
+        return generateYear(fullYear, dateRange);
     }
 
     /**
@@ -238,7 +238,7 @@ public final class CardExpirationGenerator implements Generator<String> {
      * @param dateRange the date range to use (PAST, FUTURE, or ANY)
      * @return a year string; never {@code null}
      */
-    public String getYear(boolean fullYear, DateRange dateRange) {
+    public String generateYear(boolean fullYear, DateRange dateRange) {
         YearMonth expiryDate = generateYearMonth(dateRange);
         return expiryDate.format(fullYear ? YEAR_FULL_FORMATTER : YEAR_SHORT_FORMATTER);
     }

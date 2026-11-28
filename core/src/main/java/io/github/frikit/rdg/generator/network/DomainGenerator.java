@@ -21,7 +21,7 @@ import org.jspecify.annotations.Nullable;
  * <p>Under the default {@link NetworkSafetyPolicy#TEST_SAFE_RESERVED} a domain the generator chooses
  * ends in the reserved {@code .test} instead, such as {@code techcloud.test}. A TLD passed to
  * {@link #generate(String)} is used verbatim. A TLD or a label alone is vocabulary, not a destination,
- * so {@link #getTLD()}, {@link #getPopularTLD()}, and {@link #generateName()} draw the same way under
+ * so {@link #generateTld()}, {@link #generatePopularTld()}, and {@link #generateName()} draw the same way under
  * either policy.
  *
  * <p><strong>Popular TLDs:</strong>
@@ -51,7 +51,7 @@ import org.jspecify.annotations.Nullable;
  * String customDomain = gen.generate("io");    // "datahub.io"
  *
  * // Get just the TLD
- * String tld = gen.getTLD();                   // "net"
+ * String tld = gen.generateTld();              // "net"
  * }</pre>
  *
  * <p><strong>Locale-Aware Generation</strong>, under {@link NetworkSafetyPolicy#REALISTIC_UNCLASSIFIED}:
@@ -159,8 +159,9 @@ public final class DomainGenerator implements Generator<String> {
     @Override
     public String generate() {
         String name = generateDomainLabel();
-        String tld =
-                config.getNetworkSafetyPolicy() == NetworkSafetyPolicy.REALISTIC_UNCLASSIFIED ? getTLD() : RESERVED_TLD;
+        String tld = config.getNetworkSafetyPolicy() == NetworkSafetyPolicy.REALISTIC_UNCLASSIFIED
+                ? generateTld()
+                : RESERVED_TLD;
         return name + "." + tld;
     }
 
@@ -207,34 +208,24 @@ public final class DomainGenerator implements Generator<String> {
     }
 
     /**
-     * Generates just a TLD (top-level domain).
-     *
-     * <p>Returns either a popular TLD or a locale-specific TLD based on configuration.
-     *
-     * @return a TLD without dot (e.g., "com", "org", "de"); never {@code null}
-     */
-    public String getTLD() {
-        return random.nextBoolean() && localeTLD != null ? localeTLD : getRandomPopularTLD();
-    }
-
-    /**
      * Generates a domain suffix (top-level domain).
      * Bogus-style alias: {@code domainSuffix()}.
      *
      * @return suffix without dot
      */
     public String generateDomainSuffix() {
-        return getTLD();
+        return generateTld();
     }
 
     /**
-     * Generates a top-level domain token.
-     * Mimesis-style alias.
+     * Generates just a TLD (top-level domain).
      *
-     * @return suffix without dot
+     * <p>Returns either a popular TLD or a locale-specific TLD based on configuration.
+     *
+     * @return a TLD without dot (e.g., "com", "org", "de"); never {@code null}
      */
     public String generateTld() {
-        return getTLD();
+        return random.nextBoolean() && localeTLD != null ? localeTLD : getRandomPopularTLD();
     }
 
     /**
@@ -242,7 +233,7 @@ public final class DomainGenerator implements Generator<String> {
      *
      * @return a popular TLD without dot (e.g., "com", "net", "org"); never {@code null}
      */
-    public String getPopularTLD() {
+    public String generatePopularTld() {
         return getRandomPopularTLD();
     }
 
@@ -251,7 +242,7 @@ public final class DomainGenerator implements Generator<String> {
      *
      * @return the locale TLD, or null if no specific TLD for the locale
      */
-    public @Nullable String getLocaleTLD() {
+    public @Nullable String getLocaleTld() {
         return localeTLD;
     }
 

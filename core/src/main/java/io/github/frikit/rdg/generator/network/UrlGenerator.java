@@ -360,49 +360,22 @@ public final class UrlGenerator implements Generator<String> {
 
     /**
      * Generates just a protocol.
+     * Bogus-style alias: {@code protocol()}.
      *
      * @return a protocol (e.g., "https"); never {@code null}
      */
-    public String getProtocol() {
+    public String generateProtocol() {
         return getRandomProtocol();
     }
 
     /**
-     * Generates a protocol token.
-     * Bogus-style alias: {@code protocol()}.
-     *
-     * @return protocol string
-     */
-    public String generateProtocol() {
-        return getProtocol();
-    }
-
-    /**
-     * Generates just a path (without leading domain).
-     *
-     * @return a path starting with "/" (e.g., "/api/users"); never {@code null}
-     */
-    public String getPath() {
-        return generatePath();
-    }
-
-    /**
      * Generates just a query string (without leading "?").
+     * Mimesis-style alias: {@code query()}.
      *
      * @return a query string (e.g., "id=123&amp;page=1"); never {@code null}
      */
-    public String getQueryString() {
-        return generateQueryString().substring(1); // Remove leading "?"
-    }
-
-    /**
-     * Generates a query-string fragment.
-     * Mimesis-style alias for {@link #getQueryString()}.
-     *
-     * @return query string without leading {@code ?}
-     */
     public String generateQuery() {
-        return getQueryString();
+        return generateQueryString().substring(1); // Remove leading "?"
     }
 
     /**
@@ -411,7 +384,7 @@ public final class UrlGenerator implements Generator<String> {
      * @return top-level domain token (for example {@code "com"})
      */
     public String generateTld() {
-        return domainGenerator.getTLD();
+        return domainGenerator.generateTld();
     }
 
     /**
@@ -424,11 +397,11 @@ public final class UrlGenerator implements Generator<String> {
     }
 
     /**
-     * Generates a path with 1-3 segments.
+     * Generates just a path (without leading domain), with 1-3 segments.
      *
-     * @return a path starting with "/"
+     * @return a path starting with "/" (e.g., "/api/users"); never {@code null}
      */
-    private String generatePath() {
+    public String generatePath() {
         int segments = 1 + random.nextInt(3); // 1-3 segments
         StringBuilder path = new StringBuilder();
         for (int i = 0; i < segments; i++) {

@@ -264,7 +264,7 @@ public final class EmailGenerator implements Generator<String> {
      * @throws IllegalStateException under the default reserved-domain policy
      */
     public String generateFreeEmail() {
-        return generate(getFreeEmailProvider());
+        return generate(generateFreeEmailDomain());
     }
 
     /**
@@ -277,24 +277,6 @@ public final class EmailGenerator implements Generator<String> {
     }
 
     /**
-     * Returns a free-email provider domain.
-     *
-     * <p>Requires {@link EmailDomainPolicy#REALISTIC_UNCLASSIFIED}.
-     *
-     * @return provider domain (for example, {@code gmail.com})
-     * @throws IllegalStateException under the default reserved-domain policy
-     */
-    public String getFreeEmailProvider() {
-        if (config.getEmailDomainPolicy() != EmailDomainPolicy.REALISTIC_UNCLASSIFIED) {
-            throw new IllegalStateException(
-                    "Free-email provider domains are real mailbox providers and are disabled by default; "
-                            + "enable them only for isolated fixtures with GeneratorConfig.builder()"
-                            + ".emailDomainPolicy(EmailDomainPolicy.REALISTIC_UNCLASSIFIED).build()");
-        }
-        return getRandomFreeDomain();
-    }
-
-    /**
      * Returns a free-email provider domain (Faker-style {@code free_email_domain()} equivalent).
      *
      * <p>Requires {@link EmailDomainPolicy#REALISTIC_UNCLASSIFIED}.
@@ -303,7 +285,13 @@ public final class EmailGenerator implements Generator<String> {
      * @throws IllegalStateException under the default reserved-domain policy
      */
     public String generateFreeEmailDomain() {
-        return getFreeEmailProvider();
+        if (config.getEmailDomainPolicy() != EmailDomainPolicy.REALISTIC_UNCLASSIFIED) {
+            throw new IllegalStateException(
+                    "Free-email provider domains are real mailbox providers and are disabled by default; "
+                            + "enable them only for isolated fixtures with GeneratorConfig.builder()"
+                            + ".emailDomainPolicy(EmailDomainPolicy.REALISTIC_UNCLASSIFIED).build()");
+        }
+        return getRandomFreeDomain();
     }
 
     /**
