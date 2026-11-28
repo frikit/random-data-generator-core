@@ -19,7 +19,7 @@ import org.junit.jupiter.api.Test;
  * Draws from character pools that the caller supplies to {@link CharGenerator}, {@link StringGenerator} and
  * {@link PasswordPolicy}. The values were recorded before these generators drew whole code points, so a pool
  * of characters from the Basic Multilingual Plane, including one that holds an unpaired surrogate, keeps the
- * draws it gave in 3.1.0.
+ * draws it gave in kRandom 3.1.0.
  */
 @DisplayName("Draws from caller-supplied character pools")
 class CallerPoolDrawsTest {
@@ -51,7 +51,7 @@ class CallerPoolDrawsTest {
     }
 
     @Test
-    @DisplayName("a seeded CharGenerator pool of BMP characters keeps its 3.1.0 draws")
+    @DisplayName("a seeded CharGenerator pool of BMP characters keeps its kRandom 3.1.0 draws")
     void charGeneratorBmpPoolsKeepTheirDraws() {
         assertEquals("€oa€a↑éi↑ii€←a€é←←e€", chars(CharGenerator.pool(42L, BMP_POOL), 20));
         assertEquals("中中中xßßx中中中ßxxßx中x中xx", chars(CharGenerator.pool(7L, 'x', 'ß', '中', 'x'), 20));
@@ -59,7 +59,7 @@ class CallerPoolDrawsTest {
     }
 
     @Test
-    @DisplayName("a seeded StringGenerator pool of BMP characters keeps its 3.1.0 draws")
+    @DisplayName("a seeded StringGenerator pool of BMP characters keeps its kRandom 3.1.0 draws")
     void stringGeneratorBmpPoolsKeepTheirDraws() {
         assertEquals(
                 List.of("€oa€a↑", "éi↑ii€", "←a€é←←"),
@@ -93,7 +93,7 @@ class CallerPoolDrawsTest {
     }
 
     @Test
-    @DisplayName("a password policy of BMP characters keeps its 3.1.0 draws")
+    @DisplayName("a password policy of BMP characters keeps its kRandom 3.1.0 draws")
     void passwordPolicyBmpPoolsKeepTheirDraws() {
         PasswordPolicy custom = PasswordPolicy.builder()
                 .length(10, 14)
@@ -118,7 +118,7 @@ class CallerPoolDrawsTest {
     }
 
     @Test
-    @DisplayName("a pool that holds an unpaired surrogate keeps its 3.1.0 draws")
+    @DisplayName("a pool that holds an unpaired surrogate keeps its kRandom 3.1.0 draws")
     void poolsWithUnpairedSurrogatesKeepTheirDraws() {
         assertEquals("baab𐀀𐀀\ud800\ud800b\udc00", chars(CharGenerator.pool(5L, "a\uD800b\uDC00"), 12));
         assertEquals(
