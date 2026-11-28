@@ -5,6 +5,7 @@
  */
 package io.github.frikit.rdg.generator.user;
 
+import io.github.frikit.rdg.internal.LocaleTextResourceLoader;
 import java.text.Normalizer;
 import java.util.HashMap;
 import java.util.Locale;

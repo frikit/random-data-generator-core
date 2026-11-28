@@ -6,6 +6,7 @@
 package io.github.frikit.rdg.generator.user;
 
 import io.github.frikit.rdg.generator.locale.SupportedLocale;
+import io.github.frikit.rdg.internal.LocaleTextResourceLoader;
 import java.util.Locale;
 
 /**

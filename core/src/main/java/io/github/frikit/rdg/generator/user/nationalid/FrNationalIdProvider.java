@@ -24,7 +24,7 @@ import java.util.Random;
  *
  * <p>Example: {@code "1 83 05 42 123 456 92"} formatted without spaces.
  */
-public final class FrNationalIdProvider implements NationalIdProvider {
+final class FrNationalIdProvider implements NationalIdProvider {
 
     /**
      * Creates a provider for French NIR numbers.

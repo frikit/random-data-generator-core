@@ -15,7 +15,7 @@ import java.util.Random;
  * <p>The output is a deterministic fake-format value in {@code DDMMYYNNNNN} shape. It is intended
  * for synthetic fixture data and does not claim to be accepted by official validators.
  */
-public final class NbNationalIdProvider implements NationalIdProvider {
+final class NbNationalIdProvider implements NationalIdProvider {
 
     @Override
     public Locale getLocale() {

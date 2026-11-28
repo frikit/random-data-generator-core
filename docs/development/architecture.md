@@ -75,7 +75,7 @@ says what is guaranteed. The machinery:
 | Recipes | `generator/GenerationRecipe.java` | The line-oriented `rdg-recipe/v3` format: every setting needed to replay a run. |
 | `internal.StreamSeeds` | `internal/StreamSeeds.java` | The same hash split into steps, so `Schema` derives per-cell seeds without building strings. |
 | `internal.Reseeding` | `internal/Reseeding.java` | A registry of package-private `reseedTo(long)` hooks, so `Schema` reuses one generator per column instead of building one per value. |
-| `internal.ConfigAccess` | `internal/ConfigAccess.java` | A cheap seed-replacing copy of a configuration for other packages. |
+| `internal.ConfigAccess` | `internal/ConfigAccess.java` | A cheap seed-replacing copy of a configuration, and whether it replays a recipe, for other packages. |
 | `Seedable` | `generator/Seedable.java` | The public reseed contract. |
 
 FNV-1a is implemented in `GeneratorConfig`, `GenerationRecipe` and `internal/StreamSeeds.java`. They
@@ -94,8 +94,8 @@ from code.
 - **`Vocabulary`** (`generator/Vocabulary.java`) has one constant per dataset. It binds the provider
   interface, the global registry and a validator.
 - **Providers and registries:** for each dataset there is an `XDataProvider` interface, a
-  `BuiltInXDataProvider` that loads the files, and an `XDataRegistry` that registers a provider for
-  each `SupportedLocale` in a static initializer.
+  `BuiltInXDataProvider` that loads the files with `internal.LocaleTextResourceLoader`, and an
+  `XDataRegistry` that registers a provider for each `SupportedLocale` in a static initializer.
 - **`DataRegistryContext`** (`generator/DataRegistryContext.java`) resolves a provider for a locale:
   scoped exact locale, then global exact, then scoped language, then global language. Users add their
   own data per configuration with `LocaleDataBundle` or a verified `LocalDataPack`; there is no global

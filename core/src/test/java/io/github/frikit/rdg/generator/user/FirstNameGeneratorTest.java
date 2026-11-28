@@ -14,6 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.frikit.rdg.generator.GeneratorConfig;
 import io.github.frikit.rdg.generator.locale.SupportedLocale;
+import io.github.frikit.rdg.internal.LocaleTextResourceLoader;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;

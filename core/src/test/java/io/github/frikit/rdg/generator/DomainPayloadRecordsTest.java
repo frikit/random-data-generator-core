@@ -10,7 +10,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import io.github.frikit.rdg.generator.commerce.ProductInfo;
 import io.github.frikit.rdg.generator.finance.BankInfo;
 import io.github.frikit.rdg.generator.finance.CreditCardInfo;
-import io.github.frikit.rdg.generator.finance.CurrencyDetails;
 import io.github.frikit.rdg.generator.location.AddressInfo;
 import io.github.frikit.rdg.generator.user.ContactInfo;
 import io.github.frikit.rdg.generator.user.JobInfo;
@@ -45,7 +44,6 @@ class DomainPayloadRecordsTest {
         BankInfo bank = new BankInfo(
                 "1234567890", "021000021", "First National Bank", "Retail Bank", "Checking Account", "deposit");
         CreditCardInfo card = new CreditCardInfo("4111111111111111", "Visa", "12/30", "123");
-        CurrencyDetails currency = new CurrencyDetails("USD", "United States Dollar", "$", "840");
         ProductInfo product =
                 new ProductInfo("Chair", "A nice chair.", "Home", "Wood", "123456789012", "9781234567897");
 
@@ -55,7 +53,6 @@ class DomainPayloadRecordsTest {
         assertEquals("Engineering", job.descriptor());
         assertEquals("First National Bank", bank.bankName());
         assertEquals("Visa", card.type());
-        assertEquals("USD", currency.shortCode());
         assertEquals("Chair", product.name());
     }
 }

@@ -20,9 +20,11 @@ import java.util.random.RandomGenerator;
  *   <li>Owns the {@link RandomGenerator} instance ({@link Random}).</li>
  *   <li>Stores the default {@code min} / {@code max} bounds.</li>
  *   <li>Delegates no-arg {@link #generate()} to {@link #generate(Comparable, Comparable)}.</li>
- *   <li>Provides the strict {@link #validate(Number, Number)} bound check to concrete
- *       subclasses; reversed bounds are rejected, never swapped.</li>
+ *   <li>Gives the generators of this package a strict bound check; reversed bounds are rejected,
+ *       never swapped.</li>
  * </ul>
+ *
+ * <p>Only the numeric generators of this package extend it; its constructors are not public API.
  *
  * @param <T> numeric type; must extend {@link Number} and implement {@link Comparable}
  */
@@ -32,7 +34,7 @@ public abstract class AbstractBoundedGenerator<T extends Number & Comparable<T>>
     /**
      * The underlying PRNG — {@code RandomGenerator} is the Java-17+ interface.
      */
-    protected final RandomGenerator random;
+    final RandomGenerator random;
 
     private final T min;
     private final T max;
@@ -44,7 +46,7 @@ public abstract class AbstractBoundedGenerator<T extends Number & Comparable<T>>
      * @param max upper bound (exclusive) used by the no-arg {@link #generate()}
      * @throws NullPointerException if any argument is {@code null}
      */
-    protected AbstractBoundedGenerator(T min, T max) {
+    AbstractBoundedGenerator(T min, T max) {
         this.min = Objects.requireNonNull(min, "min must not be null");
         this.max = Objects.requireNonNull(max, "max must not be null");
         this.random = new Random();
@@ -58,7 +60,7 @@ public abstract class AbstractBoundedGenerator<T extends Number & Comparable<T>>
      * @param config generator configuration supplying the random source; must not be {@code null}
      * @throws NullPointerException if any argument is {@code null}
      */
-    protected AbstractBoundedGenerator(T min, T max, GeneratorConfig config) {
+    AbstractBoundedGenerator(T min, T max, GeneratorConfig config) {
         this.min = Objects.requireNonNull(min, "min must not be null");
         this.max = Objects.requireNonNull(max, "max must not be null");
         this.random = Objects.requireNonNull(config, "config must not be null").createRandom();
@@ -104,7 +106,7 @@ public abstract class AbstractBoundedGenerator<T extends Number & Comparable<T>>
      *
      * @throws IllegalArgumentException if {@code min >= max}
      */
-    protected void validate(T min, T max) {
+    void validate(T min, T max) {
         Objects.requireNonNull(min, "min must not be null");
         Objects.requireNonNull(max, "max must not be null");
         if (min.compareTo(max) >= 0) {

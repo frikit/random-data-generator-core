@@ -15,7 +15,7 @@ import java.util.Random;
  * <p>{@code YYMMDD} is a birth date between 1950 and 1999. The four trailing digits are random; no
  * EGN check digit is computed.
  */
-public final class BgBgNationalIdProvider implements NationalIdProvider {
+final class BgBgNationalIdProvider implements NationalIdProvider {
 
     @Override
     public Locale getLocale() {

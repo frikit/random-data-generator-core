@@ -13,7 +13,7 @@ import java.util.Random;
  *
  * <p>All digits are random; no identity-number check digit is computed.
  */
-public final class HeIlNationalIdProvider implements NationalIdProvider {
+final class HeIlNationalIdProvider implements NationalIdProvider {
 
     @Override
     public Locale getLocale() {

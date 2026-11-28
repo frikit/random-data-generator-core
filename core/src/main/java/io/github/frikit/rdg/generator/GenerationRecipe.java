@@ -688,12 +688,20 @@ public final class GenerationRecipe {
             return this;
         }
 
-        public Builder recipeVersion(String recipeVersion) {
+        /**
+         * Sets the recipe version that {@link GenerationRecipe#parse(String)} read; {@link #build()} accepts
+         * only {@link GenerationRecipe#RECIPE_VERSION}, the default.
+         */
+        Builder recipeVersion(String recipeVersion) {
             this.recipeVersion = recipeVersion;
             return this;
         }
 
-        public Builder algorithm(String algorithm) {
+        /**
+         * Sets the algorithm that {@link GenerationRecipe#parse(String)} read; {@link #build()} accepts only
+         * {@link GenerationRecipe#ALGORITHM}, the default.
+         */
+        Builder algorithm(String algorithm) {
             this.algorithm = algorithm;
             return this;
         }

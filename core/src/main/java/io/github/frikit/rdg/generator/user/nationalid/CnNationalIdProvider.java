@@ -22,7 +22,7 @@ import java.util.Random;
  *
  * <p>Example: {@code "110101198001011232"}
  */
-public final class CnNationalIdProvider implements NationalIdProvider {
+final class CnNationalIdProvider implements NationalIdProvider {
 
     private static final int[] WEIGHTS = {7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2};
     // Check character indexed by the weighted sum modulo 11 (GB 11643-1999).

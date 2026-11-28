@@ -13,7 +13,7 @@ import java.util.Random;
  *
  * <p>All digits are random; no AFM check digit is computed.
  */
-public final class ElGrNationalIdProvider implements NationalIdProvider {
+final class ElGrNationalIdProvider implements NationalIdProvider {
 
     @Override
     public Locale getLocale() {

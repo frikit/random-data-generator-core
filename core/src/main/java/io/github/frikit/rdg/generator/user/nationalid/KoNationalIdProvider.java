@@ -15,7 +15,7 @@ import java.util.Random;
  * <p>Values use a synthetic 1980-1999 birth date, a 1/2 gender-century digit, five random
  * digits, and the standard final checksum digit.
  */
-public final class KoNationalIdProvider implements NationalIdProvider {
+final class KoNationalIdProvider implements NationalIdProvider {
 
     private static final int[] WEIGHTS = {2, 3, 4, 5, 6, 7, 8, 9, 2, 3, 4, 5};
 

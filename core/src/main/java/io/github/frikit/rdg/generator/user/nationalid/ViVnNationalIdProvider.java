@@ -14,7 +14,7 @@ import java.util.Random;
  * <p>All digits are random, so they do not necessarily encode a real province code, sex and century,
  * or birth year.
  */
-public final class ViVnNationalIdProvider implements NationalIdProvider {
+final class ViVnNationalIdProvider implements NationalIdProvider {
 
     @Override
     public Locale getLocale() {

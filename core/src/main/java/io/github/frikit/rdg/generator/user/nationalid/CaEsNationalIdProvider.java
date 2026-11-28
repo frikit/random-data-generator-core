@@ -11,7 +11,7 @@ import java.util.Random;
 /**
  * Generates Spanish DNI style identifiers for the Catalan locale — 8 digits + letter.
  */
-public final class CaEsNationalIdProvider implements NationalIdProvider {
+final class CaEsNationalIdProvider implements NationalIdProvider {
 
     private static final String CHECK_LETTERS = "TRWAGMYFPDXBNJZSQVHLCKE";
 

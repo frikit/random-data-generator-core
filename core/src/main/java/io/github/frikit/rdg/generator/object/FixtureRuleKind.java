@@ -66,7 +66,7 @@ public enum FixtureRuleKind {
      *
      * @return {@code true} for an {@code ObjectFaker} rule, {@code false} for a configuration entry
      */
-    public boolean isRegisteredOnObjectFaker() {
+    boolean isRegisteredOnObjectFaker() {
         return registeredOnObjectFaker;
     }
 }

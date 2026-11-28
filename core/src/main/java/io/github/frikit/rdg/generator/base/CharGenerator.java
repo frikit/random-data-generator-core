@@ -238,6 +238,8 @@ public final class CharGenerator implements Generator<Character> {
         private boolean includeSpecial = false;
         private @org.jspecify.annotations.Nullable Long seed = null;
 
+        private Builder() {}
+
         /**
          * Add uppercase ASCII letters A–Z.
          */

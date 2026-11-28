@@ -13,7 +13,7 @@ import java.util.Random;
  *
  * <p>The first digit is non-zero and the last two digits follow the public TCKN checksum rules.
  */
-public final class TrNationalIdProvider implements NationalIdProvider {
+final class TrNationalIdProvider implements NationalIdProvider {
 
     @Override
     public Locale getLocale() {

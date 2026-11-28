@@ -3,7 +3,7 @@
  *
  * Licensed under the MIT License. See LICENSE in the project root for license information.
  */
-package io.github.frikit.rdg.generator.user;
+package io.github.frikit.rdg.internal;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -17,6 +17,9 @@ import java.nio.charset.StandardCharsets;
  *
  * <p>Each resource file is a plain UTF-8 text file with one entry per line. Blank lines and lines
  * starting with {@code #} (header comments) are ignored.
+ *
+ * <p>This package is not exported from the {@code io.github.frikit.rdg} module, so it is not public API:
+ * VERSIONING.md lets it change in any release.
  */
 public final class LocaleTextResourceLoader {
 

@@ -17,9 +17,8 @@ import java.util.Objects;
  */
 public final class ConfigAccess {
 
-    /** The copy that {@link #withSeed(GeneratorConfig, long)} makes. */
-    @FunctionalInterface
-    public interface Seeding {
+    /** The reads and the copy that {@link GeneratorConfig} gives the library's other packages. */
+    public interface Access {
 
         /**
          * The configuration that {@code config.toBuilder().seed(seed).build()} makes.
@@ -29,24 +28,32 @@ public final class ConfigAccess {
          * @return the copy
          */
         GeneratorConfig withSeed(GeneratorConfig config, long seed);
+
+        /**
+         * Whether the configuration replays a recipe and keeps the recipe's seed.
+         *
+         * @param config configuration to read
+         * @return {@code true} for a configuration that replays a recipe
+         */
+        boolean isRestoredFromRecipe(GeneratorConfig config);
     }
 
-    private static volatile @org.jspecify.annotations.Nullable Seeding seeding;
+    private static volatile @org.jspecify.annotations.Nullable Access access;
 
     private ConfigAccess() {}
 
     /**
-     * Installs the copy; {@link GeneratorConfig} calls this once, from its static initializer.
+     * Installs the implementation; {@link GeneratorConfig} calls this once, from its static initializer.
      *
-     * @param implementation the copy
-     * @throws IllegalStateException if a copy is installed already
+     * @param implementation the implementation
+     * @throws IllegalStateException if an implementation is installed already
      */
-    public static synchronized void install(Seeding implementation) {
+    public static synchronized void install(Access implementation) {
         Objects.requireNonNull(implementation, "implementation must not be null");
-        if (seeding != null) {
+        if (access != null) {
             throw new IllegalStateException("ConfigAccess is installed already");
         }
-        seeding = implementation;
+        access = implementation;
     }
 
     /**
@@ -59,7 +66,22 @@ public final class ConfigAccess {
      * @return the copy
      */
     public static GeneratorConfig withSeed(GeneratorConfig config, long seed) {
-        return Objects.requireNonNull(seeding, "GeneratorConfig is not initialized")
-                .withSeed(config, seed);
+        return installed().withSeed(config, seed);
+    }
+
+    /**
+     * Whether the configuration was restored from a replay recipe with
+     * {@link io.github.frikit.rdg.generator.GenerationRecipe#toGeneratorConfig()} and keeps the recipe's seed.
+     * A new seed set through {@link GeneratorConfig#toBuilder()} makes it an ordinary seeded configuration.
+     *
+     * @param config configuration to read
+     * @return {@code true} for a configuration that replays a recipe
+     */
+    public static boolean isRestoredFromRecipe(GeneratorConfig config) {
+        return installed().isRestoredFromRecipe(config);
+    }
+
+    private static Access installed() {
+        return Objects.requireNonNull(access, "GeneratorConfig is not initialized");
     }
 }

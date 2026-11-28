@@ -15,6 +15,7 @@ import io.github.frikit.rdg.generator.EmailDomainPolicy;
 import io.github.frikit.rdg.generator.GeneratorConfig;
 import io.github.frikit.rdg.generator.locale.LocaleDataBundle;
 import io.github.frikit.rdg.generator.locale.SupportedLocale;
+import io.github.frikit.rdg.internal.LocaleTextResourceLoader;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;

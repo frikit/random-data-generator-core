@@ -17,7 +17,7 @@ import java.util.Random;
  * {@code -}, which denotes the 1900s. {@code XXX} is random and the control character that
  * completes a real henkilötunnus is not appended, so values do not pass official validation.
  */
-public final class FiFiNationalIdProvider implements NationalIdProvider {
+final class FiFiNationalIdProvider implements NationalIdProvider {
 
     @Override
     public Locale getLocale() {
