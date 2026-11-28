@@ -16,13 +16,14 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * kRandom 4.1.0 compatibility pin for object generation. A member's seeded stream is derived from its owner's
- * fully qualified class name, so this test and its fixture keep the binary names they had in kRandom
- * ({@code io.github.frikit.krandom.generator.GenerationRecipeGoldenStreamTest$GoldenPerson}). With them, the
- * object golden stream of {@code io.github.frikit.rdg.generator.GenerationRecipeGoldenStreamTest} must still give
- * the value kRandom 4.1.0 pinned.
+ * Regression pin of the object golden stream for one record of a {@code String} and an {@code int}. A member's
+ * seeded stream is derived from its owner's fully qualified class name, so this test and its fixture keep the
+ * binary names they had in kRandom
+ * ({@code io.github.frikit.krandom.generator.GenerationRecipeGoldenStreamTest$GoldenPerson}). This record still
+ * gives the value kRandom 4.1.0 pinned, but that is not a promise: generated objects can take other values than
+ * in kRandom 4.1.0.
  */
-@DisplayName("kRandom 4.1.0 compatibility: the object golden stream under its kRandom class name")
+@DisplayName("the object golden stream of a two-member record under its kRandom class name")
 class GenerationRecipeGoldenStreamTest {
 
     private static final GeneratorConfig CONFIG = GeneratorConfig.builder()
@@ -33,7 +34,7 @@ class GenerationRecipeGoldenStreamTest {
             .build();
 
     @Test
-    @DisplayName("the golden person is the one kRandom 4.1.0 pinned")
+    @DisplayName("the golden person keeps its pinned value")
     void objectGoldenStream() {
         assertEquals(
                 new GoldenPerson("YyauCX", -1_007_300_327),

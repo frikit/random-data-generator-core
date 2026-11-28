@@ -16,16 +16,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `KRandomModuleContext` and `KRandomExtensionRegistry` are `ExtensionModule`, `ExtensionModuleContext` and
   `ExtensionRegistry`.
 - Renamed contracts: the built-in data resources are under `rdg/` instead of `krandom/`, a local data pack's
-  manifest is `rdg-data-pack.properties`, a recipe's format is `rdg-recipe` (still version `v2`), a schema export's
+  manifest is `rdg-data-pack.properties`, a recipe's format is `rdg-recipe` (version `v3`, below), a schema export's
   safety extension is `x-rdg-safety`, and the system property that supplies a development build's library version
   is `rdg.version`. kRandom data packs and schema exports use the old names and need the new ones.
-- A seed gives the same values as in kRandom 4.1.0: the seed derivation and stream keys are unchanged. One
-  exception: object generation derives a member's stream from its owner's class name, so the members of the
+- A seed gives generators and `RandomDataGenerator` methods the same values as in kRandom 4.1.0: the seed
+  derivation and stream keys are unchanged. Generated objects can take other values than in kRandom 4.1.0: object
+  generation derives every member's stream and every semantic provider's seed by name (see `ObjectFieldStreamPolicy`
+  under Removed), and a member's stream follows its owner's class name, which is in `io.github.frikit.rdg` for the
   library's own records (`AddressInfo`, `PersonInfo`, `PostalLocality`, `CountryCodes` and the other `*Info`
-  records) take other values when the object engine builds them. Members of your own classes keep their values.
+  records).
 - A kRandom recipe (format `krandom-recipe`, any version) is rejected with a message that says it replays only
   with the kRandom release its `library-version` line names; it is not converted. An `rdg-recipe` of any version
-  but `v2` is rejected as unsupported.
+  but `v3`, `v2` included, is rejected as unsupported.
 - The Jackson, JUnit and Spring Boot modules move to `random-data-generator-java`, and the Kotlin DSL and Kotest
   modules to `random-data-generator-kotlin`.
 
@@ -46,9 +48,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   and `GenerationRecipe.LEGACY_UNCLASSIFIED_SAFETY_POLICY`. The typed safety policies stay.
 - **Breaking, before 1.0.0:** the recipe lines `safety-policy`, `setting.child-stream-policy`,
   `setting.advancing-convenience-streams`, `setting.gaussian.strict-math`,
-  `setting.object.reseed-built-in-randomizers` and `setting.address.german-street-layout`. A recipe is still
-  `rdg-recipe/v2`; one that carries a `safety-policy` line is rejected when parsed, and one that carries any of the
-  settings is rejected at replay with `Unsupported recipe setting`.
-- The default seeded output is unchanged: a default configuration gives the values it gave before.
+  `setting.object.reseed-built-in-randomizers` and `setting.address.german-street-layout`. A recipe that carries
+  a `safety-policy` line is rejected when parsed, and one that carries any of the settings is rejected at replay
+  with `Unsupported recipe setting`. Removing these settings, `ChildStreamPolicy` and the label leaves the default
+  seeded output as it was.
+- **Breaking, before 1.0.0, changes seeded objects:** `ObjectFieldStreamPolicy`,
+  `GeneratorConfig.Builder.objectFieldStreamPolicy`, `GeneratorConfig.getObjectFieldStreamPolicy` and the recipe
+  line `setting.object.field-stream-policy`. Every seeded object generation now does what `INDEPENDENT` did: each
+  member draws from its own stream, derived by name from the seed, even when the configuration has custom rules,
+  exclusions or modules, and the seed of each provider-backed semantic generator, such as the one for `email`, is
+  derived from its key instead of drawn in registry order. So a module that registers a semantic provider no longer
+  shifts the other members, and an `ObjectFaker` root `ruleFor` no longer changes the other seeded members. Seeded
+  generated objects take other values: in the default `RELAXED` and in `STRICT` semantic mode for every seeded
+  configuration, and in `STRUCTURAL_ONLY` mode for one without a portable recipe. Generators, `RandomDataGenerator`
+  methods and schemas keep their values. An unseeded configuration, or one with a caller-owned `Random`, still
+  draws its members from one shared sequence. Since the derivation changes, a recipe is now `rdg-recipe/v3`; a `v2`
+  recipe is rejected as unsupported, and one that carries `setting.object.field-stream-policy` is rejected at
+  replay with `Unsupported recipe setting`. A seeded configuration with custom rules, exclusions or modules now
+  derives a stream for each member, which is slower than one shared sequence; the last measurement is the
+  [2.3.0 benchmark record](docs/benchmarks/2.3.0/README.md). The generation report names such a member's seed
+  source `DERIVED_STREAM` where it said `EXPLICIT_SEED`.
 
 [Unreleased]: https://github.com/frikit/random-data-generator-core/commits/main

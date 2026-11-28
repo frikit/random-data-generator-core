@@ -15,7 +15,6 @@ import io.github.frikit.rdg.generator.finance.SecuritiesIdentifierSafetyPolicy;
 import io.github.frikit.rdg.generator.location.PhoneNumberSafetyPolicy;
 import io.github.frikit.rdg.generator.network.NetworkSafetyPolicy;
 import io.github.frikit.rdg.generator.object.ObjectConstructionPolicy;
-import io.github.frikit.rdg.generator.object.ObjectFieldStreamPolicy;
 import io.github.frikit.rdg.generator.object.ObjectGenerationSemanticMode;
 import io.github.frikit.rdg.generator.object.SemanticFieldRegistry;
 import io.github.frikit.rdg.generator.report.GenerationReportListener;
@@ -105,7 +104,6 @@ public final class GeneratorConfig {
     private final @Nullable LocalDate objectDateMin;
     private final @Nullable LocalDate objectDateMax;
     private final ObjectGenerationSemanticMode objectSemanticMode;
-    private final ObjectFieldStreamPolicy objectFieldStreamPolicy;
     private final SemanticFieldRegistry objectSemanticRegistry;
     private final double objectNullProbability;
     private final double objectOptionalEmptyProbability;
@@ -163,7 +161,6 @@ public final class GeneratorConfig {
         this.objectDateMin = b.objectDateMin;
         this.objectDateMax = b.objectDateMax;
         this.objectSemanticMode = b.objectSemanticMode;
-        this.objectFieldStreamPolicy = b.objectFieldStreamPolicy;
         this.modules = List.copyOf(b.modules);
         this.extensionRegistry = ExtensionRegistry.resolve(modules);
         this.objectSemanticRegistry = extensionRegistry.applyTo(b.objectSemanticRegistry);
@@ -238,7 +235,6 @@ public final class GeneratorConfig {
         this.objectDateMin = parent.objectDateMin;
         this.objectDateMax = parent.objectDateMax;
         this.objectSemanticMode = parent.objectSemanticMode;
-        this.objectFieldStreamPolicy = parent.objectFieldStreamPolicy;
         this.modules = parent.modules;
         this.extensionRegistry = parent.extensionRegistry;
         this.objectSemanticRegistry = parent.objectSemanticRegistry;
@@ -306,15 +302,6 @@ public final class GeneratorConfig {
      */
     public GeneratorConfig snapshotClock() {
         return toBuilder().clock(Clock.fixed(clock.instant(), clock.getZone())).build();
-    }
-
-    /**
-     * Returns the object-field stream policy. The default preserves legacy output.
-     *
-     * @return configured stream policy
-     */
-    public ObjectFieldStreamPolicy getObjectFieldStreamPolicy() {
-        return objectFieldStreamPolicy;
     }
 
     /**
@@ -916,9 +903,6 @@ public final class GeneratorConfig {
                             "object.date-max",
                             Objects.requireNonNull(objectDateMax).toString());
         }
-        if (objectFieldStreamPolicy != ObjectFieldStreamPolicy.LEGACY) {
-            recipe.setting("object.field-stream-policy", objectFieldStreamPolicy.name());
-        }
         return Optional.of(recipe.build());
     }
 
@@ -1023,7 +1007,6 @@ public final class GeneratorConfig {
         private @Nullable LocalDate objectDateMin;
         private @Nullable LocalDate objectDateMax;
         private ObjectGenerationSemanticMode objectSemanticMode = ObjectGenerationSemanticMode.RELAXED;
-        private ObjectFieldStreamPolicy objectFieldStreamPolicy = ObjectFieldStreamPolicy.LEGACY;
         private SemanticFieldRegistry objectSemanticRegistry = SemanticFieldRegistry.defaults();
         private double objectNullProbability;
         private double objectOptionalEmptyProbability;
@@ -1088,7 +1071,6 @@ public final class GeneratorConfig {
             this.objectDateMin = source.objectDateMin;
             this.objectDateMax = source.objectDateMax;
             this.objectSemanticMode = source.objectSemanticMode;
-            this.objectFieldStreamPolicy = source.objectFieldStreamPolicy;
             this.objectSemanticRegistry = source.objectSemanticRegistry;
             this.objectNullProbability = source.objectNullProbability;
             this.objectOptionalEmptyProbability = source.objectOptionalEmptyProbability;
@@ -1402,22 +1384,6 @@ public final class GeneratorConfig {
             }
             this.objectDateMin = min;
             this.objectDateMax = max;
-            return this;
-        }
-
-        /**
-         * Chooses how seed-owned object fields obtain random streams.
-         *
-         * <p>INDEPENDENT keeps unrelated structural fields stable when overrides, exclusions, or
-         * modules are installed. A numeric or textual seed is required at build time. Callback
-         * state and intentionally dependent semantic values remain the caller's responsibility.
-         * LEGACY preserves the existing default and recipe-portability boundary.
-         *
-         * @param policy non-null field stream policy
-         * @return this builder
-         */
-        public Builder objectFieldStreamPolicy(ObjectFieldStreamPolicy policy) {
-            this.objectFieldStreamPolicy = Objects.requireNonNull(policy, "objectFieldStreamPolicy");
             return this;
         }
 
@@ -1878,10 +1844,6 @@ public final class GeneratorConfig {
             if (configuredSources > 1) {
                 throw new IllegalStateException(
                         "Configure only one random source: seed, random, randomFactory, or secureRandom");
-            }
-            if (objectFieldStreamPolicy == ObjectFieldStreamPolicy.INDEPENDENT
-                    && effectiveSeed(numericSeed, stringSeed).isEmpty()) {
-                throw new IllegalStateException("Independent object field streams require a numeric or textual seed");
             }
             return new GeneratorConfig(this);
         }

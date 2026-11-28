@@ -20,12 +20,14 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * Seeded values and reports of {@code ObjectFaker} and object generation that the 3.2 object-engine opt-ins
- * must leave as they are, recorded on {@code main} before the opt-ins existed: a root rule or root ignore drops
- * the recipe and moves the other members off their named streams, and the report lists a nested object after
- * its members.
+ * Seeded values and reports of {@code ObjectFaker} and object generation with the default object-engine
+ * settings: each member draws from its own named stream, so a root rule or root ignore drops the recipe but
+ * leaves the other members' values, and the report lists a nested object after its members.
+ *
+ * <p>A member's stream is derived from its owner's class name, so these values follow the names of the
+ * fixtures nested in this class. Renaming this class changes them.
  */
-@DisplayName("with no object-engine opt-in, seeded values and reports stay as 3.1 gave them")
+@DisplayName("with the default object-engine settings, seeded values and reports keep their pinned values")
 class ObjectEngineDefaultsPinTest {
 
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-07-10T12:00:00Z"), ZoneOffset.UTC);
@@ -81,8 +83,8 @@ class ObjectEngineDefaultsPinTest {
     }
 
     @Test
-    @DisplayName("a root rule and a root ignore move the other members off their seeded values")
-    void rootRulesMoveUnrelatedValues() {
+    @DisplayName("a root rule and a root ignore leave the other members on their seeded values")
+    void rootRulesLeaveUnrelatedValues() {
         GeneratorConfig config = seeded().build();
         Function<Member, String> dependent = member -> "X";
 
@@ -98,29 +100,29 @@ class ObjectEngineDefaultsPinTest {
                         // No rule: each member draws from its named stream.
                         PLAIN_FIRST,
                         PLAIN_SECOND,
-                        // A root rule: every member moves.
-                        "fVRdTDHcuejsrNmYtVmF|X|61|ewhite@example.com|2490 Pine St/Fairfield/-2144308780",
-                        "eDULnViQLH|X|52|abigail_adams@example.org|8533 Grove Mnr/Cape Coral/-1634390306",
-                        // A root ignore: every member moves, as with a root rule.
-                        "fVRdTDHcuejsrNmYtVmF|null|61|ewhite@example.com|2490 Pine St/Fairfield/-2144308780",
-                        "eDULnViQLH|null|52|abigail_adams@example.org|8533 Grove Mnr/Cape Coral/-1634390306",
+                        // A root rule: only its member changes.
+                        "EVWEkr|X|54|naomi_ramos@example.org|7328 Broadway Ln/Berkeley/1478226111",
+                        "EbdmcM|X|20|elizabeth.hall@example.org|9962 Adams Ln/Cary/-1022329198",
+                        // A root ignore: only its member changes, as with a root rule.
+                        "EVWEkr|null|54|naomi_ramos@example.org|7328 Broadway Ln/Berkeley/1478226111",
+                        "EbdmcM|null|20|elizabeth.hall@example.org|9962 Adams Ln/Cary/-1022329198",
                         // A dependent rule: only its member changes.
-                        "EVWEkr|X|68|jones.maya@example.com|9883 Forest Plz/Surprise/2074429638",
-                        "EbdmcM|X|57|phillips.zoe@example.org|511 Maple Expy/Akron/1350959872",
+                        "EVWEkr|X|54|naomi_ramos@example.org|7328 Broadway Ln/Berkeley/1478226111",
+                        "EbdmcM|X|20|elizabeth.hall@example.org|9962 Adams Ln/Cary/-1022329198",
                         // A nested rule: only its member changes.
-                        "EVWEkr|rEcDCWZJcizPNSfstgZT|68|jones.maya@example.com|9883 Forest Plz/C/2074429638",
-                        "EbdmcM|FtreFAAaCEhpdYK|57|phillips.zoe@example.org|511 Maple Expy/C/1350959872"),
+                        "EVWEkr|rEcDCWZJcizPNSfstgZT|54|naomi_ramos@example.org|7328 Broadway Ln/C/1478226111",
+                        "EbdmcM|FtreFAAaCEhpdYK|20|elizabeth.hall@example.org|9962 Adams Ln/C/-1022329198"),
                 values);
     }
 
     /** The first two members that seed 42 gives with no rule. */
     static final String PLAIN_FIRST =
-            "EVWEkr|rEcDCWZJcizPNSfstgZT|68|jones.maya@example.com|9883 Forest Plz/Surprise/2074429638";
+            "EVWEkr|rEcDCWZJcizPNSfstgZT|54|naomi_ramos@example.org|7328 Broadway Ln/Berkeley/1478226111";
 
     static final String PLAIN_SECOND =
-            "EbdmcM|FtreFAAaCEhpdYK|57|phillips.zoe@example.org|511 Maple Expy/Akron/1350959872";
+            "EbdmcM|FtreFAAaCEhpdYK|20|elizabeth.hall@example.org|9962 Adams Ln/Cary/-1022329198";
 
-    /** The report of a {@link Shipment} for seed 42, as 3.1 orders it: each object after its members. */
+    /** The report of a {@link Shipment} for seed 42: each object after its members. */
     static final List<String> SHIPMENT_REPORT = List.of(
             "Shipment OBJECT",
             "Shipment.id SEMANTIC",
@@ -159,10 +161,10 @@ class ObjectEngineDefaultsPinTest {
     @Test
     @DisplayName("a root rule and a root ignore drop the recipe from the report, other rules keep it")
     void rootRulesDropTheRecipe() {
-        Optional<String> v1 = Optional.of("rdg-recipe/v2");
+        Optional<String> v3 = Optional.of("rdg-recipe/v3");
         Function<Member, String> dependent = member -> "X";
 
-        assertEquals(List.of(v1), recipeFormats(config -> new ObjectFaker<>(Member.class, config)));
+        assertEquals(List.of(v3), recipeFormats(config -> new ObjectFaker<>(Member.class, config)));
         assertEquals(
                 List.of(Optional.empty()),
                 recipeFormats(config -> new ObjectFaker<>(Member.class, config).ruleFor("nickname", () -> "X")));
@@ -170,10 +172,10 @@ class ObjectEngineDefaultsPinTest {
                 List.of(Optional.empty()),
                 recipeFormats(config -> new ObjectFaker<>(Member.class, config).ignore("nickname")));
         assertEquals(
-                List.of(v1),
+                List.of(v3),
                 recipeFormats(config -> new ObjectFaker<>(Member.class, config).ruleFor("nickname", dependent)));
         assertEquals(
-                List.of(v1),
+                List.of(v3),
                 recipeFormats(config -> new ObjectFaker<>(Member.class, config).ruleFor("address.city", () -> "C")));
     }
 

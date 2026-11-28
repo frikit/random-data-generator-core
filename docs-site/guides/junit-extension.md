@@ -126,7 +126,7 @@ Gradle build, run the owning project's task (`./gradlew :orders:test --tests ...
 without a matching test do not fail the filter; in a multi-module Maven build, add
 `-pl <module>` or `-Dsurefire.failIfNoSpecifiedTests=false`.
 
-A replayed recipe must be `rdg-recipe/v2`. A `krandom-recipe` recipe, which kRandom wrote, is a configuration
+A replayed recipe must be `rdg-recipe/v3`. A `krandom-recipe` recipe, which kRandom wrote, is a configuration
 error: it replays only with the kRandom release that its `library-version` line names.
 
 For a seed-only replay, use a decimal signed 64-bit value:

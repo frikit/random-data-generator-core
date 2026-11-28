@@ -56,7 +56,7 @@ class GenerationReportTest {
         assertEquals(GenerationStep.SEMANTIC, email.step());
         assertEquals("email", email.generator());
         assertEquals(SeedSource.DERIVED_STREAM, email.seedSource());
-        assertEquals(Optional.of("rdg-recipe/v2"), email.recipeFormat());
+        assertEquals(Optional.of("rdg-recipe/v3"), email.recipeFormat());
         assertEquals(List.of("object.semantic-mode", "email.domain-policy", "network.safety-policy"), email.settings());
         assertEquals("TEST_SAFE_RESERVED", email.safetyPolicies().get("network.safety-policy"));
         assertEquals("TEST_SAFE_RESERVED_DOMAINS", email.safetyPolicies().get("email.domain-policy"));
@@ -131,8 +131,9 @@ class GenerationReportTest {
         assertRule(entry(entries, "Overridden.line"), FixtureRuleKind.TYPE_OVERRIDE, "line", -1);
         assertRule(entry(entries, "Overridden.status"), FixtureRuleKind.CONTEXT_TYPE_OVERRIDE, "status", -1);
         assertEquals("override", entry(entries, "Overridden.label").generator());
+        // A seeded configuration without a portable recipe still gives each member a named stream.
         assertEquals(
-                SeedSource.EXPLICIT_SEED, entry(entries, "Overridden.label").seedSource());
+                SeedSource.DERIVED_STREAM, entry(entries, "Overridden.label").seedSource());
         assertEquals(Optional.empty(), entry(entries, "Overridden.label").recipeFormat());
     }
 

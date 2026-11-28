@@ -3211,22 +3211,21 @@ class ObjectGeneratorTest {
         }
 
         @Test
-        @DisplayName("the same seed gives the same values, retries included, on every stream policy")
+        @DisplayName("the same seed gives the same values, retries included, with or without a portable recipe")
         void sameSeedGivesTheSameValuesAcrossRetries() {
-            for (ObjectFieldStreamPolicy policy : ObjectFieldStreamPolicy.values()) {
-                GeneratorConfig config =
-                        unique("id").objectFieldStreamPolicy(policy).build();
+            for (GeneratorConfig config : List.of(
+                    unique("id").build(),
+                    unique("id").objectExcludeField("unused").build())) {
+                String label = config.getGenerationRecipe().isPresent() ? "portable" : "not portable";
                 ObjectGenerator<Mixed> first = new ObjectGenerator<>(Mixed.class, config);
                 ObjectGenerator<Mixed> second = new ObjectGenerator<>(Mixed.class, config);
 
                 List<Mixed> values = first.generateList(5);
 
-                assertEquals(values, second.generateList(5), policy.name());
+                assertEquals(values, second.generateList(5), label);
                 assertEquals(
-                        Set.of(1, 2, 3, 4, 5),
-                        values.stream().map(Mixed::id).collect(Collectors.toSet()),
-                        policy.name());
-                assertThrows(ObjectGenerationException.class, first::generate, policy.name());
+                        Set.of(1, 2, 3, 4, 5), values.stream().map(Mixed::id).collect(Collectors.toSet()), label);
+                assertThrows(ObjectGenerationException.class, first::generate, label);
             }
         }
 

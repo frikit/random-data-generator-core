@@ -43,12 +43,9 @@ class SemanticProviderFallbackTest {
     }
 
     @Test
-    @DisplayName("independent member streams replay provider-backed semantic values")
-    void independentStreamsReplaySemanticValues() {
-        GeneratorConfig config = GeneratorConfig.builder()
-                .seed(21L)
-                .objectFieldStreamPolicy(ObjectFieldStreamPolicy.INDEPENDENT)
-                .build();
+    @DisplayName("named member streams replay provider-backed semantic values")
+    void namedStreamsReplaySemanticValues() {
+        GeneratorConfig config = GeneratorConfig.builder().seed(21L).build();
         Person first = new ObjectGenerator<>(Person.class, config).generate();
         Person second = new ObjectGenerator<>(Person.class, config).generate();
         assertEquals(first.firstName, second.firstName);

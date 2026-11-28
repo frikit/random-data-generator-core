@@ -48,7 +48,6 @@ class JavaMavenUsageTest {
         GeneratorConfig config = GeneratorConfig.builder()
                 .seed(42)
                 .objectSemanticMode(io.github.frikit.rdg.generator.object.ObjectGenerationSemanticMode.STRUCTURAL_ONLY)
-                .objectFieldStreamPolicy(io.github.frikit.rdg.generator.object.ObjectFieldStreamPolicy.INDEPENDENT)
                 .build()
                 .snapshotClock();
         var expected =

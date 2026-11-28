@@ -73,7 +73,7 @@ class StreetAddressPinsTest {
         assertEquals(
                 """
                 format=rdg-recipe
-                recipe-version=v2
+                recipe-version=v3
                 library-version=development
                 algorithm=java.util.Random-v1
                 seed=42

@@ -17,7 +17,7 @@ The public API is:
 
 - the public types and members in the packages that `random-data-generator-core` exports from its
   `module-info.java`;
-- the recipe format, `rdg-recipe/v2`, so a release replays a recipe that an earlier release of its major line
+- the recipe format, `rdg-recipe/v3`, so a release replays a recipe that an earlier release of its major line
   wrote;
 - the `fnv1a64-v1` string-seed derivation.
 
@@ -46,8 +46,10 @@ change under Fixed, with the values it affects. A new generator, option, or sett
 unchanged unless you opt in. Tests that assert exact generated values should still pin both the library version and
 the seed.
 
-The core starts from kRandom 4.1.0, and a seed gives the same values as there, except for the members of the
-library's own records when the object engine builds them; the [changelog](CHANGELOG.md) lists the exception.
+The core starts from kRandom 4.1.0. A seed gives generators and `RandomDataGenerator` methods the same values as
+there, but not generated objects: object generation derives every member's stream and every semantic provider's
+seed by name, so seeded objects can take other values than in kRandom 4.1.0. The [changelog](CHANGELOG.md) lists the
+change.
 
 A seed fixes random-data-generator's own draws, not the Java runtime under them:
 
