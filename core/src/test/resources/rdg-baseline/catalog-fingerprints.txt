@@ -1412,6 +1412,12 @@ ofMbti.generate en-GB 811a9ec21b90b3669a09ac71
 ofMbti.generate en-US 811a9ec21b90b3669a09ac71
 ofMbti.generate hi-IN 811a9ec21b90b3669a09ac71
 ofMbti.generate tr-TR 811a9ec21b90b3669a09ac71
+ofMbti.generateWithNickname ar-SA 7ac4e32ac5dd83a58265a1f0
+ofMbti.generateWithNickname de-DE 7ac4e32ac5dd83a58265a1f0
+ofMbti.generateWithNickname en-GB 7ac4e32ac5dd83a58265a1f0
+ofMbti.generateWithNickname en-US 7ac4e32ac5dd83a58265a1f0
+ofMbti.generateWithNickname hi-IN 7ac4e32ac5dd83a58265a1f0
+ofMbti.generateWithNickname tr-TR 7ac4e32ac5dd83a58265a1f0
 ofMeasurement.generate ar-SA f3ce4bbd17b98bb1b5f7be69
 ofMeasurement.generate de-DE 52f104a94a956b3acc2d5613
 ofMeasurement.generate en-GB 542f432ff7c3ad50ee163c8f

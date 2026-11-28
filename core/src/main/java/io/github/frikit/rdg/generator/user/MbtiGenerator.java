@@ -13,12 +13,12 @@ import java.util.Random;
 /**
  * Generates Myers–Briggs Type Indicator (MBTI) personality types such as {@code "INTJ"}.
  *
- * <p>{@link #generate()} returns one of the 16 four-letter codes. {@link #withNickname()} returns the
+ * <p>{@link #generate()} returns one of the 16 four-letter codes. {@link #generateWithNickname()} returns the
  * code together with its common nickname, e.g. {@code "INTJ (Architect)"}.
  *
  * <pre>{@code
  *   String type = new MbtiGenerator().generate();     // e.g. "ENFP"
- *   String full = new MbtiGenerator().withNickname();  // e.g. "ENFP (Campaigner)"
+ *   String full = new MbtiGenerator().generateWithNickname();  // e.g. "ENFP (Campaigner)"
  * }</pre>
  */
 public final class MbtiGenerator implements Generator<String> {
@@ -70,7 +70,7 @@ public final class MbtiGenerator implements Generator<String> {
      *
      * @return the code and nickname; never {@code null}
      */
-    public String withNickname() {
+    public String generateWithNickname() {
         int i = random.nextInt(TYPES.length);
         return TYPES[i] + " (" + NICKNAMES[i] + ')';
     }
