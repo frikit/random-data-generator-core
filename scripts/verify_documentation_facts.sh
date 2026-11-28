@@ -144,9 +144,9 @@ grep -Fq 'SchemaProjection' "${REPO_ROOT}/docs-site/guides/schema-and-provider-h
 [[ -x "${REPO_ROOT}/scripts/verify_examples_central.sh" ]] || fail "Central consumer verification script is not executable"
 grep -Fq 'resumeGithubRelease=true' "${REPO_ROOT}/docs/release-runbook.md" || fail "release runbook lacks GitHub Release recovery guidance"
 grep -Fq 'verify_examples_central.sh' "${REPO_ROOT}/docs/release-runbook.md" || fail "release runbook lacks Central consumer verification"
-grep -Fq 'mutationThreshold.set(85)' "${REPO_ROOT}/core/build.gradle.kts" || fail "critical-path mutation threshold changed without documentation review"
+grep -Fq 'mutationThreshold.set(90)' "${REPO_ROOT}/core/build.gradle.kts" || fail "critical-path mutation threshold changed without documentation review"
 grep -Fq 'coverageThreshold.set(98)' "${REPO_ROOT}/core/build.gradle.kts" || fail "critical-path mutation coverage threshold changed without documentation review"
-grep -Fq '85% mutation score' "${REPO_ROOT}/CONTRIBUTING.md" || fail "CONTRIBUTING does not document the mutation score gate"
+grep -Fq '90% mutation score' "${REPO_ROOT}/CONTRIBUTING.md" || fail "CONTRIBUTING does not document the mutation score gate"
 grep -Fq '98% mutated-class line coverage' "${REPO_ROOT}/CONTRIBUTING.md" || fail "CONTRIBUTING does not document the mutation coverage gate"
 
 if [[ -n "${LATEST_GA_VERSION}" ]]; then

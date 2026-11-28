@@ -185,7 +185,8 @@ pitest {
     outputFormats.set(setOf("HTML", "XML"))
     timestampedReports.set(false)
     threads.set(1)
-    mutationThreshold.set(85)
+    // The measured score is 92% (November 2026); the floor stays a little under it.
+    mutationThreshold.set(90)
     coverageThreshold.set(98)
 }
 

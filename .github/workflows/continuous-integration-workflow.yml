@@ -13,13 +13,15 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-# Job timeouts are 4-5x the slowest successful runs observed in September 2026 (build 7 min,
-# native image 4.5 min, mutation 6 min, examples 6 min), so they only stop hung jobs. The API
-# compatibility job, added in November 2026, took 15 s locally from a clean build with cached
-# dependencies; its 10 minutes leave room for a cold dependency cache until CI runs are measured.
+# Job timeouts only stop hung jobs. Slowest successful runs seen in November 2026: build 5 min,
+# native image 3.5 min, API compatibility 1.5 min, examples 2.5 min, and mutation 45 min, whose
+# limit is 90 minutes.
 jobs:
   build:
     name: Test & Coverage (Java ${{ matrix.java }})
+    # The Java 25 entry runs with an empty Gradle user home and no cache, so every change is also
+    # verified as a fresh checkout resolves it: strict dependency verification then sees each POM and
+    # module file that a warm cache would skip (docs/development/dependency-reproducibility.md).
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
@@ -58,7 +60,21 @@ jobs:
         with:
           java-version: ${{ matrix.build-java }}
           distribution: 'temurin'
-          cache: 'gradle'
+
+      # Each job, and each matrix entry, restores the Gradle user home that main saved under its own key
+      # (raise the v1 in the key to start every job cold once),
+      # so no job waits on a key another job reserved; an older entry of the same job serves when the
+      # build inputs changed.
+      - name: Restore the Gradle cache
+        id: gradle-cache
+        if: matrix.java != '25'
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-v1-${{ runner.os }}-${{ github.job }}-${{ matrix.java }}-${{ hashFiles('**/*.gradle.kts', 'gradle/libs.versions.toml', 'gradle/verification-metadata.xml', 'gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-v1-${{ runner.os }}-${{ github.job }}-${{ matrix.java }}-
 
       - name: Make gradlew executable
         run: chmod +x gradlew
@@ -94,6 +110,16 @@ jobs:
           disable_search: true
           fail_ci_if_error: false
 
+      # Only main saves, so a pull request never fills a cache that later runs restore.
+      - name: Save the Gradle cache
+        if: github.ref == 'refs/heads/main' && steps.gradle-cache.outputs.cache-hit != 'true' && matrix.java != '25'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ steps.gradle-cache.outputs.cache-primary-key }}
+
   # The build job's `check` runs the same check; this job reports it on its own, so a pull request
   # that breaks the public API of the apiBaselineVersion release shows which declarations it breaks.
   api-compatibility:
@@ -112,13 +138,36 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
-          cache: 'gradle'
+
+      # Each job, and each matrix entry, restores the Gradle user home that main saved under its own key
+      # (raise the v1 in the key to start every job cold once),
+      # so no job waits on a key another job reserved; an older entry of the same job serves when the
+      # build inputs changed.
+      - name: Restore the Gradle cache
+        id: gradle-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-v1-${{ runner.os }}-${{ github.job }}-${{ matrix.java }}-${{ hashFiles('**/*.gradle.kts', 'gradle/libs.versions.toml', 'gradle/verification-metadata.xml', 'gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-v1-${{ runner.os }}-${{ github.job }}-${{ matrix.java }}-
 
       - name: Make gradlew executable
         run: chmod +x gradlew
 
       - name: Check the public API against the apiBaselineVersion release
         run: ./gradlew checkApiCompatibility --continue --console=plain --max-workers=1 --no-daemon
+
+      # Only main saves, so a pull request never fills a cache that later runs restore.
+      - name: Save the Gradle cache
+        if: github.ref == 'refs/heads/main' && steps.gradle-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ steps.gradle-cache.outputs.cache-primary-key }}
 
   native-image:
     name: GraalVM Native Image Smoke (Java 25)
@@ -137,7 +186,20 @@ jobs:
           java-version: '25'
           distribution: graalvm
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          cache: gradle
+
+      # Each job, and each matrix entry, restores the Gradle user home that main saved under its own key
+      # (raise the v1 in the key to start every job cold once),
+      # so no job waits on a key another job reserved; an older entry of the same job serves when the
+      # build inputs changed.
+      - name: Restore the Gradle cache
+        id: gradle-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-v1-${{ runner.os }}-${{ github.job }}-${{ matrix.java }}-${{ hashFiles('**/*.gradle.kts', 'gradle/libs.versions.toml', 'gradle/verification-metadata.xml', 'gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-v1-${{ runner.os }}-${{ github.job }}-${{ matrix.java }}-
 
       - name: Make gradlew executable
         run: chmod +x gradlew
@@ -147,12 +209,21 @@ jobs:
           RDG_REQUIRE_NATIVE_IMAGE: "true"
         run: ./scripts/verify_native_image.sh
 
+      # Only main saves, so a pull request never fills a cache that later runs restore.
+      - name: Save the Gradle cache
+        if: github.ref == 'refs/heads/main' && steps.gradle-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ steps.gradle-cache.outputs.cache-primary-key }}
+
   mutation-pilot:
     name: Critical-path Mutation (Java 21)
     runs-on: ubuntu-latest
-    # The object engine, GeneratorConfig and GenerationRecipe joined the mutation targets on
-    # 2026-09-27, roughly tripling the analysis (about 7 minutes locally); re-measure on CI.
-    timeout-minutes: 60
+    # PIT runs on one thread for repeatable results: 29 to 45 minutes on CI, about 17 locally.
+    timeout-minutes: 90
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -165,13 +236,34 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
-          cache: 'gradle'
+
+      # This job restores the Gradle user home that main saved under its own key (raise the v1 in the key
+      # to start it cold once). It has no fallback key: when a build input changes, PIT's dependency
+      # graph, which only this job resolves, is verified from an empty Gradle home.
+      - name: Restore the Gradle cache
+        id: gradle-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-v1-${{ runner.os }}-${{ github.job }}-${{ matrix.java }}-${{ hashFiles('**/*.gradle.kts', 'gradle/libs.versions.toml', 'gradle/verification-metadata.xml', 'gradle/wrapper/gradle-wrapper.properties') }}
 
       - name: Make gradlew executable
         run: chmod +x gradlew
 
       - name: Measure critical-path mutation baseline
         run: ./gradlew :core:pitest --console=plain --max-workers=1 --no-daemon
+
+      # Only main saves, so a pull request never fills a cache that later runs restore.
+      - name: Save the Gradle cache
+        if: github.ref == 'refs/heads/main' && steps.gradle-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ steps.gradle-cache.outputs.cache-primary-key }}
 
   examples:
     name: Examples (Local Maven Snapshot)
@@ -196,7 +288,20 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
-          cache: 'gradle'
+
+      # Each job, and each matrix entry, restores the Gradle user home that main saved under its own key
+      # (raise the v1 in the key to start every job cold once),
+      # so no job waits on a key another job reserved; an older entry of the same job serves when the
+      # build inputs changed.
+      - name: Restore the Gradle cache
+        id: gradle-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-v1-${{ runner.os }}-${{ github.job }}-${{ matrix.java }}-${{ hashFiles('**/*.gradle.kts', 'gradle/libs.versions.toml', 'gradle/verification-metadata.xml', 'gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-v1-${{ runner.os }}-${{ github.job }}-${{ matrix.java }}-
 
       - name: Make gradle wrappers executable
         run: chmod +x gradlew examples/java-gradle/gradlew
@@ -205,3 +310,13 @@ jobs:
         env:
           RDG_REQUIRE_JAVA17: "true"
         run: ./scripts/verify_examples_local.sh
+
+      # Only main saves, so a pull request never fills a cache that later runs restore.
+      - name: Save the Gradle cache
+        if: github.ref == 'refs/heads/main' && steps.gradle-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ steps.gradle-cache.outputs.cache-primary-key }}

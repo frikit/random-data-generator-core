@@ -75,7 +75,9 @@ major updates arrive separately. For each such pull request:
    Linux/Java 25 resolves POM and Gradle-module entries that a Java 21 run can miss), commits the
    metadata on the branch, and prints the added components. Run it with `GRADLE_USER_HOME` set to a
    new, empty directory: with a warm cache Gradle can skip parent POMs that CI then resolves and
-   rejects.
+   rejects. CI's Java 25 test job always starts from an empty Gradle home for this reason, and the
+   mutation job does whenever a build input changes; the other jobs restore a cache that `main` saved,
+   or an older one of the same job.
 2. Review the metadata diff with the checklist above; the new components should belong to the
    updated dependencies. Check a new Gradle wrapper against the checksums Gradle publishes, and a new
    GitHub Action commit against its release tag.
