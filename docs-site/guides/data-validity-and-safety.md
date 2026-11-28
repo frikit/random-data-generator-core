@@ -143,7 +143,7 @@ ends in `.test`, under a label of at most 63 characters. An object's `URI` and `
 too.
 
 An explicit argument is used verbatim: `generate("com")` ends in `.com`, and `generateWithDomain` and
-the `domain` of `URLOptions` name the destination. A supplied username, subdomain, scheme, path, company
+the `domain` of `UrlOptions` name the destination. A supplied username, subdomain, scheme, path, company
 name, or size does not, and a URL built from one stays under `.test`: a scheme or subdomain that would
 end the host, such as `real.com/`, fails with `IllegalArgumentException`. A company URL built from a supplied
 name, as `CompanyUrlGenerator.generateFromCompanyName(String)` builds it, keeps the name's ASCII letters and

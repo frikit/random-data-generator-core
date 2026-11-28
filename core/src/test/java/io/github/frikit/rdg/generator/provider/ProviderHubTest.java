@@ -26,14 +26,14 @@ import io.github.frikit.rdg.generator.finance.CurrencyGenerator;
 import io.github.frikit.rdg.generator.finance.InvoiceInfoGenerator;
 import io.github.frikit.rdg.generator.finance.MoneyGenerator;
 import io.github.frikit.rdg.generator.finance.PaymentInfoGenerator;
-import io.github.frikit.rdg.generator.identifier.UUIDGenerator;
+import io.github.frikit.rdg.generator.identifier.UuidGenerator;
 import io.github.frikit.rdg.generator.location.AddressInfoGenerator;
 import io.github.frikit.rdg.generator.location.CityGenerator;
 import io.github.frikit.rdg.generator.location.PhoneNumberGenerator;
 import io.github.frikit.rdg.generator.location.StreetAddressGenerator;
 import io.github.frikit.rdg.generator.network.DomainGenerator;
 import io.github.frikit.rdg.generator.network.HostnameGenerator;
-import io.github.frikit.rdg.generator.network.URLGenerator;
+import io.github.frikit.rdg.generator.network.UrlGenerator;
 import io.github.frikit.rdg.generator.selection.UniqueGenerator;
 import io.github.frikit.rdg.generator.text.ParagraphGenerator;
 import io.github.frikit.rdg.generator.text.SentenceGenerator;
@@ -152,8 +152,8 @@ class ProviderHubTest {
         assertInstanceOf(ProductInfoGenerator.class, hub.get("commerce.product_info"));
         assertInstanceOf(OrderInfoGenerator.class, hub.get("commerce.order_info"));
         assertInstanceOf(ShipmentInfoGenerator.class, hub.get("commerce.shipment_info"));
-        assertInstanceOf(URLGenerator.class, hub.get("internet"));
-        assertInstanceOf(URLGenerator.class, hub.get("url"));
+        assertInstanceOf(UrlGenerator.class, hub.get("internet"));
+        assertInstanceOf(UrlGenerator.class, hub.get("url"));
         assertInstanceOf(DomainGenerator.class, hub.get("internet.domain"));
         assertInstanceOf(HostnameGenerator.class, hub.get("internet.hostname"));
         assertInstanceOf(MoneyGenerator.class, hub.get("finance"));
@@ -168,8 +168,8 @@ class ProviderHubTest {
         assertInstanceOf(SentenceGenerator.class, hub.get("text.sentence"));
         assertInstanceOf(ParagraphGenerator.class, hub.get("text.paragraph"));
         assertInstanceOf(TextFormatProvider.class, hub.get("text.format"));
-        assertInstanceOf(UUIDGenerator.class, hub.get("code"));
-        assertInstanceOf(UUIDGenerator.class, hub.get("code.uuid"));
+        assertInstanceOf(UuidGenerator.class, hub.get("code"));
+        assertInstanceOf(UuidGenerator.class, hub.get("code.uuid"));
     }
 
     @Test
@@ -306,7 +306,7 @@ class ProviderHubTest {
     void providerHubExposesUniquenessHelpers() {
         ProviderHub hub = new ProviderHub();
 
-        UniqueGenerator<UUID> unique = hub.unique(new UUIDGenerator());
+        UniqueGenerator<UUID> unique = hub.unique(new UuidGenerator());
         String first = unique.generate().toString();
         String second = unique.generate().toString();
         assertNotNull(first);
@@ -322,7 +322,7 @@ class ProviderHubTest {
 
         assertThrows(NullPointerException.class, () -> hub.unique(null));
         assertThrows(NullPointerException.class, () -> hub.unique(null, 3));
-        assertThrows(NullPointerException.class, () -> hub.unique(new UUIDGenerator(), null));
+        assertThrows(NullPointerException.class, () -> hub.unique(new UuidGenerator(), null));
     }
 
     @Test

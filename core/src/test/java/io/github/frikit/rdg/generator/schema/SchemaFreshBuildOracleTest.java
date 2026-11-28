@@ -13,7 +13,7 @@ import io.github.frikit.rdg.generator.GeneratorConfig;
 import io.github.frikit.rdg.generator.Vocabulary;
 import io.github.frikit.rdg.generator.extension.ExtensionModule;
 import io.github.frikit.rdg.generator.extension.ExtensionModuleContext;
-import io.github.frikit.rdg.generator.identifier.UUIDGenerator;
+import io.github.frikit.rdg.generator.identifier.UuidGenerator;
 import io.github.frikit.rdg.generator.location.CityDataProvider;
 import io.github.frikit.rdg.generator.provider.ProviderCatalog;
 import io.github.frikit.rdg.generator.provider.ProviderDescriptor;
@@ -104,13 +104,13 @@ class SchemaFreshBuildOracleTest {
 
             @Override
             public void configure(ExtensionModuleContext context) {
-                context.registerProvider(ProviderDescriptor.builder("custom.uuid", UUIDGenerator.class, config -> {
+                context.registerProvider(ProviderDescriptor.builder("custom.uuid", UuidGenerator.class, config -> {
                             built[0]++;
-                            return new UUIDGenerator(config);
+                            return new UuidGenerator(config);
                         })
                         .schemaProjection(ProviderSchemaProjection.builder(
                                         "custom.uuid_text",
-                                        (UUIDGenerator provider, GeneratorConfig config) ->
+                                        (UuidGenerator provider, GeneratorConfig config) ->
                                                 provider.generate().toString())
                                 .build())
                         .build());

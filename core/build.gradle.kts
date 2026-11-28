@@ -127,7 +127,7 @@ pitest {
             "io.github.frikit.rdg.generator.GeneratorConfig$*",
             "io.github.frikit.rdg.generator.color.ColorGenerator",
             "io.github.frikit.rdg.generator.finance.CryptoAddressGenerator",
-            "io.github.frikit.rdg.generator.identifier.UUIDGenerator",
+            "io.github.frikit.rdg.generator.identifier.UuidGenerator",
             "io.github.frikit.rdg.generator.schema.Schema",
             "io.github.frikit.rdg.generator.schema.SchemaParser",
             "io.github.frikit.rdg.generator.schema.SchemaValueProvider",
@@ -167,7 +167,7 @@ pitest {
             "io.github.frikit.rdg.generator.SeededDefaultsPinsTest",
             "io.github.frikit.rdg.generator.color.ColorGeneratorTest",
             "io.github.frikit.rdg.generator.finance.Phase3FinanceGeneratorsTest",
-            "io.github.frikit.rdg.generator.identifier.UUIDGeneratorTest",
+            "io.github.frikit.rdg.generator.identifier.UuidGeneratorTest",
             "io.github.frikit.rdg.generator.schema.*",
             "io.github.frikit.rdg.generator.location.RegistryLookupTest",
             // The German locales' street-first layout.

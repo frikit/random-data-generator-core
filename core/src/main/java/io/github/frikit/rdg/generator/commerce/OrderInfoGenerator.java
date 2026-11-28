@@ -9,7 +9,7 @@ import io.github.frikit.rdg.generator.Generator;
 import io.github.frikit.rdg.generator.GeneratorConfig;
 import io.github.frikit.rdg.generator.datetime.DateGenerator;
 import io.github.frikit.rdg.generator.finance.CurrencyGenerator;
-import io.github.frikit.rdg.generator.identifier.UUIDGenerator;
+import io.github.frikit.rdg.generator.identifier.UuidGenerator;
 import io.github.frikit.rdg.generator.location.AddressInfo;
 import io.github.frikit.rdg.generator.location.AddressInfoGenerator;
 import io.github.frikit.rdg.generator.user.PersonInfo;
@@ -29,7 +29,7 @@ public final class OrderInfoGenerator implements Generator<OrderInfo> {
 
     private final GeneratorConfig config;
     private final Random random;
-    private final UUIDGenerator uuidGenerator;
+    private final UuidGenerator uuidGenerator;
     private final DateGenerator dateGenerator;
     private final CurrencyGenerator currencyGenerator;
     private final PersonInfoGenerator personInfoGenerator;
@@ -62,7 +62,7 @@ public final class OrderInfoGenerator implements Generator<OrderInfo> {
     public OrderInfoGenerator(GeneratorConfig config) {
         this.config = Objects.requireNonNull(config, "config must not be null");
         this.random = config.createRandom();
-        this.uuidGenerator = new UUIDGenerator(config.forChildStream("uUID"));
+        this.uuidGenerator = new UuidGenerator(config.forChildStream("uUID"));
         this.dateGenerator = new DateGenerator(config.forChildStream("date"));
         this.currencyGenerator = new CurrencyGenerator(config.forChildStream("currency"));
         this.personInfoGenerator = new PersonInfoGenerator(config.forChildStream("personInfo"));
@@ -79,7 +79,7 @@ public final class OrderInfoGenerator implements Generator<OrderInfo> {
     public OrderInfoGenerator(GeneratorConfig config, AddressInfoGenerator shippingAddressGenerator) {
         this.config = Objects.requireNonNull(config, "config must not be null");
         this.random = config.createRandom();
-        this.uuidGenerator = new UUIDGenerator(config.forChildStream("uUID"));
+        this.uuidGenerator = new UuidGenerator(config.forChildStream("uUID"));
         this.dateGenerator = new DateGenerator(config.forChildStream("date"));
         this.currencyGenerator = new CurrencyGenerator(config.forChildStream("currency"));
         this.personInfoGenerator = new PersonInfoGenerator(config.forChildStream("personInfo"));

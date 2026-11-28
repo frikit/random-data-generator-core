@@ -21,7 +21,7 @@ String ua = Generators.ofUserAgent().generate();
 ## URL generation
 
 ```java
-URLGenerator urls = Generators.ofUrl();
+UrlGenerator urls = Generators.ofUrl();
 String simple = urls.generate();
 String withPath = urls.generateWithPath();
 String full = urls.generateWithPathAndQuery();

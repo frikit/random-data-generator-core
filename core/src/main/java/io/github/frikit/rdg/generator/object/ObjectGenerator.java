@@ -46,7 +46,7 @@ import org.objenesis.ObjenesisStd;
 
 /**
  * Generates random instances of any Java class or record by introspecting its structure
- * at runtime and delegating field/component population to {@link FieldGeneratorResolver}.
+ * at runtime and delegating field/component population to the library's internal field resolver.
  *
  * <p><b>Supported types</b>
  * <ul>
@@ -79,7 +79,7 @@ import org.objenesis.ObjenesisStd;
  *   <li><b>Constrained sizes</b> — a collection, array, or map with {@code @Size} or
  *       {@code @NotEmpty} takes the configured collection size within the declared bounds, or the
  *       declared bound nearest it where the two do not overlap.</li>
- *   <li><b>Circular references</b> — detected via an {@link ObjectPool} and broken by
+ *   <li><b>Circular references</b> — detected via an internal object pool and broken by
  *       returning a previously cached instance (or {@code null}) instead of recursing.</li>
  * </ul>
  *
@@ -212,7 +212,7 @@ public final class ObjectGenerator<T> implements Generator<T> {
     }
 
     /**
-     * Internal constructor — depth and pool are managed by {@link FieldGeneratorResolver}.
+     * Internal constructor — depth and pool are managed by {@code FieldGeneratorResolver}.
      */
     ObjectGenerator(
             Class<T> type,

@@ -71,8 +71,8 @@ import io.github.frikit.rdg.generator.games.dice.DiceType;
 import io.github.frikit.rdg.generator.identifier.EanGenerator;
 import io.github.frikit.rdg.generator.identifier.HashGenerator;
 import io.github.frikit.rdg.generator.identifier.IdentifierMaskGenerator;
-import io.github.frikit.rdg.generator.identifier.UUIDGenerator;
 import io.github.frikit.rdg.generator.identifier.UpcGenerator;
+import io.github.frikit.rdg.generator.identifier.UuidGenerator;
 import io.github.frikit.rdg.generator.location.AddressInfoGenerator;
 import io.github.frikit.rdg.generator.location.CityGenerator;
 import io.github.frikit.rdg.generator.location.CountryGenerator;
@@ -87,8 +87,8 @@ import io.github.frikit.rdg.generator.network.HttpStatusCodeGenerator;
 import io.github.frikit.rdg.generator.network.IPGenerator;
 import io.github.frikit.rdg.generator.network.IPv4Generator;
 import io.github.frikit.rdg.generator.network.IPv6Generator;
-import io.github.frikit.rdg.generator.network.URLGenerator;
 import io.github.frikit.rdg.generator.network.UriGenerator;
+import io.github.frikit.rdg.generator.network.UrlGenerator;
 import io.github.frikit.rdg.generator.network.UserAgentGenerator;
 import io.github.frikit.rdg.generator.object.ObjectFaker;
 import io.github.frikit.rdg.generator.object.ObjectGenerator;
@@ -611,9 +611,9 @@ class GeneratorsTest {
     }
 
     @Test
-    @DisplayName("ofUrl() returns URLGenerator")
+    @DisplayName("ofUrl() returns UrlGenerator")
     void ofUrl() {
-        assertInstanceOf(URLGenerator.class, Generators.ofUrl());
+        assertInstanceOf(UrlGenerator.class, Generators.ofUrl());
     }
 
     @Test
@@ -769,9 +769,9 @@ class GeneratorsTest {
     }
 
     @Test
-    @DisplayName("ofUuid() returns UUIDGenerator")
+    @DisplayName("ofUuid() returns UuidGenerator")
     void ofUuid() {
-        assertInstanceOf(UUIDGenerator.class, Generators.ofUuid());
+        assertInstanceOf(UuidGenerator.class, Generators.ofUuid());
     }
 
     @Test

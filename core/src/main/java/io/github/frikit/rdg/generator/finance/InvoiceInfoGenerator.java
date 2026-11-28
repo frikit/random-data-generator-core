@@ -9,7 +9,7 @@ import io.github.frikit.rdg.generator.Generator;
 import io.github.frikit.rdg.generator.GeneratorConfig;
 import io.github.frikit.rdg.generator.commerce.OrderInfo;
 import io.github.frikit.rdg.generator.commerce.OrderInfoGenerator;
-import io.github.frikit.rdg.generator.identifier.UUIDGenerator;
+import io.github.frikit.rdg.generator.identifier.UuidGenerator;
 import io.github.frikit.rdg.generator.user.CompanyInfo;
 import io.github.frikit.rdg.generator.user.CompanyInfoGenerator;
 import java.math.BigDecimal;
@@ -28,7 +28,7 @@ public final class InvoiceInfoGenerator implements Generator<InvoiceInfo> {
 
     private final GeneratorConfig config;
     private final Random random;
-    private final UUIDGenerator uuidGenerator;
+    private final UuidGenerator uuidGenerator;
     private final OrderInfoGenerator orderInfoGenerator;
     private final CompanyInfoGenerator companyInfoGenerator;
 
@@ -58,7 +58,7 @@ public final class InvoiceInfoGenerator implements Generator<InvoiceInfo> {
     public InvoiceInfoGenerator(GeneratorConfig config) {
         this.config = Objects.requireNonNull(config, "config must not be null");
         this.random = config.createRandom();
-        this.uuidGenerator = new UUIDGenerator(config.forChildStream("uUID"));
+        this.uuidGenerator = new UuidGenerator(config.forChildStream("uUID"));
         this.orderInfoGenerator = new OrderInfoGenerator(config.forChildStream("orderInfo"));
         this.companyInfoGenerator = new CompanyInfoGenerator(config.forChildStream("companyInfo"));
     }

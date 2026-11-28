@@ -22,14 +22,14 @@ import java.util.UUID;
  *
  * <p><strong>Basic Usage (v4 - Random):</strong>
  * <pre>{@code
- * UUIDGenerator gen = new UUIDGenerator();
+ * UuidGenerator gen = new UuidGenerator();
  * UUID uuid = gen.generate();  // Random UUID v4
  * String uuidStr = gen.generateString();  // "f47ac10b-58cc-4372-a567-0e02b2c3d479"
  * }</pre>
  *
  * <p><strong>Version 5 (Name-based SHA-1):</strong>
  * <pre>{@code
- * UUIDGenerator gen = new UUIDGenerator();
+ * UuidGenerator gen = new UuidGenerator();
  * UUID uuid = gen.generateV5("example.com");
  * String uuidStr = gen.generateV5String("my-namespace", "my-name");
  * }</pre>
@@ -37,13 +37,13 @@ import java.util.UUID;
  * <p><strong>Seeded Generation (v4 only):</strong>
  * <pre>{@code
  * GeneratorConfig config = GeneratorConfig.builder().seed(12345L).build();
- * UUIDGenerator gen = new UUIDGenerator(config);
+ * UuidGenerator gen = new UuidGenerator(config);
  * UUID uuid = gen.generate();  // Reproducible UUIDv4
  * }</pre>
  *
  * <p><strong>Version Control:</strong>
  * <pre>{@code
- * UUIDGenerator gen = new UUIDGenerator();
+ * UuidGenerator gen = new UuidGenerator();
  * UUID v4 = gen.generateV4();  // Random UUID
  * UUID v5 = gen.generateV5("example.com");  // Name-based UUID
  * }</pre>
@@ -56,10 +56,10 @@ import java.util.UUID;
  *
  * @see UUID
  */
-public final class UUIDGenerator implements Generator<UUID> {
+public final class UuidGenerator implements Generator<UUID> {
 
     static {
-        io.github.frikit.rdg.internal.Reseeding.register(UUIDGenerator.class, UUIDGenerator::reseedTo);
+        io.github.frikit.rdg.internal.Reseeding.register(UuidGenerator.class, UuidGenerator::reseedTo);
     }
 
     /** Reseeds this generator, which then gives what one built from its configuration with this seed gives. */
@@ -78,7 +78,7 @@ public final class UUIDGenerator implements Generator<UUID> {
      * Creates a UUID generator with default configuration.
      * <p>Default version is UUIDv4 (random).
      */
-    public UUIDGenerator() {
+    public UuidGenerator() {
         this(GeneratorConfig.defaults());
     }
 
@@ -88,7 +88,7 @@ public final class UUIDGenerator implements Generator<UUID> {
      * @param config the generator configuration; must not be {@code null}
      * @throws NullPointerException if {@code config} is {@code null}
      */
-    public UUIDGenerator(GeneratorConfig config) {
+    public UuidGenerator(GeneratorConfig config) {
         this.config = Objects.requireNonNull(config, "config must not be null");
         this.random = config.createRandom();
     }

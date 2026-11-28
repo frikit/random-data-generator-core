@@ -351,7 +351,7 @@ InvoiceInfoGenerator invoices = hub.get("finance.invoice_info", InvoiceInfoGener
 PaymentInfoGenerator payments = hub.get("finance.payment_info", PaymentInfoGenerator.class);
 CompanyInfoGenerator companies = hub.get("company.info", CompanyInfoGenerator.class);
 CityGenerator city = hub.get("address.city", CityGenerator.class);
-URLGenerator internet = hub.get("url", URLGenerator.class); // alias for internet.url
+UrlGenerator internet = hub.get("url", UrlGenerator.class); // alias for internet.url
 TextFormatProvider format = hub.get("text.format", TextFormatProvider.class);
 
 hub.register("custom-product-code", cfg -> new IdentifierMaskGenerator(cfg));
@@ -381,7 +381,7 @@ The old coarse names like `person`, `address`, `internet`, `finance`, `datetime`
 `ProviderHub` also exposes uniqueness helpers directly, so provider-based generation can stay on the same surface:
 
 ```java
-UniqueGenerator<UUID> uniqueIds = hub.unique(new UUIDGenerator());
+UniqueGenerator<UUID> uniqueIds = hub.unique(new UuidGenerator());
 UUID first = uniqueIds.generate();
 UUID second = uniqueIds.generate();
 ```

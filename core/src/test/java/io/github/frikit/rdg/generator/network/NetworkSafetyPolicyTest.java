@@ -212,8 +212,8 @@ class NetworkSafetyPolicyTest {
         ProfileGenerator profiles = new ProfileGenerator(realistic(Locale.US));
         Map<String, Supplier<?>> draws = Map.ofEntries(
                 Map.entry("hostname", new HostnameGenerator(realistic(Locale.US))::generate),
-                Map.entry("url", new URLGenerator(realistic(Locale.US))::generate),
-                Map.entry("url path query", new URLGenerator(realistic(Locale.US))::generateWithPathAndQuery),
+                Map.entry("url", new UrlGenerator(realistic(Locale.US))::generate),
+                Map.entry("url path query", new UrlGenerator(realistic(Locale.US))::generateWithPathAndQuery),
                 Map.entry("uri", new UriGenerator(realistic(Locale.US))::generate),
                 Map.entry("avatar", new AvatarUrlGenerator(realistic(Locale.US))::generate),
                 Map.entry("social link", () -> social.generate().profileUrl()),
@@ -273,8 +273,8 @@ class NetworkSafetyPolicyTest {
                 new DomainGenerator(Locale.GERMANY).generate(),
                 new HostnameGenerator().generate(),
                 new HostnameGenerator(Locale.GERMANY).generate(),
-                hostOf(new URLGenerator().generate()),
-                hostOf(new URLGenerator(Locale.GERMANY).generate()),
+                hostOf(new UrlGenerator().generate()),
+                hostOf(new UrlGenerator(Locale.GERMANY).generate()),
                 hostOf(new UriGenerator().generate()),
                 hostOf(new UriGenerator(Locale.GERMANY).generate()),
                 hostOf(new CompanyUrlGenerator().generate()),
@@ -412,9 +412,9 @@ class NetworkSafetyPolicyTest {
     void anExplicitTldOrDestinationIsUsedVerbatim() {
         assertTrue(new DomainGenerator(reserved(7L)).generate("com").endsWith(".com"));
 
-        URLGenerator urls = new URLGenerator(reserved(7L));
+        UrlGenerator urls = new UrlGenerator(reserved(7L));
         assertTrue(urls.generateWithDomain("corp.com").endsWith("://corp.com"));
-        assertTrue(urls.generateWithOptions(new URLGenerator.URLOptions("https", "corp.com", "api", null, null, false))
+        assertTrue(urls.generateWithOptions(new UrlGenerator.UrlOptions("https", "corp.com", "api", null, null, false))
                 .equals("https://api.corp.com"));
     }
 
@@ -424,7 +424,7 @@ class NetworkSafetyPolicyTest {
         Pattern subdomainHost = Pattern.compile("api\\.[a-z]+\\.test");
         assertEveryDraw(() -> new HostnameGenerator(reserved(8L)).generate("api"), subdomainHost);
 
-        URLGenerator urls = new URLGenerator(reserved(8L));
+        UrlGenerator urls = new UrlGenerator(reserved(8L));
         assertEveryDraw(() -> urls.generate("https"), Pattern.compile("https://[a-z]+\\.test"));
         assertEveryDraw(
                 () -> urls.generateWithDomainPrefix("api"),
@@ -432,7 +432,7 @@ class NetworkSafetyPolicyTest {
         assertEveryDraw(
                 () -> urls.generateWithFixedPath("/v1/users"),
                 Pattern.compile("(?:https?|ftp|wss?)://[a-z]+\\.test/v1/users"));
-        assertEveryDraw(() -> urls.generateWithOptions(new URLGenerator.URLOptions()), RESERVED_URL);
+        assertEveryDraw(() -> urls.generateWithOptions(new UrlGenerator.UrlOptions()), RESERVED_URL);
 
         CompanyUrlGenerator companies = new CompanyUrlGenerator(reserved(8L));
         assertEquals("https://www.acmelabs.test", companies.generateFromCompanyName("Acme Labs"));
@@ -445,14 +445,14 @@ class NetworkSafetyPolicyTest {
     @Test
     @DisplayName("a supplied scheme or subdomain that would end the host is rejected, unless realistic")
     void aSuppliedSchemeOrSubdomainThatWouldEndTheHostIsRejected() {
-        URLGenerator urls = new URLGenerator(reserved(8L));
+        UrlGenerator urls = new UrlGenerator(reserved(8L));
         HostnameGenerator hosts = new HostnameGenerator(reserved(8L));
         for (Executable call : List.<Executable>of(
                 () -> urls.generate("https://real.com/#"),
                 () -> urls.generateWithDomainPrefix("real.com/"),
                 () -> urls.generateWithDomainPrefix("real.com#"),
                 () -> urls.generateWithOptions(
-                        new URLGenerator.URLOptions("https://real.com/#", null, null, null, null, false)),
+                        new UrlGenerator.UrlOptions("https://real.com/#", null, null, null, null, false)),
                 () -> hosts.generate("real.com/"))) {
             assertThrows(IllegalArgumentException.class, call);
         }
@@ -461,8 +461,8 @@ class NetworkSafetyPolicyTest {
         assertEquals(
                 "x+y://real.com/.corp.com",
                 urls.generateWithOptions(
-                        new URLGenerator.URLOptions("x+y", "corp.com", "real.com/", null, null, false)));
-        assertTrue(new URLGenerator(realistic(Locale.US))
+                        new UrlGenerator.UrlOptions("x+y", "corp.com", "real.com/", null, null, false)));
+        assertTrue(new UrlGenerator(realistic(Locale.US))
                 .generateWithDomainPrefix("real.com/")
                 .contains("://real.com/."));
         assertTrue(new HostnameGenerator(realistic(Locale.US))
@@ -473,7 +473,7 @@ class NetworkSafetyPolicyTest {
     @Test
     @DisplayName("URLs keep their shape under reserved names")
     void urlsKeepTheirShape() {
-        URLGenerator urls = new URLGenerator(reserved(9L));
+        UrlGenerator urls = new UrlGenerator(reserved(9L));
         assertEveryDraw(urls::generate, RESERVED_URL);
         assertEveryDraw(urls::generateUrl, RESERVED_URL);
         assertEveryDraw(urls::generateWithPath, Pattern.compile(RESERVED_URL.pattern() + "(?:/[a-z0-9]+){1,3}"));
