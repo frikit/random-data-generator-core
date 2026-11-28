@@ -44,9 +44,9 @@ class MbtiGeneratorTest {
     }
 
     @RepeatedTest(100)
-    @DisplayName("withNickname() pairs a valid type with a non-empty nickname")
-    void withNickname() {
-        String full = new MbtiGenerator().withNickname();
+    @DisplayName("generateWithNickname() pairs a valid type with a non-empty nickname")
+    void generateWithNickname() {
+        String full = new MbtiGenerator().generateWithNickname();
         assertTrue(full.matches("[EI][NS][FT][JP] \\(\\w+\\)"), full);
         assertTrue(TYPES.contains(full.substring(0, 4)), full);
     }
