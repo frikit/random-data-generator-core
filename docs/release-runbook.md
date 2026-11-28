@@ -29,7 +29,7 @@ The GPG public key must be uploaded to a public keyserver (for example
 
 1. **Decide the version.** SemVer, as [VERSIONING.md](../VERSIONING.md) defines it: a major release
    for removed or incompatibly changed public API, a minor release for compatible additions, and a
-   patch release for fixes only; for example `3.1.0`. Confirm the `[Unreleased]` section in
+   patch release for fixes only; for example `1.1.0`. Confirm the `[Unreleased]` section in
    `CHANGELOG.md` is final. A minor or patch release needs a passing
    `./gradlew checkApiCompatibility`; see [Public API compatibility](#public-api-compatibility).
 2. **Land any last commits on `main`.** Run `./scripts/pre_commit_check.sh`
@@ -187,12 +187,12 @@ Before dispatching a release, rehearse the exact non-publishing quality and arti
 clean version decision:
 
 ```bash
-JAVA_HOME=<JDK 21+> ./scripts/verify_release_rehearsal.sh 2.4.0
+JAVA_HOME=<JDK 21+> ./scripts/verify_release_rehearsal.sh <version>
 ```
 
-The rehearsal validates SemVer, requires that `v2.4.0` does not already exist locally, verifies the
+The rehearsal validates SemVer, requires that `v<version>` does not already exist locally, verifies the
 runbook recovery markers, and runs the release-facts, documentation-facts, build, and release-SBOM
-checks with `-PreleaseVersion=2.4.0`. It never reads publication credentials, tags a commit, uploads artifacts,
+checks with `-PreleaseVersion=<version>`. It never reads publication credentials, tags a commit, uploads artifacts,
 or contacts Maven Central.
 
 If a release workflow fails, first identify the last completed step and check Central Portal before

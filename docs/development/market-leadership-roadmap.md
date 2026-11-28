@@ -79,7 +79,7 @@ A release candidate requires all of the following:
 
 - exact 100% JaCoCo instruction, line, branch, complexity, method, and class coverage;
 - measured critical-path mutation thresholds;
-- Java 21 and current-JDK CI, native-image smoke, JPMS, and all consumer examples;
+- Java 17, 21 and 25 CI, native-image smoke, JPMS, and all consumer examples;
 - a changelog entry for every user-visible change, including removed or changed API;
 - release rehearsal, Central-only verification, SBOMs, provenance, and recoverable publication.
 

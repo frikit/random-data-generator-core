@@ -48,7 +48,8 @@ must document the behavioral or safety improvement that justifies it.
 
 ## Accepted breaches
 
-None is open.
+None is open. The record below was measured on kRandom, which this library continues: its versions (3.0.1 to
+3.2.0) and commit `e6ba573d` are kRandom's, and class names are rewritten to the current ones.
 
 - **3.0.1, `SchemaOutputBenchmark`; closed in 3.2.0.** In a `Schema` with a portable seeded configuration, a `Field`
   reference, a reference that `registerProvider(...)` adds, a template's `#` and `?`, and a column that
