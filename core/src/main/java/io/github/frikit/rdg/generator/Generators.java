@@ -4324,8 +4324,6 @@ public final class Generators {
 
     /**
      * Returns a generator that picks {@code count} distinct elements without replacement.
-     *
-     * @since 1.6
      */
     public static <T> PickSetGenerator<T> pickSet(List<T> source, int count) {
         return new PickSetGenerator<>(source, count);

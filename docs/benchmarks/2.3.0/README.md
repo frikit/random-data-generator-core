@@ -1,5 +1,9 @@
 # 2.3.0 field-stream qualification
 
+This record was measured on kRandom 2.3.0, which this library continues; class and package names are
+rewritten to the current ones. The `ObjectFieldStreamPolicy` it compares no longer exists: every seeded
+object now uses the named member streams that `INDEPENDENT` measured here.
+
 Measured on 2026-09-04 on the same macOS arm64 host with JDK 21, JMH 1.37,
 two forks, three one-second warmups and five one-second measurements per fork.
 Both runs used `-Xms256m -Xmx256m` and the GC profiler. The same compiled benchmark

@@ -32,7 +32,6 @@ in Git and release tags instead of duplicated as completed plans and dated revie
 - [Testing and the gate](development/testing.md) — test sets, patterns, the pre-commit gate, and
   fixes for each failing step
 - [AGENTS.md](../AGENTS.md) — rules and reading order for automated contributors
-- [2.5.0 release plan](development/release-2.5.0-plan.md) — latest qualification and publication record
 - [Product roadmap](development/market-leadership-roadmap.md) — priorities and release gates
 - [Dependency reproducibility](development/dependency-reproducibility.md) — build-input policy and
   verification-metadata updates
