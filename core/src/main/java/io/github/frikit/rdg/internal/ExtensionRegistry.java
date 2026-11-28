@@ -3,8 +3,10 @@
  *
  * Licensed under the MIT License. See LICENSE in the project root for license information.
  */
-package io.github.frikit.rdg.generator.extension;
+package io.github.frikit.rdg.internal;
 
+import io.github.frikit.rdg.generator.extension.ExtensionModule;
+import io.github.frikit.rdg.generator.extension.ExtensionModuleContext;
 import io.github.frikit.rdg.generator.object.SemanticFieldRegistry;
 import io.github.frikit.rdg.generator.provider.ProviderCatalog;
 import io.github.frikit.rdg.generator.provider.ProviderDescriptor;
@@ -21,6 +23,10 @@ import java.util.Set;
 
 /**
  * Immutable result of resolving the modules installed in one generator configuration.
+ *
+ * <p>This package is not exported from the {@code io.github.frikit.rdg} module, so it is not public API. A
+ * configuration resolves its modules here when it is built, and the library's other packages read the result
+ * through {@link ConfigAccess#getExtensionRegistry(io.github.frikit.rdg.generator.GeneratorConfig)}.
  */
 public final class ExtensionRegistry {
 
@@ -44,8 +50,7 @@ public final class ExtensionRegistry {
     /**
      * Resolves modules in installation order and rejects all name collisions.
      *
-     * <p>This factory is public so configuration adapters can preserve the same deterministic
-     * contract. Applications normally obtain the registry from their {@code GeneratorConfig}.
+     * <p>This factory is public so {@code GeneratorConfig}, in another package, can call it.
      *
      * @param modules modules to resolve
      * @return immutable extension registry

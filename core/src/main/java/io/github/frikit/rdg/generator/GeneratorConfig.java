@@ -6,7 +6,6 @@
 package io.github.frikit.rdg.generator;
 
 import io.github.frikit.rdg.generator.extension.ExtensionModule;
-import io.github.frikit.rdg.generator.extension.ExtensionRegistry;
 import io.github.frikit.rdg.generator.failure.GenerationFailureListener;
 import io.github.frikit.rdg.generator.finance.BankingSafetyPolicy;
 import io.github.frikit.rdg.generator.finance.CryptoAddressSafetyPolicy;
@@ -21,6 +20,7 @@ import io.github.frikit.rdg.generator.report.GenerationReportListener;
 import io.github.frikit.rdg.generator.user.IdentityDocumentSafetyPolicy;
 import io.github.frikit.rdg.generator.user.nationalid.NationalIdSafetyPolicy;
 import io.github.frikit.rdg.internal.ConfigAccess;
+import io.github.frikit.rdg.internal.ExtensionRegistry;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.nio.charset.Charset;
@@ -91,6 +91,55 @@ public final class GeneratorConfig {
             @Override
             public boolean isRestoredFromRecipe(GeneratorConfig config) {
                 return config.isRestoredFromRecipe();
+            }
+
+            @Override
+            public Optional<Generator<?>> getObjectTypeOverride(GeneratorConfig config, Class<?> type) {
+                return config.getObjectTypeOverride(type);
+            }
+
+            @Override
+            public Optional<Generator<?>> getObjectFieldOverride(
+                    GeneratorConfig config, Class<?> ownerType, String fieldName) {
+                return config.getObjectFieldOverride(ownerType, fieldName);
+            }
+
+            @Override
+            public Optional<ContextualGenerator<?>> getObjectContextualTypeOverride(
+                    GeneratorConfig config, Class<?> type) {
+                return config.getObjectContextualTypeOverride(type);
+            }
+
+            @Override
+            public Optional<ContextualGenerator<?>> getObjectContextualFieldOverride(
+                    GeneratorConfig config, Class<?> ownerType, String fieldName) {
+                return config.getObjectContextualFieldOverride(ownerType, fieldName);
+            }
+
+            @Override
+            public Optional<Generator<?>> getObjectFieldPredicateOverride(GeneratorConfig config, Field field) {
+                return config.getObjectFieldPredicateOverride(field);
+            }
+
+            @Override
+            public Optional<ContextualGenerator<?>> getObjectContextualFieldPredicateOverride(
+                    GeneratorConfig config, Field field) {
+                return config.getObjectContextualFieldPredicateOverride(field);
+            }
+
+            @Override
+            public boolean shouldObjectExclude(GeneratorConfig config, Field field) {
+                return config.shouldObjectExclude(field);
+            }
+
+            @Override
+            public boolean isObjectFieldNameExcluded(GeneratorConfig config, String name) {
+                return config.isObjectFieldNameExcluded(name);
+            }
+
+            @Override
+            public ExtensionRegistry getExtensionRegistry(GeneratorConfig config) {
+                return config.getExtensionRegistry();
             }
         });
     }
@@ -652,11 +701,12 @@ public final class GeneratorConfig {
     }
 
     /**
-     * Returns the immutable registry of explicitly installed extension contributions.
+     * Returns the immutable registry of explicitly installed extension contributions. {@link ConfigAccess} gives
+     * the library's other packages this read.
      *
      * @return configuration-scoped extension registry
      */
-    public ExtensionRegistry getExtensionRegistry() {
+    ExtensionRegistry getExtensionRegistry() {
         return extensionRegistry;
     }
 
@@ -705,9 +755,10 @@ public final class GeneratorConfig {
     }
 
     /**
-     * Return the root-configured type-level override for object generation, if any.
+     * Return the root-configured type-level override for object generation, if any. The object engine reads it,
+     * and the lookups below, through {@link ConfigAccess}.
      */
-    public Optional<Generator<?>> getObjectTypeOverride(Class<?> type) {
+    Optional<Generator<?>> getObjectTypeOverride(Class<?> type) {
         return Optional.ofNullable(objectTypeOverrides.get(type));
     }
 
@@ -716,28 +767,28 @@ public final class GeneratorConfig {
      *
      * <p>Overrides are keyed by the owner's fully-qualified class name and the field name.
      */
-    public Optional<Generator<?>> getObjectFieldOverride(Class<?> ownerType, String fieldName) {
+    Optional<Generator<?>> getObjectFieldOverride(Class<?> ownerType, String fieldName) {
         return Optional.ofNullable(objectFieldOverrides.get(objectFieldKey(ownerType, fieldName)));
     }
 
     /**
      * Return the root-configured contextual type-level override for object generation, if any.
      */
-    public Optional<ContextualGenerator<?>> getObjectContextualTypeOverride(Class<?> type) {
+    Optional<ContextualGenerator<?>> getObjectContextualTypeOverride(Class<?> type) {
         return Optional.ofNullable(objectContextualTypeOverrides.get(type));
     }
 
     /**
      * Return the root-configured contextual field-level override for object generation, if any.
      */
-    public Optional<ContextualGenerator<?>> getObjectContextualFieldOverride(Class<?> ownerType, String fieldName) {
+    Optional<ContextualGenerator<?>> getObjectContextualFieldOverride(Class<?> ownerType, String fieldName) {
         return Optional.ofNullable(objectContextualFieldOverrides.get(objectFieldKey(ownerType, fieldName)));
     }
 
     /**
      * Return the first root-configured predicate field override matching {@code field}, if any.
      */
-    public Optional<Generator<?>> getObjectFieldPredicateOverride(Field field) {
+    Optional<Generator<?>> getObjectFieldPredicateOverride(Field field) {
         Objects.requireNonNull(field, "field must not be null");
         for (FieldGeneratorOverride override : objectPredicateFieldOverrides) {
             if (override.predicate().test(field)) {
@@ -750,7 +801,7 @@ public final class GeneratorConfig {
     /**
      * Return the first root-configured contextual predicate field override matching {@code field}, if any.
      */
-    public Optional<ContextualGenerator<?>> getObjectContextualFieldPredicateOverride(Field field) {
+    Optional<ContextualGenerator<?>> getObjectContextualFieldPredicateOverride(Field field) {
         Objects.requireNonNull(field, "field must not be null");
         for (ContextualFieldGeneratorOverride override : objectContextualPredicateFieldOverrides) {
             if (override.predicate().test(field)) {
@@ -763,7 +814,7 @@ public final class GeneratorConfig {
     /**
      * Returns {@code true} if the root config excludes the given field from object generation.
      */
-    public boolean shouldObjectExclude(Field field) {
+    boolean shouldObjectExclude(Field field) {
         Objects.requireNonNull(field, "field must not be null");
         for (Predicate<Field> predicate : objectExclusionPredicates) {
             if (predicate.test(field)) {
@@ -784,7 +835,7 @@ public final class GeneratorConfig {
      * <p>Unlike {@link #shouldObjectExclude(Field)}, this answers for members that no field backs,
      * such as constructor parameters.
      */
-    public boolean isObjectFieldNameExcluded(String name) {
+    boolean isObjectFieldNameExcluded(String name) {
         Objects.requireNonNull(name, "name must not be null");
         return objectExcludedFieldNames.contains(name);
     }

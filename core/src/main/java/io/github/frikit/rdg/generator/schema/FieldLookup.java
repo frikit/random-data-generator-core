@@ -64,7 +64,8 @@ public final class FieldLookup {
         this.config = Objects.requireNonNull(config, "config must not be null");
         this.seedsValues =
                 config.getRandom().isEmpty() && config.getRandomFactory().isEmpty() && !config.isSecureRandom();
-        this.hasModules = !config.getExtensionRegistry().getModuleIds().isEmpty();
+        this.hasModules =
+                !ConfigAccess.getExtensionRegistry(config).getModuleIds().isEmpty();
         this.valueBuilders = ThreadLocal.withInitial(config::toBuilder);
         registerBuiltIns();
         registerExtensions();
@@ -439,7 +440,8 @@ public final class FieldLookup {
     }
 
     private void registerExtensions() {
-        for (ProviderDescriptor<?> descriptor : config.getExtensionRegistry().getProviderDescriptors()) {
+        for (ProviderDescriptor<?> descriptor :
+                ConfigAccess.getExtensionRegistry(config).getProviderDescriptors()) {
             registerExtensionDescriptor(descriptor);
         }
     }

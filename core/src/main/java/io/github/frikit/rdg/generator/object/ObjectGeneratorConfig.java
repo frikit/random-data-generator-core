@@ -9,6 +9,7 @@ import io.github.frikit.rdg.generator.ContextualGenerator;
 import io.github.frikit.rdg.generator.GenerationRecipe;
 import io.github.frikit.rdg.generator.Generator;
 import io.github.frikit.rdg.generator.GeneratorConfig;
+import io.github.frikit.rdg.internal.ConfigAccess;
 import java.lang.reflect.Field;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -197,31 +198,31 @@ final class ObjectGeneratorConfig {
     }
 
     public Optional<Generator<?>> getTypeOverride(Class<?> type) {
-        return generatorConfig.getObjectTypeOverride(type);
+        return ConfigAccess.getObjectTypeOverride(generatorConfig, type);
     }
 
     public Optional<Generator<?>> getFieldOverride(Class<?> ownerType, String fieldName) {
-        return generatorConfig.getObjectFieldOverride(ownerType, fieldName);
+        return ConfigAccess.getObjectFieldOverride(generatorConfig, ownerType, fieldName);
     }
 
     public Optional<Generator<?>> getFieldPredicateOverride(Field field) {
-        return generatorConfig.getObjectFieldPredicateOverride(field);
+        return ConfigAccess.getObjectFieldPredicateOverride(generatorConfig, field);
     }
 
     public Optional<ContextualGenerator<?>> getContextualTypeOverride(Class<?> type) {
-        return generatorConfig.getObjectContextualTypeOverride(type);
+        return ConfigAccess.getObjectContextualTypeOverride(generatorConfig, type);
     }
 
     public Optional<ContextualGenerator<?>> getContextualFieldOverride(Class<?> ownerType, String fieldName) {
-        return generatorConfig.getObjectContextualFieldOverride(ownerType, fieldName);
+        return ConfigAccess.getObjectContextualFieldOverride(generatorConfig, ownerType, fieldName);
     }
 
     public Optional<ContextualGenerator<?>> getContextualFieldPredicateOverride(Field field) {
-        return generatorConfig.getObjectContextualFieldPredicateOverride(field);
+        return ConfigAccess.getObjectContextualFieldPredicateOverride(generatorConfig, field);
     }
 
     public boolean shouldExclude(Field field) {
-        return field.isAnnotationPresent(Exclude.class) || generatorConfig.shouldObjectExclude(field);
+        return field.isAnnotationPresent(Exclude.class) || ConfigAccess.shouldObjectExclude(generatorConfig, field);
     }
 
     /**

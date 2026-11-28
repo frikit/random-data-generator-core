@@ -9,6 +9,7 @@ import io.github.frikit.rdg.generator.Generator;
 import io.github.frikit.rdg.generator.GeneratorConfig;
 import io.github.frikit.rdg.generator.provider.ProviderCatalog;
 import io.github.frikit.rdg.generator.provider.ProviderDescriptor;
+import io.github.frikit.rdg.internal.ConfigAccess;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -45,7 +46,8 @@ final class BuiltInProviderResolver {
 
     private static @org.jspecify.annotations.Nullable ProviderDescriptor<?> extensionProvider(
             String name, GeneratorConfig config) {
-        for (ProviderDescriptor<?> descriptor : config.getExtensionRegistry().getProviderDescriptors()) {
+        for (ProviderDescriptor<?> descriptor :
+                ConfigAccess.getExtensionRegistry(config).getProviderDescriptors()) {
             if (descriptor.getKey().equals(name) || descriptor.getAliases().contains(name)) {
                 return descriptor;
             }

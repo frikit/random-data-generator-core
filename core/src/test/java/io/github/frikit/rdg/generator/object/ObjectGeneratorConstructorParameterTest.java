@@ -16,6 +16,7 @@ import io.github.frikit.rdg.generator.GeneratorConfig;
 import io.github.frikit.rdg.generator.failure.GenerationFailureCategory;
 import io.github.frikit.rdg.generator.failure.GenerationOperation;
 import io.github.frikit.rdg.generator.object.exception.ObjectGenerationException;
+import io.github.frikit.rdg.internal.ConfigAccess;
 import java.lang.reflect.Constructor;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -160,8 +161,8 @@ class ObjectGeneratorConstructorParameterTest {
     void nameExclusionAppliesToParameterWithoutBackingField() {
         GeneratorConfig config =
                 seeded().objectExcludeField("title").build().toBuilder().build();
-        assertTrue(config.isObjectFieldNameExcluded("title"));
-        assertFalse(config.isObjectFieldNameExcluded("label"));
+        assertTrue(ConfigAccess.isObjectFieldNameExcluded(config, "title"));
+        assertFalse(ConfigAccess.isObjectFieldNameExcluded(config, "label"));
 
         Badge badge = new ObjectGenerator<>(Badge.class, config).generate();
 
