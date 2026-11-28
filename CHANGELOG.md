@@ -15,6 +15,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Renamed types: `Krandom` is `RandomDataGenerator`, and the extension types `KRandomModule` and
   `KRandomModuleContext` are `ExtensionModule` and `ExtensionModuleContext`. `KRandomExtensionRegistry` has no
   public counterpart (see `GeneratorConfig.getExtensionRegistry` under Removed).
+- **Breaking, before 1.0.0:** `URLGenerator` is `UrlGenerator`, its option record `URLGenerator.URLOptions` is
+  `UrlGenerator.UrlOptions`, and `UUIDGenerator` is `UuidGenerator`, in the camel case of their factories
+  `Generators.ofUrl()` and `ofUuid()` and of the other generators, such as `UriGenerator` and `IbanGenerator`.
+  The factories, provider keys and seeded values are unchanged, with one exception: a `UrlOptions` that object
+  generation fills, as a generated object or a member of one, takes other seeded values, because the streams of
+  its components follow its class name. The IP generators keep their names (`IPGenerator`, `ofIP()`).
 - Renamed contracts: the built-in data resources are under `rdg/` instead of `krandom/`, a local data pack's
   manifest is `rdg-data-pack.properties`, a recipe's format is `rdg-recipe` (version `v3`, below), a schema export's
   safety extension is `x-rdg-safety`, and the system property that supplies a development build's library version

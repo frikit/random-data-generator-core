@@ -16,6 +16,11 @@ import java.util.Optional;
  * <p>Use this enum as the single source of truth for supported locale expansion.
  * When adding a new constant here, locale-aware providers and registries are expected
  * to add matching data; coverage tests enforce that contract.
+ *
+ * <p>A fallback variant loads another locale's datasets, named by {@link #resourceFallbackLocale()}.
+ * {@link #DE_AT} and {@link #DE_CH} load the German ones, so their addresses pair German cities and
+ * states with the Austrian or Swiss country name and postal-code format, and they have no postal
+ * places, until sourced Austrian and Swiss place data is added.
  */
 public enum SupportedLocale {
 
@@ -197,24 +202,55 @@ public enum SupportedLocale {
         this.professionDataTier = professionDataTier;
     }
 
+    /**
+     * Returns the locales of every constant, in declaration order.
+     *
+     * @return an unmodifiable list of the supported locales
+     */
     public static List<Locale> locales() {
         return Arrays.stream(values()).map(SupportedLocale::locale).toList();
     }
 
+    /**
+     * Returns the constant whose locale equals {@code locale}, language and country alike.
+     *
+     * @param locale the locale to look up
+     * @return the matching constant, or empty when the locale is not supported as it is
+     */
     public static Optional<SupportedLocale> fromLocale(Locale locale) {
         return Arrays.stream(values())
                 .filter(value -> value.locale.equals(locale))
                 .findFirst();
     }
 
+    /**
+     * Returns the locale of this constant, with its language and country, such as {@code de_AT}.
+     *
+     * @return the locale; never {@code null}
+     */
     public Locale locale() {
         return locale;
     }
 
+    /**
+     * Returns this locale's own {@code language_COUNTRY} key, such as {@code de_AT}, whether or not
+     * it has built-in datasets of its own.
+     *
+     * @return the canonical {@code language_COUNTRY} key; never {@code null}
+     * @see #resourcePrefix()
+     */
     public String canonicalResourcePrefix() {
         return canonicalResourcePrefix;
     }
 
+    /**
+     * Returns the {@code language_COUNTRY} key under which this locale's built-in resource datasets
+     * are loaded: its own {@link #canonicalResourcePrefix()} for a native dataset, or the key of the
+     * locale it falls back to, such as {@code de_DE} for {@code de_AT}.
+     *
+     * @return the key of the loaded datasets; never {@code null}
+     * @see #resourceFallbackLocale()
+     */
     public String resourcePrefix() {
         return resourcePrefix;
     }
@@ -241,10 +277,20 @@ public enum SupportedLocale {
         return LocaleDataQualityTier.max(resourceDataTier, professionDataTier);
     }
 
+    /**
+     * Returns the supported locale whose datasets this locale loads, when it has none of its own.
+     *
+     * @return that locale, or empty when this locale's datasets are its own
+     */
     public Optional<SupportedLocale> resourceFallbackLocale() {
         return resolveFallbackLocale(resourcePrefix, resourceDataTier);
     }
 
+    /**
+     * Returns the supported locale whose profession dataset this locale loads, when it has none of its own.
+     *
+     * @return that locale, or empty when this locale's profession dataset is its own
+     */
     public Optional<SupportedLocale> professionFallbackLocale() {
         return resolveFallbackLocale(professionDatasetPrefix, professionDataTier);
     }

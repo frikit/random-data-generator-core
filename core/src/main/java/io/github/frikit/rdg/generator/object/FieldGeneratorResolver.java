@@ -31,10 +31,10 @@ import io.github.frikit.rdg.generator.failure.GenerationFailureCategory;
 import io.github.frikit.rdg.generator.failure.GenerationFailureContext;
 import io.github.frikit.rdg.generator.failure.GenerationOperation;
 import io.github.frikit.rdg.generator.finance.CurrencyGenerator;
-import io.github.frikit.rdg.generator.identifier.UUIDGenerator;
+import io.github.frikit.rdg.generator.identifier.UuidGenerator;
 import io.github.frikit.rdg.generator.location.CoordinatesGenerator;
-import io.github.frikit.rdg.generator.network.URLGenerator;
 import io.github.frikit.rdg.generator.network.UriGenerator;
+import io.github.frikit.rdg.generator.network.UrlGenerator;
 import io.github.frikit.rdg.generator.object.exception.ObjectGenerationException;
 import io.github.frikit.rdg.generator.report.GenerationDecision;
 import io.github.frikit.rdg.generator.report.GenerationStep;
@@ -350,11 +350,11 @@ final class FieldGeneratorResolver {
                 lazyGenerator(lazyDerived(generatorConfig, seedSource, SqlTimeGenerator::new));
         Generator<java.sql.Timestamp> sqlTimestampGenerator =
                 buildSqlTimestampGenerator(generatorConfig, seedSource, lo, hi);
-        Generator<UUID> uuidGenerator = lazyGenerator(lazyDerived(generatorConfig, seedSource, UUIDGenerator::new));
+        Generator<UUID> uuidGenerator = lazyGenerator(lazyDerived(generatorConfig, seedSource, UuidGenerator::new));
         Generator<TimeZone> timeZoneGenerator =
                 lazyGenerator(lazyDerived(generatorConfig, seedSource, LegacyTimeZoneGenerator::new));
         Supplier<UriGenerator> uriStringGenerator = lazyDerived(generatorConfig, seedSource, UriGenerator::new);
-        Supplier<URLGenerator> urlStringGenerator = lazyDerived(generatorConfig, seedSource, URLGenerator::new);
+        Supplier<UrlGenerator> urlStringGenerator = lazyDerived(generatorConfig, seedSource, UrlGenerator::new);
         Generator<URI> uriGenerator = () -> URI.create(uriStringGenerator.get().generate());
         Generator<java.net.URL> urlGenerator =
                 () -> toUrl(URI.create(urlStringGenerator.get().generate("https")));
@@ -852,7 +852,7 @@ final class FieldGeneratorResolver {
         Generator<Long> stringIdGenerator =
                 longGenerator(nextDeterministicSeed(config, seedSource), seedSource, 1L, Long.MAX_VALUE);
         registerTypedSemantic(
-                generators, "id", UUID.class, lazyGenerator(lazyDerived(config, seedSource, UUIDGenerator::new)));
+                generators, "id", UUID.class, lazyGenerator(lazyDerived(config, seedSource, UuidGenerator::new)));
         registerTypedSemantic(generators, "id", String.class, () -> Long.toString(stringIdGenerator.generate()));
         registerTypedSemantic(
                 generators,

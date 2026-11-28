@@ -55,7 +55,13 @@ public final class GenerationRecipe {
     /** Stable name for the line-oriented recipe format. */
     public static final String FORMAT = "rdg-recipe";
 
-    /** Current recipe format and replay-contract version. */
+    /**
+     * Current recipe format and replay-contract version.
+     *
+     * <p>This is a compile-time constant, so the compiler inlines its value into the code that reads
+     * it: code compiled against one release keeps that release's value, even on a later release, until
+     * it is compiled again.
+     */
     public static final String RECIPE_VERSION = "v3";
 
     /** The format name of a recipe that kRandom, which this library continues, wrote. */

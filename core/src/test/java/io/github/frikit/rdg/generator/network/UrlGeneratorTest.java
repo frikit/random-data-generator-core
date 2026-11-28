@@ -19,49 +19,49 @@ import java.util.Locale;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
-class URLGeneratorTest {
+class UrlGeneratorTest {
 
     @Test
     void testDefaultConstructor() {
-        URLGenerator generator = new URLGenerator();
+        UrlGenerator generator = new UrlGenerator();
         assertNotNull(generator);
     }
 
     @Test
     void testLocaleConstructor() {
-        URLGenerator generator = new URLGenerator(Locale.US);
+        UrlGenerator generator = new UrlGenerator(Locale.US);
         assertNotNull(generator);
     }
 
     @Test
     void testConfigConstructor() {
         GeneratorConfig config = GeneratorConfig.builder().seed(12345L).build();
-        URLGenerator generator = new URLGenerator(config);
+        UrlGenerator generator = new UrlGenerator(config);
         assertNotNull(generator);
     }
 
     @Test
     void testNullConfigThrowsException() {
-        assertThrows(NullPointerException.class, () -> new URLGenerator((GeneratorConfig) null));
+        assertThrows(NullPointerException.class, () -> new UrlGenerator((GeneratorConfig) null));
     }
 
     @Test
     void testGenerateNotNull() {
-        URLGenerator generator = new URLGenerator();
+        UrlGenerator generator = new UrlGenerator();
         String url = generator.generate();
         assertNotNull(url);
     }
 
     @Test
     void testGenerateHasProtocol() {
-        URLGenerator generator = new URLGenerator();
+        UrlGenerator generator = new UrlGenerator();
         String url = generator.generate();
         assertTrue(url.contains("://"), "URL should contain protocol separator");
     }
 
     @Test
     void testGenerateHasValidProtocol() {
-        URLGenerator generator = new URLGenerator();
+        UrlGenerator generator = new UrlGenerator();
         String url = generator.generate();
         assertTrue(
                 url.startsWith("http://")
@@ -74,27 +74,27 @@ class URLGeneratorTest {
 
     @Test
     void testGenerateWithSpecificProtocol() {
-        URLGenerator generator = new URLGenerator();
+        UrlGenerator generator = new UrlGenerator();
         String url = generator.generate("https");
         assertTrue(url.startsWith("https://"));
     }
 
     @Test
     void testGenerateWithCustomProtocol() {
-        URLGenerator generator = new URLGenerator();
+        UrlGenerator generator = new UrlGenerator();
         String url = generator.generate("custom");
         assertTrue(url.startsWith("custom://"));
     }
 
     @Test
     void testGenerateWithNullProtocolThrowsException() {
-        URLGenerator generator = new URLGenerator();
+        UrlGenerator generator = new UrlGenerator();
         assertThrows(NullPointerException.class, () -> generator.generate(null));
     }
 
     @Test
     void testGenerateWithPath() {
-        URLGenerator generator = new URLGenerator();
+        UrlGenerator generator = new UrlGenerator();
         String url = generator.generateWithPath();
         assertTrue(url.contains("/"), "URL with path should contain slash");
         int protocolEnd = url.indexOf("://") + 3;
@@ -104,7 +104,7 @@ class URLGeneratorTest {
 
     @Test
     void testGenerateWithPathAndQuery() {
-        URLGenerator generator = new URLGenerator();
+        UrlGenerator generator = new UrlGenerator();
         String url = generator.generateWithPathAndQuery();
         assertTrue(url.contains("?"), "URL should contain query separator");
         assertTrue(url.contains("="), "URL should contain query parameter");
@@ -112,7 +112,7 @@ class URLGeneratorTest {
 
     @Test
     void testBogusStyleUrlAliases() {
-        URLGenerator generator = new URLGenerator(Locale.UK);
+        UrlGenerator generator = new UrlGenerator(Locale.UK);
         assertTrue(generator.generateUrl().contains("://"));
         assertTrue(generator.generateUrlWithPath().contains("/"));
         assertTrue(Set.of("http", "https", "ftp", "ws", "wss").contains(generator.generateProtocol()));
@@ -120,7 +120,7 @@ class URLGeneratorTest {
 
     @Test
     void testGetProtocol() {
-        URLGenerator generator = new URLGenerator();
+        UrlGenerator generator = new UrlGenerator();
         String protocol = generator.getProtocol();
         assertNotNull(protocol);
         assertTrue(Set.of("http", "https", "ftp", "ws", "wss").contains(protocol));
@@ -128,7 +128,7 @@ class URLGeneratorTest {
 
     @Test
     void testGetPath() {
-        URLGenerator generator = new URLGenerator();
+        UrlGenerator generator = new UrlGenerator();
         String path = generator.getPath();
         assertNotNull(path);
         assertTrue(path.startsWith("/"), "Path should start with slash");
@@ -136,7 +136,7 @@ class URLGeneratorTest {
 
     @Test
     void testGetQueryString() {
-        URLGenerator generator = new URLGenerator();
+        UrlGenerator generator = new UrlGenerator();
         String query = generator.getQueryString();
         assertNotNull(query);
         assertFalse(query.startsWith("?"), "Query string should not start with ?");
@@ -145,8 +145,8 @@ class URLGeneratorTest {
 
     @Test
     void testSeededGeneratorProducesSameResults() {
-        URLGenerator gen1 = new URLGenerator(GeneratorConfig.builder().seed(42L).build());
-        URLGenerator gen2 = new URLGenerator(GeneratorConfig.builder().seed(42L).build());
+        UrlGenerator gen1 = new UrlGenerator(GeneratorConfig.builder().seed(42L).build());
+        UrlGenerator gen2 = new UrlGenerator(GeneratorConfig.builder().seed(42L).build());
 
         assertEquals(gen1.generate(), gen2.generate());
         assertEquals(gen1.generate(), gen2.generate());
@@ -155,10 +155,10 @@ class URLGeneratorTest {
 
     @Test
     void testSeededGeneratorWithPathProducesSameResults() {
-        URLGenerator gen1 =
-                new URLGenerator(GeneratorConfig.builder().seed(999L).build());
-        URLGenerator gen2 =
-                new URLGenerator(GeneratorConfig.builder().seed(999L).build());
+        UrlGenerator gen1 =
+                new UrlGenerator(GeneratorConfig.builder().seed(999L).build());
+        UrlGenerator gen2 =
+                new UrlGenerator(GeneratorConfig.builder().seed(999L).build());
 
         assertEquals(gen1.generateWithPath(), gen2.generateWithPath());
         assertEquals(gen1.generateWithPath(), gen2.generateWithPath());
@@ -166,27 +166,27 @@ class URLGeneratorTest {
 
     @Test
     void testSeededGeneratorWithPathAndQueryProducesSameResults() {
-        URLGenerator gen1 =
-                new URLGenerator(GeneratorConfig.builder().seed(777L).build());
-        URLGenerator gen2 =
-                new URLGenerator(GeneratorConfig.builder().seed(777L).build());
+        UrlGenerator gen1 =
+                new UrlGenerator(GeneratorConfig.builder().seed(777L).build());
+        UrlGenerator gen2 =
+                new UrlGenerator(GeneratorConfig.builder().seed(777L).build());
 
         assertEquals(gen1.generateWithPathAndQuery(), gen2.generateWithPathAndQuery());
     }
 
     @Test
     void testDifferentSeedsProduceDifferentResults() {
-        URLGenerator gen1 =
-                new URLGenerator(GeneratorConfig.builder().seed(100L).build());
-        URLGenerator gen2 =
-                new URLGenerator(GeneratorConfig.builder().seed(200L).build());
+        UrlGenerator gen1 =
+                new UrlGenerator(GeneratorConfig.builder().seed(100L).build());
+        UrlGenerator gen2 =
+                new UrlGenerator(GeneratorConfig.builder().seed(200L).build());
 
         assertNotEquals(gen1.generate(), gen2.generate());
     }
 
     @Test
     void testGenerateMultipleURLs() {
-        URLGenerator generator = new URLGenerator();
+        UrlGenerator generator = new UrlGenerator();
         Set<String> urls = new HashSet<>();
         for (int i = 0; i < 50; i++) {
             urls.add(generator.generate());
@@ -196,7 +196,7 @@ class URLGeneratorTest {
 
     @Test
     void testGenerateMultipleProtocols() {
-        URLGenerator generator = new URLGenerator();
+        UrlGenerator generator = new UrlGenerator();
         Set<String> protocols = new HashSet<>();
         for (int i = 0; i < 100; i++) {
             protocols.add(generator.getProtocol());
@@ -206,8 +206,8 @@ class URLGeneratorTest {
 
     @Test
     void testPathHasMultipleSegments() {
-        URLGenerator generator =
-                new URLGenerator(GeneratorConfig.builder().seed(123L).build());
+        UrlGenerator generator =
+                new UrlGenerator(GeneratorConfig.builder().seed(123L).build());
         Set<Integer> segmentCounts = new HashSet<>();
         for (int i = 0; i < 50; i++) {
             String path = generator.getPath();
@@ -219,8 +219,8 @@ class URLGeneratorTest {
 
     @Test
     void testQueryStringHasMultipleParams() {
-        URLGenerator generator =
-                new URLGenerator(GeneratorConfig.builder().seed(456L).build());
+        UrlGenerator generator =
+                new UrlGenerator(GeneratorConfig.builder().seed(456L).build());
         Set<Integer> paramCounts = new HashSet<>();
         for (int i = 0; i < 50; i++) {
             String query = generator.getQueryString();
@@ -232,7 +232,7 @@ class URLGeneratorTest {
 
     @Test
     void testLocaleInfluencesDomain() {
-        URLGenerator deGenerator = new URLGenerator(GeneratorConfig.builder()
+        UrlGenerator deGenerator = new UrlGenerator(GeneratorConfig.builder()
                 .locale(Locale.GERMANY)
                 .networkSafetyPolicy(NetworkSafetyPolicy.REALISTIC_UNCLASSIFIED)
                 .build());
@@ -246,7 +246,7 @@ class URLGeneratorTest {
 
     @Test
     void testHTTPProtocol() {
-        URLGenerator generator = new URLGenerator();
+        UrlGenerator generator = new UrlGenerator();
         String url = generator.generate("http");
         assertTrue(url.startsWith("http://"));
         assertFalse(url.startsWith("https://"));
@@ -254,35 +254,35 @@ class URLGeneratorTest {
 
     @Test
     void testHTTPSProtocol() {
-        URLGenerator generator = new URLGenerator();
+        UrlGenerator generator = new UrlGenerator();
         String url = generator.generate("https");
         assertTrue(url.startsWith("https://"));
     }
 
     @Test
     void testFTPProtocol() {
-        URLGenerator generator = new URLGenerator();
+        UrlGenerator generator = new UrlGenerator();
         String url = generator.generate("ftp");
         assertTrue(url.startsWith("ftp://"));
     }
 
     @Test
     void testWSProtocol() {
-        URLGenerator generator = new URLGenerator();
+        UrlGenerator generator = new UrlGenerator();
         String url = generator.generate("ws");
         assertTrue(url.startsWith("ws://"));
     }
 
     @Test
     void testWSSProtocol() {
-        URLGenerator generator = new URLGenerator();
+        UrlGenerator generator = new UrlGenerator();
         String url = generator.generate("wss");
         assertTrue(url.startsWith("wss://"));
     }
 
     @Test
     void testURLWithPathHasDomain() {
-        URLGenerator generator = new URLGenerator();
+        UrlGenerator generator = new UrlGenerator();
         String url = generator.generateWithPath();
         int protocolEnd = url.indexOf("://") + 3;
         int pathStart = url.indexOf("/", protocolEnd);
@@ -292,7 +292,7 @@ class URLGeneratorTest {
 
     @Test
     void testURLWithQueryHasPath() {
-        URLGenerator generator = new URLGenerator();
+        UrlGenerator generator = new UrlGenerator();
         String url = generator.generateWithPathAndQuery();
         int queryStart = url.indexOf("?");
         int protocolEnd = url.indexOf("://") + 3;
@@ -302,7 +302,7 @@ class URLGeneratorTest {
 
     @Test
     void testQueryParametersHaveValues() {
-        URLGenerator generator = new URLGenerator();
+        UrlGenerator generator = new UrlGenerator();
         String query = generator.getQueryString();
         String[] params = query.split("&");
         for (String param : params) {
@@ -314,7 +314,7 @@ class URLGeneratorTest {
 
     @Test
     void testPathSegmentsAreAlphabetic() {
-        URLGenerator generator = new URLGenerator();
+        UrlGenerator generator = new UrlGenerator();
         for (int i = 0; i < 20; i++) {
             String path = generator.getPath();
             String[] segments = path.substring(1).split("/"); // Remove leading slash
@@ -326,8 +326,8 @@ class URLGeneratorTest {
 
     @Test
     void testGenerateWithPathHasDifferentSegmentCounts() {
-        URLGenerator generator =
-                new URLGenerator(GeneratorConfig.builder().seed(333L).build());
+        UrlGenerator generator =
+                new UrlGenerator(GeneratorConfig.builder().seed(333L).build());
         Set<Integer> segmentCounts = new HashSet<>();
 
         for (int i = 0; i < 50; i++) {
@@ -341,8 +341,8 @@ class URLGeneratorTest {
 
     @Test
     void testGenerateWithQueryHasDifferentParamCounts() {
-        URLGenerator generator =
-                new URLGenerator(GeneratorConfig.builder().seed(444L).build());
+        UrlGenerator generator =
+                new UrlGenerator(GeneratorConfig.builder().seed(444L).build());
         Set<Integer> paramCounts = new HashSet<>();
 
         for (int i = 0; i < 50; i++) {
@@ -356,10 +356,10 @@ class URLGeneratorTest {
 
     @Test
     void testSeededGeneratorGetProtocolConsistency() {
-        URLGenerator gen1 =
-                new URLGenerator(GeneratorConfig.builder().seed(666L).build());
-        URLGenerator gen2 =
-                new URLGenerator(GeneratorConfig.builder().seed(666L).build());
+        UrlGenerator gen1 =
+                new UrlGenerator(GeneratorConfig.builder().seed(666L).build());
+        UrlGenerator gen2 =
+                new UrlGenerator(GeneratorConfig.builder().seed(666L).build());
 
         for (int i = 0; i < 10; i++) {
             assertEquals(gen1.getProtocol(), gen2.getProtocol());
@@ -368,10 +368,10 @@ class URLGeneratorTest {
 
     @Test
     void testSeededGeneratorGetPathConsistency() {
-        URLGenerator gen1 =
-                new URLGenerator(GeneratorConfig.builder().seed(777L).build());
-        URLGenerator gen2 =
-                new URLGenerator(GeneratorConfig.builder().seed(777L).build());
+        UrlGenerator gen1 =
+                new UrlGenerator(GeneratorConfig.builder().seed(777L).build());
+        UrlGenerator gen2 =
+                new UrlGenerator(GeneratorConfig.builder().seed(777L).build());
 
         for (int i = 0; i < 10; i++) {
             assertEquals(gen1.getPath(), gen2.getPath());
@@ -380,10 +380,10 @@ class URLGeneratorTest {
 
     @Test
     void testSeededGeneratorGetQueryStringConsistency() {
-        URLGenerator gen1 =
-                new URLGenerator(GeneratorConfig.builder().seed(888L).build());
-        URLGenerator gen2 =
-                new URLGenerator(GeneratorConfig.builder().seed(888L).build());
+        UrlGenerator gen1 =
+                new UrlGenerator(GeneratorConfig.builder().seed(888L).build());
+        UrlGenerator gen2 =
+                new UrlGenerator(GeneratorConfig.builder().seed(888L).build());
 
         for (int i = 0; i < 10; i++) {
             assertEquals(gen1.getQueryString(), gen2.getQueryString());
@@ -392,32 +392,32 @@ class URLGeneratorTest {
 
     @Test
     void testGenerateWithDomain() {
-        URLGenerator generator =
-                new URLGenerator(GeneratorConfig.builder().seed(1L).build());
+        UrlGenerator generator =
+                new UrlGenerator(GeneratorConfig.builder().seed(1L).build());
         String url = generator.generateWithDomain("example.com");
         assertTrue(url.contains("://example.com"));
     }
 
     @Test
     void testGenerateWithDomainNullThrows() {
-        URLGenerator generator = new URLGenerator();
+        UrlGenerator generator = new UrlGenerator();
         assertThrows(IllegalArgumentException.class, () -> generator.generateWithDomain(null));
     }
 
     @Test
     void testGenerateWithDomainPrefix() {
-        URLGenerator generator =
-                new URLGenerator(GeneratorConfig.builder().seed(2L).build());
+        UrlGenerator generator =
+                new UrlGenerator(GeneratorConfig.builder().seed(2L).build());
         String url = generator.generateWithDomainPrefix("api");
         assertTrue(url.contains("://api."));
     }
 
     @Test
     void testGenerateWithTrailingSlashPathAndExtension() {
-        URLGenerator generator =
-                new URLGenerator(GeneratorConfig.builder().seed(3L).build());
-        URLGenerator.URLOptions options =
-                new URLGenerator.URLOptions("https", "example.com", null, "/", new String[] {"txt"}, false);
+        UrlGenerator generator =
+                new UrlGenerator(GeneratorConfig.builder().seed(3L).build());
+        UrlGenerator.UrlOptions options =
+                new UrlGenerator.UrlOptions("https", "example.com", null, "/", new String[] {"txt"}, false);
         String url = generator.generateWithOptions(options);
         assertTrue(url.startsWith("https://example.com/"));
         assertTrue(url.endsWith(".txt"));
@@ -425,36 +425,36 @@ class URLGeneratorTest {
 
     @Test
     void testGenerateWithDomainPrefixNullThrows() {
-        URLGenerator generator = new URLGenerator();
+        UrlGenerator generator = new UrlGenerator();
         assertThrows(IllegalArgumentException.class, () -> generator.generateWithDomainPrefix(null));
     }
 
     @Test
     void testGenerateWithFixedPath() {
-        URLGenerator generator =
-                new URLGenerator(GeneratorConfig.builder().seed(3L).build());
+        UrlGenerator generator =
+                new UrlGenerator(GeneratorConfig.builder().seed(3L).build());
         String url = generator.generateWithFixedPath("/api/v1");
         assertTrue(url.contains("/api/v1"));
     }
 
     @Test
     void testGenerateWithFixedPathNullThrows() {
-        URLGenerator generator = new URLGenerator();
+        UrlGenerator generator = new UrlGenerator();
         assertThrows(IllegalArgumentException.class, () -> generator.generateWithFixedPath(null));
     }
 
     @Test
     void testGenerateWithFixedPathWithoutLeadingSlash() {
-        URLGenerator generator =
-                new URLGenerator(GeneratorConfig.builder().seed(4L).build());
+        UrlGenerator generator =
+                new UrlGenerator(GeneratorConfig.builder().seed(4L).build());
         String url = generator.generateWithFixedPath("api/v1");
         assertTrue(url.contains("/api/v1"));
     }
 
     @Test
     void testGenerateWithExtensions() {
-        URLGenerator generator =
-                new URLGenerator(GeneratorConfig.builder().seed(5L).build());
+        UrlGenerator generator =
+                new UrlGenerator(GeneratorConfig.builder().seed(5L).build());
         String url = generator.generateWithExtensions("gif", "jpg");
         assertTrue(url.matches(".*\\.(gif|jpg)$"));
         assertTrue(url.contains("/"));
@@ -462,10 +462,10 @@ class URLGeneratorTest {
 
     @Test
     void testGenerateWithOptionsComposite() {
-        URLGenerator generator =
-                new URLGenerator(GeneratorConfig.builder().seed(6L).build());
-        URLGenerator.URLOptions options =
-                new URLGenerator.URLOptions("https", "example.com", "cdn", "/assets/logo", new String[] {"png"}, true);
+        UrlGenerator generator =
+                new UrlGenerator(GeneratorConfig.builder().seed(6L).build());
+        UrlGenerator.UrlOptions options =
+                new UrlGenerator.UrlOptions("https", "example.com", "cdn", "/assets/logo", new String[] {"png"}, true);
         String url = generator.generateWithOptions(options);
         assertTrue(url.startsWith("https://cdn.example.com/assets/logo/"));
         assertTrue(url.contains(".png?"));
@@ -473,44 +473,44 @@ class URLGeneratorTest {
 
     @Test
     void testGenerateWithOptionsNullThrows() {
-        URLGenerator generator = new URLGenerator();
+        UrlGenerator generator = new UrlGenerator();
         assertThrows(NullPointerException.class, () -> generator.generateWithOptions(null));
     }
 
     @Test
     void testGenerateWithOptionsBlankDomainThrows() {
-        URLGenerator generator = new URLGenerator();
-        URLGenerator.URLOptions options = new URLGenerator.URLOptions("https", " ", null, null, null, false);
+        UrlGenerator generator = new UrlGenerator();
+        UrlGenerator.UrlOptions options = new UrlGenerator.UrlOptions("https", " ", null, null, null, false);
         assertThrows(IllegalArgumentException.class, () -> generator.generateWithOptions(options));
     }
 
     @Test
     void testGenerateWithOptionsBlankPathThrows() {
-        URLGenerator generator = new URLGenerator();
-        URLGenerator.URLOptions options = new URLGenerator.URLOptions(null, null, null, " ", null, false);
+        UrlGenerator generator = new UrlGenerator();
+        UrlGenerator.UrlOptions options = new UrlGenerator.UrlOptions(null, null, null, " ", null, false);
         assertThrows(IllegalArgumentException.class, () -> generator.generateWithOptions(options));
     }
 
     @Test
     void testGenerateWithOptionsEmptyExtensionsThrows() {
-        URLGenerator generator = new URLGenerator();
-        URLGenerator.URLOptions options = new URLGenerator.URLOptions(null, null, null, null, new String[0], false);
+        UrlGenerator generator = new UrlGenerator();
+        UrlGenerator.UrlOptions options = new UrlGenerator.UrlOptions(null, null, null, null, new String[0], false);
         assertThrows(IllegalArgumentException.class, () -> generator.generateWithOptions(options));
     }
 
     @Test
     void testGenerateWithOptionsBlankExtensionThrows() {
-        URLGenerator generator = new URLGenerator();
-        URLGenerator.URLOptions options =
-                new URLGenerator.URLOptions(null, null, null, null, new String[] {" "}, false);
+        UrlGenerator generator = new UrlGenerator();
+        UrlGenerator.UrlOptions options =
+                new UrlGenerator.UrlOptions(null, null, null, null, new String[] {" "}, false);
         assertThrows(IllegalArgumentException.class, () -> generator.generateWithOptions(options));
     }
 
     @Test
     void testGenerateWithOptionsNormalizesDotExtensions() {
-        URLGenerator generator =
-                new URLGenerator(GeneratorConfig.builder().seed(7L).build());
-        URLGenerator.URLOptions options = new URLGenerator.URLOptions(
+        UrlGenerator generator =
+                new UrlGenerator(GeneratorConfig.builder().seed(7L).build());
+        UrlGenerator.UrlOptions options = new UrlGenerator.UrlOptions(
                 "https", "example.com", null, "/download/file", new String[] {".zip"}, false);
         String url = generator.generateWithOptions(options);
         assertTrue(url.contains(".zip"));
@@ -519,9 +519,9 @@ class URLGeneratorTest {
 
     @Test
     void testGenerateWithOptionsQueryWithoutPathCreatesPath() {
-        URLGenerator generator =
-                new URLGenerator(GeneratorConfig.builder().seed(8L).build());
-        URLGenerator.URLOptions options = new URLGenerator.URLOptions("https", "example.com", null, null, null, true);
+        UrlGenerator generator =
+                new UrlGenerator(GeneratorConfig.builder().seed(8L).build());
+        UrlGenerator.UrlOptions options = new UrlGenerator.UrlOptions("https", "example.com", null, null, null, true);
         String url = generator.generateWithOptions(options);
         assertTrue(url.contains("/"));
         assertTrue(url.contains("?"));
@@ -529,14 +529,14 @@ class URLGeneratorTest {
 
     @Test
     void testDefaultExtensionsExposed() {
-        String[] extensions = URLGenerator.URLOptions.defaultExtensions();
+        String[] extensions = UrlGenerator.UrlOptions.defaultExtensions();
         assertNotNull(extensions);
         assertTrue(extensions.length > 0);
     }
 
     @Test
     void testUrlOptionsDefaultConstructor() {
-        URLGenerator.URLOptions options = new URLGenerator.URLOptions();
+        UrlGenerator.UrlOptions options = new UrlGenerator.UrlOptions();
         assertNull(options.protocol());
         assertNull(options.domain());
         assertNull(options.domainPrefix());
@@ -547,10 +547,10 @@ class URLGeneratorTest {
 
     @Test
     void testGenerateWithSpecificProtocolConsistentWithSeed() {
-        URLGenerator gen1 =
-                new URLGenerator(GeneratorConfig.builder().seed(999L).build());
-        URLGenerator gen2 =
-                new URLGenerator(GeneratorConfig.builder().seed(999L).build());
+        UrlGenerator gen1 =
+                new UrlGenerator(GeneratorConfig.builder().seed(999L).build());
+        UrlGenerator gen2 =
+                new UrlGenerator(GeneratorConfig.builder().seed(999L).build());
 
         assertEquals(gen1.generate("ftp"), gen2.generate("ftp"));
         assertEquals(gen1.generate("ws"), gen2.generate("ws"));
@@ -558,7 +558,7 @@ class URLGeneratorTest {
 
     @Test
     void testAllProtocolsGenerated() {
-        URLGenerator generator = new URLGenerator();
+        UrlGenerator generator = new UrlGenerator();
         Set<String> protocols = new HashSet<>();
 
         for (int i = 0; i < 200; i++) {
@@ -571,7 +571,7 @@ class URLGeneratorTest {
 
     @Test
     void testQueryValuesAreNumeric() {
-        URLGenerator generator = new URLGenerator();
+        UrlGenerator generator = new UrlGenerator();
         String query = generator.getQueryString();
         String[] params = query.split("&");
 
@@ -584,7 +584,7 @@ class URLGeneratorTest {
 
     @Test
     void testGeneratePathWithSingleSegment() {
-        URLGenerator gen = new URLGenerator(GeneratorConfig.builder().seed(1L).build());
+        UrlGenerator gen = new UrlGenerator(GeneratorConfig.builder().seed(1L).build());
 
         boolean foundSingleSegment = false;
         for (int i = 0; i < 100; i++) {
@@ -601,7 +601,7 @@ class URLGeneratorTest {
 
     @Test
     void testGeneratePathWithMultipleSegments() {
-        URLGenerator gen = new URLGenerator(GeneratorConfig.builder().seed(2L).build());
+        UrlGenerator gen = new UrlGenerator(GeneratorConfig.builder().seed(2L).build());
 
         boolean foundMultipleSegments = false;
         for (int i = 0; i < 100; i++) {
@@ -618,7 +618,7 @@ class URLGeneratorTest {
 
     @Test
     void testGenerateQueryWithSingleParam() {
-        URLGenerator gen = new URLGenerator(GeneratorConfig.builder().seed(3L).build());
+        UrlGenerator gen = new UrlGenerator(GeneratorConfig.builder().seed(3L).build());
 
         boolean foundSingleParam = false;
         for (int i = 0; i < 100; i++) {
@@ -635,7 +635,7 @@ class URLGeneratorTest {
 
     @Test
     void testGenerateQueryWithMultipleParams() {
-        URLGenerator gen = new URLGenerator(GeneratorConfig.builder().seed(4L).build());
+        UrlGenerator gen = new UrlGenerator(GeneratorConfig.builder().seed(4L).build());
 
         boolean foundMultipleParams = false;
         for (int i = 0; i < 100; i++) {
@@ -652,8 +652,8 @@ class URLGeneratorTest {
 
     @Test
     void testQueryStringLoopBranchCoverage() {
-        URLGenerator gen =
-                new URLGenerator(GeneratorConfig.builder().seed(5555L).build());
+        UrlGenerator gen =
+                new UrlGenerator(GeneratorConfig.builder().seed(5555L).build());
 
         // Generate many queries to ensure loop iterations cover all branches
         for (int i = 0; i < 50; i++) {
@@ -667,8 +667,8 @@ class URLGeneratorTest {
 
     @Test
     void testPathLoopBranchCoverage() {
-        URLGenerator gen =
-                new URLGenerator(GeneratorConfig.builder().seed(6666L).build());
+        UrlGenerator gen =
+                new UrlGenerator(GeneratorConfig.builder().seed(6666L).build());
 
         // Generate many paths to ensure loop iterations cover all branches
         for (int i = 0; i < 50; i++) {
@@ -682,7 +682,7 @@ class URLGeneratorTest {
 
     @Test
     void testQueryAndTldAliases() {
-        URLGenerator generator = new URLGenerator(Locale.US);
+        UrlGenerator generator = new UrlGenerator(Locale.US);
         String query = generator.generateQuery();
         String tld = generator.generateTld();
         assertFalse(query.startsWith("?"));

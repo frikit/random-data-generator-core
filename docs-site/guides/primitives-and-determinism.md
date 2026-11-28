@@ -153,7 +153,7 @@ method's name.
   and its recipe: `FullNameGenerator`, `FirstNameGenerator`, `LastNameGenerator`, `UsernameGenerator`,
   `EmailGenerator`, `PhoneNumberGenerator`, `StreetAddressGenerator`, `AddressInfoGenerator`,
   `CityGenerator`, `StateGenerator`, `PostalCodeGenerator`, `CountryGenerator`, `CurrencyGenerator`,
-  `MoneyGenerator`, `UUIDGenerator`, `WordGenerator`, `SentenceGenerator` and `ParagraphGenerator`.
+  `MoneyGenerator`, `UuidGenerator`, `WordGenerator`, `SentenceGenerator` and `ParagraphGenerator`.
   Other built-ins that are not `Seedable`, such as `MiddleNameGenerator` or `CompanyEmailGenerator`,
   and your own generators that are not `Seedable`, keep their own source.
 

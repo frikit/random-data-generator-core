@@ -112,3 +112,7 @@ Expected script families are currently:
 - Native datasets are preferred for built-in locales.
 - Fallback tiers are still allowed in the metadata model for future or custom expansions.
 - If a locale is intentionally fallback-backed, document the fallback source explicitly and keep the tier honest in `SupportedLocale`.
+- `de_AT` and `de_CH` fall back to `de_DE`, so their addresses use German cities and states with the Austrian or
+  Swiss country name, and they have no postal places. Sourced Austrian and Swiss city, state and postal-place
+  data is welcome; until it is added, the [locale guide](../docs-site/guides/locale-aware-data.md#locale-quality-tiers)
+  says so.

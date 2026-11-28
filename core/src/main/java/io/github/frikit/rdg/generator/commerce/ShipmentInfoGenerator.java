@@ -7,7 +7,7 @@ package io.github.frikit.rdg.generator.commerce;
 
 import io.github.frikit.rdg.generator.Generator;
 import io.github.frikit.rdg.generator.GeneratorConfig;
-import io.github.frikit.rdg.generator.identifier.UUIDGenerator;
+import io.github.frikit.rdg.generator.identifier.UuidGenerator;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -26,7 +26,7 @@ public final class ShipmentInfoGenerator implements Generator<ShipmentInfo> {
 
     private final GeneratorConfig config;
     private final Random random;
-    private final UUIDGenerator uuidGenerator;
+    private final UuidGenerator uuidGenerator;
     private final OrderInfoGenerator orderInfoGenerator;
 
     /**
@@ -55,7 +55,7 @@ public final class ShipmentInfoGenerator implements Generator<ShipmentInfo> {
     public ShipmentInfoGenerator(GeneratorConfig config) {
         this.config = Objects.requireNonNull(config, "config must not be null");
         this.random = config.createRandom();
-        this.uuidGenerator = new UUIDGenerator(config.forChildStream("uUID"));
+        this.uuidGenerator = new UuidGenerator(config.forChildStream("uUID"));
         this.orderInfoGenerator = new OrderInfoGenerator(config.forChildStream("orderInfo"));
     }
 

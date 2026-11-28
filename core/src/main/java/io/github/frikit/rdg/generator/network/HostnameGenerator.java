@@ -55,7 +55,7 @@ public final class HostnameGenerator implements Generator<String> {
         if (subdomain.isBlank()) {
             throw new IllegalArgumentException("subdomain must not be blank");
         }
-        URLGenerator.requireSubdomain(networkSafetyPolicy, subdomain);
+        UrlGenerator.requireSubdomain(networkSafetyPolicy, subdomain);
         return subdomain + "." + domainGenerator.generate();
     }
 }

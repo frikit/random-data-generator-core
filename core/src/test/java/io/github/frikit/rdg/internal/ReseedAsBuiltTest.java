@@ -18,7 +18,7 @@ import io.github.frikit.rdg.generator.Vocabulary;
 import io.github.frikit.rdg.generator.datetime.DateGenerator;
 import io.github.frikit.rdg.generator.finance.CurrencyGenerator;
 import io.github.frikit.rdg.generator.finance.MoneyGenerator;
-import io.github.frikit.rdg.generator.identifier.UUIDGenerator;
+import io.github.frikit.rdg.generator.identifier.UuidGenerator;
 import io.github.frikit.rdg.generator.location.AddressInfoGenerator;
 import io.github.frikit.rdg.generator.location.CityGenerator;
 import io.github.frikit.rdg.generator.location.CountryGenerator;
@@ -68,7 +68,7 @@ class ReseedAsBuiltTest {
 
     private static Map<Class<?>, Function<GeneratorConfig, Object>> factories() {
         Map<Class<?>, Function<GeneratorConfig, Object>> factories = new LinkedHashMap<>();
-        factories.put(UUIDGenerator.class, UUIDGenerator::new);
+        factories.put(UuidGenerator.class, UuidGenerator::new);
         factories.put(FullNameGenerator.class, FullNameGenerator::new);
         factories.put(FirstNameGenerator.class, FirstNameGenerator::new);
         factories.put(LastNameGenerator.class, LastNameGenerator::new);
@@ -93,13 +93,13 @@ class ReseedAsBuiltTest {
     @Test
     @DisplayName("a class registers its reseed once, and a class without one has none")
     void aClassRegistersItsReseedOnce() {
-        UUIDGenerator registered =
-                new UUIDGenerator(GeneratorConfig.builder().seed(1L).build());
+        UuidGenerator registered =
+                new UuidGenerator(GeneratorConfig.builder().seed(1L).build());
 
         IllegalStateException error = assertThrows(
-                IllegalStateException.class, () -> Reseeding.register(UUIDGenerator.class, (generator, seed) -> {}));
+                IllegalStateException.class, () -> Reseeding.register(UuidGenerator.class, (generator, seed) -> {}));
 
-        assertEquals("A reseed is registered for " + UUIDGenerator.class.getName() + " already", error.getMessage());
+        assertEquals("A reseed is registered for " + UuidGenerator.class.getName() + " already", error.getMessage());
         assertNotNull(Reseeding.reseederOf(registered));
         assertNull(Reseeding.reseederOf("not a generator"));
     }

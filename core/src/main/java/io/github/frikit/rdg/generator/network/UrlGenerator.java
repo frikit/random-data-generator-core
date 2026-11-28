@@ -34,7 +34,7 @@ import org.jspecify.annotations.Nullable;
  * <p><strong>Basic Usage:</strong>
  * <pre>{@code
  * // Random URL
- * URLGenerator gen = new URLGenerator();
+ * UrlGenerator gen = new UrlGenerator();
  * String url = gen.generate();  // "https://techcloud.test"
  *
  * // URL with specific protocol
@@ -56,7 +56,7 @@ import org.jspecify.annotations.Nullable;
  *     .locale(Locale.GERMANY)
  *     .networkSafetyPolicy(NetworkSafetyPolicy.REALISTIC_UNCLASSIFIED)
  *     .build();
- * String deUrl = new URLGenerator(config).generate();  // Might include ".de" domain
+ * String deUrl = new UrlGenerator(config).generate();  // Might include ".de" domain
  * }</pre>
  *
  * <p><strong>Thread Safety:</strong>
@@ -65,7 +65,7 @@ import org.jspecify.annotations.Nullable;
  * safe to share across threads. Confine one instance per thread, or wrap construction with
  * {@code Generators.threadLocal(...)} for deterministic concurrent use.
  */
-public final class URLGenerator implements Generator<String> {
+public final class UrlGenerator implements Generator<String> {
 
     private static final String[] PROTOCOLS = {"http", "https", "ftp", "ws", "wss"};
 
@@ -123,7 +123,7 @@ public final class URLGenerator implements Generator<String> {
     /**
      * Creates a URL generator with default configuration.
      */
-    public URLGenerator() {
+    public UrlGenerator() {
         this(GeneratorConfig.defaults());
     }
 
@@ -132,7 +132,7 @@ public final class URLGenerator implements Generator<String> {
      *
      * @param locale the locale for domain generation
      */
-    public URLGenerator(Locale locale) {
+    public UrlGenerator(Locale locale) {
         this(GeneratorConfig.builder().locale(locale).build());
     }
 
@@ -142,7 +142,7 @@ public final class URLGenerator implements Generator<String> {
      * @param config the generator configuration; must not be {@code null}
      * @throws NullPointerException if {@code config} is {@code null}
      */
-    public URLGenerator(GeneratorConfig config) {
+    public UrlGenerator(GeneratorConfig config) {
         this.config = Objects.requireNonNull(config, "config must not be null");
         this.random = config.createRandom();
         this.domainGenerator = new DomainGenerator(config.forChildStream("domain"));
@@ -278,7 +278,7 @@ public final class URLGenerator implements Generator<String> {
      * @return URL with the given domain
      */
     public String generateWithDomain(String domain) {
-        return generateWithOptions(new URLOptions(null, requireNonBlank(domain, "domain"), null, null, null, false));
+        return generateWithOptions(new UrlOptions(null, requireNonBlank(domain, "domain"), null, null, null, false));
     }
 
     /**
@@ -289,7 +289,7 @@ public final class URLGenerator implements Generator<String> {
      */
     public String generateWithDomainPrefix(String domainPrefix) {
         return generateWithOptions(
-                new URLOptions(null, null, requireNonBlank(domainPrefix, "domainPrefix"), null, null, false));
+                new UrlOptions(null, null, requireNonBlank(domainPrefix, "domainPrefix"), null, null, false));
     }
 
     /**
@@ -299,7 +299,7 @@ public final class URLGenerator implements Generator<String> {
      * @return URL containing the fixed path
      */
     public String generateWithFixedPath(String path) {
-        return generateWithOptions(new URLOptions(null, null, null, requireNonBlank(path, "path"), null, false));
+        return generateWithOptions(new UrlOptions(null, null, null, requireNonBlank(path, "path"), null, false));
     }
 
     /**
@@ -309,7 +309,7 @@ public final class URLGenerator implements Generator<String> {
      * @return URL ending with one of the provided file extensions
      */
     public String generateWithExtensions(String... extensions) {
-        return generateWithOptions(new URLOptions(null, null, null, null, extensions, false));
+        return generateWithOptions(new UrlOptions(null, null, null, null, extensions, false));
     }
 
     /**
@@ -318,7 +318,7 @@ public final class URLGenerator implements Generator<String> {
      * @param options option bag; must not be {@code null}
      * @return generated URL
      */
-    public String generateWithOptions(URLOptions options) {
+    public String generateWithOptions(UrlOptions options) {
         Objects.requireNonNull(options, "options must not be null");
 
         String protocol =
@@ -473,7 +473,7 @@ public final class URLGenerator implements Generator<String> {
     }
 
     /**
-     * Option bag for {@link #generateWithOptions(URLOptions)}.
+     * Option bag for {@link #generateWithOptions(UrlOptions)}.
      *
      * @param protocol     optional protocol
      * @param domain       optional fixed domain
@@ -482,7 +482,7 @@ public final class URLGenerator implements Generator<String> {
      * @param extensions   optional extension list for random file extension selection
      * @param withQuery    whether query parameters should be appended
      */
-    public record URLOptions(
+    public record UrlOptions(
             @Nullable String protocol,
             @Nullable String domain,
             @Nullable String domainPrefix,
@@ -493,7 +493,7 @@ public final class URLGenerator implements Generator<String> {
         /**
          * Convenience options with all optional fields unset and query disabled.
          */
-        public URLOptions() {
+        public UrlOptions() {
             this(null, null, null, null, null, false);
         }
 

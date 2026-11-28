@@ -29,8 +29,8 @@ import io.github.frikit.rdg.generator.location.AddressInfoGenerator;
 import io.github.frikit.rdg.generator.location.StreetAddressGenerator;
 import io.github.frikit.rdg.generator.network.HostnameGenerator;
 import io.github.frikit.rdg.generator.network.NetworkSafetyPolicy;
-import io.github.frikit.rdg.generator.network.URLGenerator;
 import io.github.frikit.rdg.generator.network.UriGenerator;
+import io.github.frikit.rdg.generator.network.UrlGenerator;
 import io.github.frikit.rdg.generator.text.ParagraphGenerator;
 import io.github.frikit.rdg.generator.text.SentenceGenerator;
 import io.github.frikit.rdg.generator.text.WordGenerator;
@@ -268,7 +268,7 @@ class ChildStreamsTest {
         composites.put("word", c -> new WordGenerator(c)::generate);
         composites.put("paragraph", c -> new ParagraphGenerator(c)::generate);
         composites.put("offsetDateTime", c -> new OffsetDateTimeGenerator(c)::generate);
-        composites.put("url", c -> new URLGenerator(c)::generate);
+        composites.put("url", c -> new UrlGenerator(c)::generate);
         composites.put("uri", c -> new UriGenerator(c)::generate);
         composites.put("hostname", c -> new HostnameGenerator(c)::generate);
         composites.put("companyEmail", c -> new CompanyEmailGenerator(c)::generate);

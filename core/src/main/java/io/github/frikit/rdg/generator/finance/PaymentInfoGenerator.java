@@ -7,7 +7,7 @@ package io.github.frikit.rdg.generator.finance;
 
 import io.github.frikit.rdg.generator.Generator;
 import io.github.frikit.rdg.generator.GeneratorConfig;
-import io.github.frikit.rdg.generator.identifier.UUIDGenerator;
+import io.github.frikit.rdg.generator.identifier.UuidGenerator;
 import java.time.LocalDate;
 import java.util.Locale;
 import java.util.Objects;
@@ -28,7 +28,7 @@ public final class PaymentInfoGenerator implements Generator<PaymentInfo> {
 
     private final GeneratorConfig config;
     private final Random random;
-    private final UUIDGenerator uuidGenerator;
+    private final UuidGenerator uuidGenerator;
     private final InvoiceInfoGenerator invoiceInfoGenerator;
     private final CreditCardInfoGenerator creditCardInfoGenerator;
     private final BankInfoGenerator bankInfoGenerator;
@@ -59,7 +59,7 @@ public final class PaymentInfoGenerator implements Generator<PaymentInfo> {
     public PaymentInfoGenerator(GeneratorConfig config) {
         this.config = Objects.requireNonNull(config, "config must not be null");
         this.random = config.createRandom();
-        this.uuidGenerator = new UUIDGenerator(config.forChildStream("uUID"));
+        this.uuidGenerator = new UuidGenerator(config.forChildStream("uUID"));
         this.invoiceInfoGenerator = new InvoiceInfoGenerator(config.forChildStream("invoiceInfo"));
         this.creditCardInfoGenerator = new CreditCardInfoGenerator(config.forChildStream("creditCardInfo"));
         this.bankInfoGenerator = new BankInfoGenerator(config.forChildStream("bankInfo"));

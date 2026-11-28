@@ -454,7 +454,7 @@ k-random exposes randomizer classes such as `StringRandomizer`, `EmailRandomizer
 | `EnumRandomizer` | `new EnumGenerator<>(EnumType.class)` |
 | `OptionalRandomizer` | Object optional field handling or wrap a generator with `Optional.ofNullable(...)` |
 | `LocaleRandomizer` | `Generators.ofLocale()` / `RandomLocaleGenerator` |
-| `UUIDRandomizer` | `Generators.ofUuid()` / `Generators.identifier().uuid()` / `UUIDGenerator` (`ofUuid()` is the only UUID facade spelling) |
+| `UUIDRandomizer` | `Generators.ofUuid()` / `Generators.identifier().uuid()` / `UuidGenerator` (`ofUuid()` is the only UUID facade spelling) |
 | `UriRandomizer` | `Generators.ofUriObject()` for `URI`, or `Generators.ofUri()` for URI strings (`…Object` names return JDK objects; plain names return text) |
 | `UrlRandomizer` | `Generators.ofUrlObject()` for `URL`, or `Generators.ofUrl()` for URL strings (`…Object` names return JDK objects; plain names return text) |
 | `DateRandomizer` | `Generators.ofUtilDate()` / `UtilDateGenerator` |

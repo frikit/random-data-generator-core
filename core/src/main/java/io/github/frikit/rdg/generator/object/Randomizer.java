@@ -27,7 +27,7 @@ import java.lang.annotation.Target;
  * reseeded for every object from that object's seeded stream, so they replay from the seed and its
  * recipe. The built-in generators that are not {@code Seedable} but that a seed can reset to a new
  * build, the ones a seeded {@code Schema} reseeds, such as {@code FirstNameGenerator},
- * {@code EmailGenerator} and {@code UUIDGenerator}, are reseeded the same way. Other generators, such as
+ * {@code EmailGenerator} and {@code UuidGenerator}, are reseeded the same way. Other generators, such as
  * {@code MiddleNameGenerator}, {@code CompanyEmailGenerator} or a custom one that is not {@code Seedable},
  * control their own randomness, which seeded replay cannot reproduce.
  */
