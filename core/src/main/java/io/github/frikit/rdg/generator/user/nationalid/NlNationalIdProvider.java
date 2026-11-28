@@ -14,7 +14,7 @@ import java.util.Random;
  * <p>The generated 9-digit value satisfies the Dutch 11-test checksum:
  * {@code 9*d0 + 8*d1 + ... + 2*d7 - d8} is divisible by 11.
  */
-public final class NlNationalIdProvider implements NationalIdProvider {
+final class NlNationalIdProvider implements NationalIdProvider {
 
     private static final int[][] CHECK_PAIRS = {
         {0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5}, {0, 6}, {0, 7}, {0, 8}, {0, 9}, {1, 1}

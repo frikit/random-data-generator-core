@@ -13,7 +13,7 @@ import java.util.Random;
  *
  * <p>Saudi citizen identifiers are represented as ten digits beginning with {@code 1}.
  */
-public final class ArSaNationalIdProvider implements NationalIdProvider {
+final class ArSaNationalIdProvider implements NationalIdProvider {
 
     @Override
     public Locale getLocale() {

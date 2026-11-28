@@ -13,7 +13,7 @@ import java.util.Random;
  *
  * <p>The final two digits are computed from the common weighted SNILS checksum rule.
  */
-public final class RuNationalIdProvider implements NationalIdProvider {
+final class RuNationalIdProvider implements NationalIdProvider {
 
     @Override
     public Locale getLocale() {

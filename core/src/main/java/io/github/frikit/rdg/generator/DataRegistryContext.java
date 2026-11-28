@@ -182,6 +182,8 @@ public final class DataRegistryContext {
         private final Map<Vocabulary<?>, Map<String, LocaleDataProvider>> providers = new LinkedHashMap<>();
         private final Map<Vocabulary<?>, Map<String, LocaleDataProvider>> providersByCountry = new LinkedHashMap<>();
 
+        private Builder() {}
+
         /**
          * Controls whether this context delegates to global static registries when no local value exists.
          */

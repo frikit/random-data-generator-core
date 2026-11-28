@@ -238,7 +238,7 @@ final class ObjectGeneratorConfig {
      * list exists only so a later {@link #generatorConfig(GeneratorConfig)} call can retain the
      * established internal-builder precedence without storing another configuration value.
      */
-    public static final class Builder {
+    static final class Builder {
 
         private GeneratorConfig rootConfig;
         private GeneratorConfig.@org.jspecify.annotations.Nullable Builder rootBuilder;

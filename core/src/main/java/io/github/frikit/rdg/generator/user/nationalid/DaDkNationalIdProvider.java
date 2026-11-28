@@ -18,7 +18,7 @@ import java.util.Random;
  * sequence digits are random; no modulus-11 check digit is computed, which CPR-kontoret has not
  * guaranteed since October 2007.
  */
-public final class DaDkNationalIdProvider implements NationalIdProvider {
+final class DaDkNationalIdProvider implements NationalIdProvider {
 
     @Override
     public Locale getLocale() {

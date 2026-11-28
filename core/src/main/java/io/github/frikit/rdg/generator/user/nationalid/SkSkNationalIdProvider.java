@@ -16,7 +16,7 @@ import java.util.Random;
  * for births from 1954, so a ten-digit number with a year below 54 denotes a birth from 2000. The
  * four-digit suffix is random, so values are not guaranteed to satisfy the modulo-11 rule.
  */
-public final class SkSkNationalIdProvider implements NationalIdProvider {
+final class SkSkNationalIdProvider implements NationalIdProvider {
 
     @Override
     public Locale getLocale() {

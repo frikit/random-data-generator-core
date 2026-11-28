@@ -13,7 +13,7 @@ import java.util.Random;
  *
  * <p>All digits are random, so they do not necessarily encode a real region code or birth date.
  */
-public final class IdIdNationalIdProvider implements NationalIdProvider {
+final class IdIdNationalIdProvider implements NationalIdProvider {
 
     @Override
     public Locale getLocale() {

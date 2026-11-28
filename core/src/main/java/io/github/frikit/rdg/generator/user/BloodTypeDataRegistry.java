@@ -43,21 +43,6 @@ public final class BloodTypeDataRegistry {
     private BloodTypeDataRegistry() {}
 
     /**
-     * Returns {@code true} if the registry contains an entry for the given locale.
-     */
-    public static boolean isRegistered(@Nullable Locale locale) {
-        if (locale == null) {
-            return false;
-        }
-        String lang = locale.getLanguage();
-        String country = locale.getCountry();
-        if (!country.isEmpty() && REGISTRY.containsKey(lang + "_" + country)) {
-            return true;
-        }
-        return REGISTRY.containsKey(lang);
-    }
-
-    /**
      * Returns the best-matching provider for the given locale, or {@code null} if none is registered.
      */
     public static @Nullable BloodTypeDataProvider forLocale(@Nullable Locale locale) {

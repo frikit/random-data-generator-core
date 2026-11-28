@@ -49,72 +49,72 @@ class GlobalRegistryReadApiTest {
         return java.util.List.of(
                 new ReadApi(
                         "weather",
-                        WeatherDataRegistry::isRegistered,
+                        locale -> DataRegistryContext.globalDefault().isRegistered(Vocabulary.WEATHER, locale),
                         WeatherDataRegistry::forLocale,
                         WeatherDataRegistry.registeredKeys()),
                 new ReadApi(
                         "restaurantType",
-                        RestaurantTypeDataRegistry::isRegistered,
+                        locale -> DataRegistryContext.globalDefault().isRegistered(Vocabulary.RESTAURANT_TYPE, locale),
                         RestaurantTypeDataRegistry::forLocale,
                         RestaurantTypeDataRegistry.registeredKeys()),
                 new ReadApi(
                         "financialTerm",
-                        FinancialTermDataRegistry::isRegistered,
+                        locale -> DataRegistryContext.globalDefault().isRegistered(Vocabulary.FINANCIAL_TERM, locale),
                         FinancialTermDataRegistry::forLocale,
                         FinancialTermDataRegistry.registeredKeys()),
                 new ReadApi(
                         "measurement",
-                        MeasurementDataRegistry::isRegistered,
+                        locale -> DataRegistryContext.globalDefault().isRegistered(Vocabulary.MEASUREMENT, locale),
                         MeasurementDataRegistry::forLocale,
                         MeasurementDataRegistry.registeredKeys()),
                 new ReadApi(
                         "pronoun",
-                        PronounDataRegistry::isRegistered,
+                        locale -> DataRegistryContext.globalDefault().isRegistered(Vocabulary.PRONOUN, locale),
                         PronounDataRegistry::forLocale,
                         PronounDataRegistry.registeredKeys()),
                 new ReadApi(
                         "hobby",
-                        HobbyDataRegistry::isRegistered,
+                        locale -> DataRegistryContext.globalDefault().isRegistered(Vocabulary.HOBBY, locale),
                         HobbyDataRegistry::forLocale,
                         HobbyDataRegistry.registeredKeys()),
                 new ReadApi(
                         "nationality",
-                        NationalityDataRegistry::isRegistered,
+                        locale -> DataRegistryContext.globalDefault().isRegistered(Vocabulary.NATIONALITY, locale),
                         NationalityDataRegistry::forLocale,
                         NationalityDataRegistry.registeredKeys()),
                 new ReadApi(
                         "chineseZodiac",
-                        ChineseZodiacDataRegistry::isRegistered,
+                        locale -> DataRegistryContext.globalDefault().isRegistered(Vocabulary.CHINESE_ZODIAC, locale),
                         ChineseZodiacDataRegistry::forLocale,
                         ChineseZodiacDataRegistry.registeredKeys()),
                 new ReadApi(
                         "title",
-                        TitleDataRegistry::isRegistered,
+                        locale -> DataRegistryContext.globalDefault().isRegistered(Vocabulary.TITLE, locale),
                         TitleDataRegistry::forLocale,
                         TitleDataRegistry.registeredKeys()),
                 new ReadApi(
                         "bloodType",
-                        BloodTypeDataRegistry::isRegistered,
+                        locale -> DataRegistryContext.globalDefault().isRegistered(Vocabulary.BLOOD_TYPE, locale),
                         BloodTypeDataRegistry::forLocale,
                         BloodTypeDataRegistry.registeredKeys()),
                 new ReadApi(
                         "country",
-                        CountryDataRegistry::isRegistered,
+                        locale -> DataRegistryContext.globalDefault().isRegistered(Vocabulary.COUNTRY, locale),
                         CountryDataRegistry::forLocale,
                         CountryDataRegistry.registeredKeys()),
                 new ReadApi(
                         "city",
-                        CityDataRegistry::isRegistered,
+                        locale -> DataRegistryContext.globalDefault().isRegistered(Vocabulary.CITY, locale),
                         CityDataRegistry::forLocale,
                         CityDataRegistry.registeredKeys()),
                 new ReadApi(
                         "state",
-                        StateDataRegistry::isRegistered,
+                        locale -> DataRegistryContext.globalDefault().isRegistered(Vocabulary.STATE, locale),
                         StateDataRegistry::forLocale,
                         StateDataRegistry.registeredKeys()),
                 new ReadApi(
                         "streetAddress",
-                        StreetAddressDataRegistry::isRegistered,
+                        locale -> DataRegistryContext.globalDefault().isRegistered(Vocabulary.STREET_ADDRESS, locale),
                         StreetAddressDataRegistry::forLocale,
                         StreetAddressDataRegistry.registeredKeys()));
     }

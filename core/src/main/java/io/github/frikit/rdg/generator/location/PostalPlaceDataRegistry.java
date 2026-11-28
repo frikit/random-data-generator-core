@@ -69,16 +69,6 @@ public final class PostalPlaceDataRegistry {
     }
 
     /**
-     * Returns {@code true} if {@link #forLocale(Locale)} resolves places for the locale.
-     *
-     * @param locale the locale
-     * @return {@code true} if places resolve
-     */
-    public static boolean isRegistered(@Nullable Locale locale) {
-        return forLocale(locale) != null;
-    }
-
-    /**
      * Returns the registered locale keys, {@code language_COUNTRY} and {@code language} entries.
      *
      * @return immutable snapshot of the keys

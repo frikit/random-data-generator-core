@@ -216,6 +216,8 @@ public final class StringGenerator implements Generator<String> {
         private @org.jspecify.annotations.Nullable Long seed = null;
         private @org.jspecify.annotations.Nullable GeneratorConfig config = null;
 
+        private Builder() {}
+
         /**
          * Character source for string generation; defaults to {@link CharGenerator#letters()}.
          */

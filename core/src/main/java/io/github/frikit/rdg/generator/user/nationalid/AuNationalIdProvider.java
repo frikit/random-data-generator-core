@@ -17,7 +17,7 @@ import java.util.Random;
  *
  * <p>Example: {@code "123 456 782"} (weighted sum 253 = 11 × 23)
  */
-public final class AuNationalIdProvider implements NationalIdProvider {
+final class AuNationalIdProvider implements NationalIdProvider {
 
     private static final int[] WEIGHTS = {1, 4, 3, 7, 5, 8, 6, 9, 10};
 

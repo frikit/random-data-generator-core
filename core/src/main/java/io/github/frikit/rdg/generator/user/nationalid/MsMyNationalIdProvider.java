@@ -12,7 +12,7 @@ import java.util.Random;
 /**
  * Generates Malaysian MyKad style identifiers in {@code YYMMDD-SS-XXXX} format (12 digits).
  */
-public final class MsMyNationalIdProvider implements NationalIdProvider {
+final class MsMyNationalIdProvider implements NationalIdProvider {
 
     @Override
     public Locale getLocale() {

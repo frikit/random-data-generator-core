@@ -31,7 +31,7 @@ import java.util.Random;
  *
  * <p>Example: {@code "RSSMRA85T10A562S"}
  */
-public final class ItNationalIdProvider implements NationalIdProvider {
+final class ItNationalIdProvider implements NationalIdProvider {
 
     private static final String CONSONANTS = "BCDFGHJKLMNPQRSTVWXYZ";
     private static final String MONTH_CODES = "ABCDEHLMPRST";

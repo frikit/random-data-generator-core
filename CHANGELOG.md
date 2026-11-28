@@ -68,5 +68,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   derives a stream for each member, which is slower than one shared sequence; the last measurement is the
   [2.3.0 benchmark record](docs/benchmarks/2.3.0/README.md). The generation report names such a member's seed
   source `DERIVED_STREAM` where it said `EXPLICIT_SEED`.
+- **Breaking, before 1.0.0:** public types and members that only the library itself used. The built-in national
+  ID providers are package-private, except `UsNationalIdProvider`, `EsNationalIdProvider` and
+  `BrNationalIdProvider`, which keep their public format options; for any other locale,
+  `DataRegistryContext.globalDefault().provider(Vocabulary.NATIONAL_ID, locale)` returns the built-in provider.
+  `finance.CurrencyDetails`, which no generator returned, is removed, and `user.LocaleTextResourceLoader` moves to
+  the unexported `io.github.frikit.rdg.internal` package. Package-private: `GeneratorConfig.isRestoredFromRecipe`
+  (a generation report's `SeedSource.RECIPE` says the same), `GenerationRecipe.Builder.recipeVersion` and
+  `algorithm` (each accepted only its default), `FixtureRuleKind.isRegisteredOnObjectFaker`, and the constructors,
+  the `random` field and the `validate` method of `AbstractBoundedGenerator`, which only the numeric generators in
+  `io.github.frikit.rdg.generator.base` extend. `DataRegistryContext.Builder`, `CharGenerator.Builder` and
+  `StringGenerator.Builder` have private constructors (their `builder()` methods create them), and the nested
+  `Builder` of the package-private `ObjectGeneratorConfig` is no longer declared public. Seeded output is unchanged.
+- **Breaking, before 1.0.0:** the static `isRegistered(Locale)` of the 41 built-in registries (the 40
+  `*DataRegistry` classes and `NationalIdRegistry`). The registries keep `forLocale` and `registeredKeys`, and
+  `DataRegistryContext.globalDefault().isRegistered(Vocabulary.X, locale)` gives the same answer.
 
 [Unreleased]: https://github.com/frikit/random-data-generator-core/commits/main

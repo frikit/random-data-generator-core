@@ -14,7 +14,7 @@ import java.util.Random;
  *
  * <p>The value is syntactically shaped for fixture data and avoids official identity assignment.
  */
-public final class CsNationalIdProvider implements NationalIdProvider {
+final class CsNationalIdProvider implements NationalIdProvider {
 
     @Override
     public Locale getLocale() {

@@ -24,7 +24,7 @@ import java.util.Set;
  *
  * <p>Example: {@code "AB 12 34 56 C"}
  */
-public final class GbNationalIdProvider implements NationalIdProvider {
+final class GbNationalIdProvider implements NationalIdProvider {
 
     private static final String VALID_FIRST = "ABCEGHJKLMNOPRSTWXYZ";
     private static final String VALID_SECOND = "ABCEGHJKLMNPRSTWXYZ";

@@ -17,7 +17,7 @@ import java.util.Random;
  * digits are random: they are not guaranteed to form a valid serial number, and no CNP control digit
  * is computed.
  */
-public final class RoRoNationalIdProvider implements NationalIdProvider {
+final class RoRoNationalIdProvider implements NationalIdProvider {
 
     @Override
     public Locale getLocale() {

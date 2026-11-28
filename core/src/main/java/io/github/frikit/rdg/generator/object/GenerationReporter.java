@@ -12,6 +12,7 @@ import io.github.frikit.rdg.generator.report.GenerationReportEntry;
 import io.github.frikit.rdg.generator.report.GenerationReportListener;
 import io.github.frikit.rdg.generator.report.GenerationStep;
 import io.github.frikit.rdg.generator.report.SeedSource;
+import io.github.frikit.rdg.internal.ConfigAccess;
 import java.lang.reflect.AnnotatedElement;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -68,7 +69,7 @@ final class GenerationReporter {
         if (config.getSeed().isEmpty()) {
             return SeedSource.UNSEEDED;
         }
-        if (config.isRestoredFromRecipe()) {
+        if (ConfigAccess.isRestoredFromRecipe(config)) {
             return SeedSource.RECIPE;
         }
         return namedStreams ? SeedSource.DERIVED_STREAM : SeedSource.EXPLICIT_SEED;

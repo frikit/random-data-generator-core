@@ -17,7 +17,7 @@ import java.util.Random;
  * is a birth date between 1950 and 1999. The four trailing digits are random; no check digit is
  * computed.
  */
-public final class HuHuNationalIdProvider implements NationalIdProvider {
+final class HuHuNationalIdProvider implements NationalIdProvider {
 
     @Override
     public Locale getLocale() {

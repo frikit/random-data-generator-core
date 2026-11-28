@@ -14,7 +14,7 @@ import java.util.Random;
  * <p>The first digit is 1–9 and the others are random, so they do not necessarily encode a real
  * registrar office, and no check digit is computed.
  */
-public final class ThThNationalIdProvider implements NationalIdProvider {
+final class ThThNationalIdProvider implements NationalIdProvider {
 
     @Override
     public Locale getLocale() {

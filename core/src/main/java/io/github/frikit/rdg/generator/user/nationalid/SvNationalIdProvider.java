@@ -15,7 +15,7 @@ import java.util.Random;
  * <p>Values are formatted as {@code YYYYMMDD-NNNC}; {@code C} is the Luhn checksum over
  * {@code YYMMDDNNN}.
  */
-public final class SvNationalIdProvider implements NationalIdProvider {
+final class SvNationalIdProvider implements NationalIdProvider {
 
     @Override
     public Locale getLocale() {

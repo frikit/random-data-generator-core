@@ -6,7 +6,7 @@
 package io.github.frikit.rdg.generator.weather;
 
 import io.github.frikit.rdg.generator.locale.SupportedLocale;
-import io.github.frikit.rdg.generator.user.LocaleTextResourceLoader;
+import io.github.frikit.rdg.internal.LocaleTextResourceLoader;
 import java.util.List;
 import java.util.Locale;
 

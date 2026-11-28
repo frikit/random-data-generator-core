@@ -21,6 +21,7 @@ import io.github.frikit.rdg.generator.provider.ProviderCatalog;
 import io.github.frikit.rdg.generator.provider.ProviderDescriptor;
 import io.github.frikit.rdg.generator.provider.ProviderSchemaProjection;
 import io.github.frikit.rdg.generator.text.WordGenerator;
+import io.github.frikit.rdg.internal.ConfigAccess;
 import java.lang.reflect.Field;
 import java.time.Clock;
 import java.time.Instant;
@@ -65,7 +66,7 @@ class FieldLookupTest {
             GeneratorConfig actual = values.get(i);
             assertEquals(expected.getSeed(), actual.getSeed());
             assertEquals(Optional.empty(), actual.getStringSeed());
-            assertFalse(actual.isRestoredFromRecipe());
+            assertFalse(ConfigAccess.isRestoredFromRecipe(actual));
             assertEquals(
                     expected.getGenerationRecipe().orElseThrow().serialize(),
                     actual.getGenerationRecipe().orElseThrow().serialize());

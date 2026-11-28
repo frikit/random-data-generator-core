@@ -14,7 +14,7 @@ import java.util.Random;
  * <p>All digits are random: the first five do not necessarily count the days to a plausible birth
  * date, and no check digit is computed.
  */
-public final class UkUaNationalIdProvider implements NationalIdProvider {
+final class UkUaNationalIdProvider implements NationalIdProvider {
 
     @Override
     public Locale getLocale() {

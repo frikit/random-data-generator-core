@@ -23,7 +23,7 @@ import java.util.Random;
  *
  * <p>Example: {@code "123456789018"}
  */
-public final class JpNationalIdProvider implements NationalIdProvider {
+final class JpNationalIdProvider implements NationalIdProvider {
 
     private static final int[] WEIGHTS = {6, 5, 4, 3, 2, 7, 6, 5, 4, 3, 2};
 

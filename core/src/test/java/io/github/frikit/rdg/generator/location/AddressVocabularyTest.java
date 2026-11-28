@@ -11,8 +11,10 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.github.frikit.rdg.generator.DataRegistryContext;
 import io.github.frikit.rdg.generator.GeneratorConfig;
 import io.github.frikit.rdg.generator.Generators;
+import io.github.frikit.rdg.generator.Vocabulary;
 import io.github.frikit.rdg.generator.locale.SupportedLocale;
 import java.util.HashSet;
 import java.util.List;
@@ -94,12 +96,12 @@ class AddressVocabularyTest {
     void registryLookups() {
         Locale japaneseInBrazil = new Locale("ja", "BR");
 
-        assertTrue(AddressTypeDataRegistry.isRegistered(Locale.GERMANY));
-        assertTrue(AddressPurposeDataRegistry.isRegistered(Locale.GERMANY));
-        assertTrue(AddressTypeDataRegistry.isRegistered(japaneseInBrazil));
-        assertTrue(AddressPurposeDataRegistry.isRegistered(japaneseInBrazil));
-        assertTrue(AddressTypeDataRegistry.isRegistered(Locale.JAPANESE));
-        assertTrue(AddressPurposeDataRegistry.isRegistered(Locale.JAPANESE));
+        assertTrue(DataRegistryContext.globalDefault().isRegistered(Vocabulary.ADDRESS_TYPE, Locale.GERMANY));
+        assertTrue(DataRegistryContext.globalDefault().isRegistered(Vocabulary.ADDRESS_PURPOSE, Locale.GERMANY));
+        assertTrue(DataRegistryContext.globalDefault().isRegistered(Vocabulary.ADDRESS_TYPE, japaneseInBrazil));
+        assertTrue(DataRegistryContext.globalDefault().isRegistered(Vocabulary.ADDRESS_PURPOSE, japaneseInBrazil));
+        assertTrue(DataRegistryContext.globalDefault().isRegistered(Vocabulary.ADDRESS_TYPE, Locale.JAPANESE));
+        assertTrue(DataRegistryContext.globalDefault().isRegistered(Vocabulary.ADDRESS_PURPOSE, Locale.JAPANESE));
         assertEquals(
                 Locale.GERMANY,
                 AddressTypeDataRegistry.forLocale(Locale.GERMANY).getLocale());
@@ -118,8 +120,8 @@ class AddressVocabularyTest {
                 Locale.JAPAN,
                 AddressPurposeDataRegistry.forLocale(Locale.JAPANESE).getLocale());
         for (Locale missing : new Locale[] {null, new Locale("is"), new Locale("is", "IS")}) {
-            assertFalse(AddressTypeDataRegistry.isRegistered(missing));
-            assertFalse(AddressPurposeDataRegistry.isRegistered(missing));
+            assertFalse(DataRegistryContext.globalDefault().isRegistered(Vocabulary.ADDRESS_TYPE, missing));
+            assertFalse(DataRegistryContext.globalDefault().isRegistered(Vocabulary.ADDRESS_PURPOSE, missing));
             assertNull(AddressTypeDataRegistry.forLocale(missing));
             assertNull(AddressPurposeDataRegistry.forLocale(missing));
         }

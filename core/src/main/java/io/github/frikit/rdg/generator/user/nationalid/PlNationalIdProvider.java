@@ -13,7 +13,7 @@ import java.util.Random;
  *
  * <p>The first ten digits are synthetic; the eleventh digit is the standard PESEL checksum.
  */
-public final class PlNationalIdProvider implements NationalIdProvider {
+final class PlNationalIdProvider implements NationalIdProvider {
 
     private static final int[] WEIGHTS = {1, 3, 7, 9, 1, 3, 7, 9, 1, 3};
 

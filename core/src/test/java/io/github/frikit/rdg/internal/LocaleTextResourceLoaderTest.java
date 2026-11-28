@@ -3,7 +3,7 @@
  *
  * Licensed under the MIT License. See LICENSE in the project root for license information.
  */
-package io.github.frikit.rdg.generator.user;
+package io.github.frikit.rdg.internal;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;

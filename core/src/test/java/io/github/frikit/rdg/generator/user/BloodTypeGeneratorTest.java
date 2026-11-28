@@ -11,8 +11,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.github.frikit.rdg.generator.DataRegistryContext;
 import io.github.frikit.rdg.generator.GeneratorConfig;
 import io.github.frikit.rdg.generator.Generators;
+import io.github.frikit.rdg.generator.Vocabulary;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -116,12 +118,15 @@ class BloodTypeGeneratorTest {
         @Test
         @DisplayName("isRegistered: built-ins yes, unknown/null no")
         void isRegistered() {
-            assertTrue(BloodTypeDataRegistry.isRegistered(Locale.US));
-            assertTrue(BloodTypeDataRegistry.isRegistered(Locale.JAPAN));
-            assertTrue(BloodTypeDataRegistry.isRegistered(new Locale("en", "CA")), "language fallback");
-            assertFalse(BloodTypeDataRegistry.isRegistered(Locale.GERMANY));
-            assertFalse(BloodTypeDataRegistry.isRegistered(new Locale("xx", "YY")));
-            assertFalse(BloodTypeDataRegistry.isRegistered(null));
+            assertTrue(DataRegistryContext.globalDefault().isRegistered(Vocabulary.BLOOD_TYPE, Locale.US));
+            assertTrue(DataRegistryContext.globalDefault().isRegistered(Vocabulary.BLOOD_TYPE, Locale.JAPAN));
+            assertTrue(
+                    DataRegistryContext.globalDefault().isRegistered(Vocabulary.BLOOD_TYPE, new Locale("en", "CA")),
+                    "language fallback");
+            assertFalse(DataRegistryContext.globalDefault().isRegistered(Vocabulary.BLOOD_TYPE, Locale.GERMANY));
+            assertFalse(
+                    DataRegistryContext.globalDefault().isRegistered(Vocabulary.BLOOD_TYPE, new Locale("xx", "YY")));
+            assertFalse(DataRegistryContext.globalDefault().isRegistered(Vocabulary.BLOOD_TYPE, null));
         }
 
         @Test

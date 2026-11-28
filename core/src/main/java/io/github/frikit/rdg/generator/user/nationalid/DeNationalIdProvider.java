@@ -33,7 +33,7 @@ import java.util.Random;
  *
  * <p>Example: {@code "86095742719"}
  */
-public final class DeNationalIdProvider implements NationalIdProvider {
+final class DeNationalIdProvider implements NationalIdProvider {
 
     /**
      * Creates a provider for German Steuer-ID numbers.

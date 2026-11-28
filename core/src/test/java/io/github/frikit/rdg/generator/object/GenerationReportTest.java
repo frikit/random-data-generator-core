@@ -21,6 +21,7 @@ import io.github.frikit.rdg.generator.report.GenerationDecision;
 import io.github.frikit.rdg.generator.report.GenerationReportEntry;
 import io.github.frikit.rdg.generator.report.GenerationStep;
 import io.github.frikit.rdg.generator.report.SeedSource;
+import io.github.frikit.rdg.internal.ConfigAccess;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Null;
 import jakarta.validation.constraints.Size;
@@ -554,10 +555,12 @@ class GenerationReportTest {
                                 .build())
                 .generate();
 
-        assertTrue(restored.isRestoredFromRecipe());
-        assertFalse(seeded.isRestoredFromRecipe());
-        assertFalse(restored.toBuilder().seed(3L).build().isRestoredFromRecipe());
-        assertFalse(restored.toBuilder().seed("text").build().isRestoredFromRecipe());
+        assertTrue(ConfigAccess.isRestoredFromRecipe(restored));
+        assertFalse(ConfigAccess.isRestoredFromRecipe(seeded));
+        assertFalse(
+                ConfigAccess.isRestoredFromRecipe(restored.toBuilder().seed(3L).build()));
+        assertFalse(ConfigAccess.isRestoredFromRecipe(
+                restored.toBuilder().seed("text").build()));
         assertEquals(SeedSource.RECIPE, entry(replay, "Line.sku").seedSource());
         assertEquals(SeedSource.UNSEEDED, entry(unseeded, "Line.sku").seedSource());
     }

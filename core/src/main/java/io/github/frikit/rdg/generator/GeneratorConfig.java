@@ -82,7 +82,17 @@ public final class GeneratorConfig {
     private static final GenerationFailureListener NO_FAILURE_LISTENER = diagnostic -> {};
 
     static {
-        ConfigAccess.install(GeneratorConfig::withSeedCopy);
+        ConfigAccess.install(new ConfigAccess.Access() {
+            @Override
+            public GeneratorConfig withSeed(GeneratorConfig config, long seed) {
+                return withSeedCopy(config, seed);
+            }
+
+            @Override
+            public boolean isRestoredFromRecipe(GeneratorConfig config) {
+                return config.isRestoredFromRecipe();
+            }
+        });
     }
 
     private final OptionalLong seed;
@@ -596,11 +606,12 @@ public final class GeneratorConfig {
     /**
      * Whether this configuration was restored from a replay recipe with
      * {@link GenerationRecipe#toGeneratorConfig()} and keeps the recipe's seed. A new seed set through
-     * {@link #toBuilder()} makes it an ordinary seeded configuration.
+     * {@link #toBuilder()} makes it an ordinary seeded configuration. {@link ConfigAccess} gives the library's
+     * other packages this read.
      *
      * @return {@code true} for a configuration that replays a recipe
      */
-    public boolean isRestoredFromRecipe() {
+    boolean isRestoredFromRecipe() {
         return restoredFromRecipe;
     }
 

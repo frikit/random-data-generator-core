@@ -8,6 +8,8 @@ package io.github.frikit.rdg.generator.location;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.github.frikit.rdg.generator.DataRegistryContext;
+import io.github.frikit.rdg.generator.Vocabulary;
 import java.util.Locale;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -32,16 +34,17 @@ class LocationRegistryFallbackTest {
         return Stream.of(
                 org.junit.jupiter.params.provider.Arguments.of(
                         "CountryDataRegistry", (Function<Locale, ?>) CountryDataRegistry::forLocale, (Predicate<Locale>)
-                                CountryDataRegistry::isRegistered),
+                                locale -> DataRegistryContext.globalDefault().isRegistered(Vocabulary.COUNTRY, locale)),
                 org.junit.jupiter.params.provider.Arguments.of(
                         "CityDataRegistry", (Function<Locale, ?>) CityDataRegistry::forLocale, (Predicate<Locale>)
-                                CityDataRegistry::isRegistered),
+                                locale -> DataRegistryContext.globalDefault().isRegistered(Vocabulary.CITY, locale)),
                 org.junit.jupiter.params.provider.Arguments.of(
                         "StateDataRegistry", (Function<Locale, ?>) StateDataRegistry::forLocale, (Predicate<Locale>)
-                                StateDataRegistry::isRegistered),
+                                locale -> DataRegistryContext.globalDefault().isRegistered(Vocabulary.STATE, locale)),
                 org.junit.jupiter.params.provider.Arguments.of(
                         "StreetAddressDataRegistry",
                         (Function<Locale, ?>) StreetAddressDataRegistry::forLocale,
-                        (Predicate<Locale>) StreetAddressDataRegistry::isRegistered));
+                        (Predicate<Locale>) locale ->
+                                DataRegistryContext.globalDefault().isRegistered(Vocabulary.STREET_ADDRESS, locale)));
     }
 }
