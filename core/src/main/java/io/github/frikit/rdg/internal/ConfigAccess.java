@@ -118,6 +118,14 @@ public final class ConfigAccess {
          * @return {@code true} if the name is excluded
          */
         boolean isObjectFieldNameExcluded(GeneratorConfig config, String name);
+
+        /**
+         * The modules the configuration installed, resolved.
+         *
+         * @param config configuration to read
+         * @return the resolved modules
+         */
+        ExtensionRegistry getExtensionRegistry(GeneratorConfig config);
     }
 
     private static volatile @org.jspecify.annotations.Nullable Access access;
@@ -263,6 +271,17 @@ public final class ConfigAccess {
      */
     public static boolean isObjectFieldNameExcluded(GeneratorConfig config, String name) {
         return installed().isObjectFieldNameExcluded(config, name);
+    }
+
+    /**
+     * The modules installed with {@link GeneratorConfig.Builder#install}, resolved when the configuration was
+     * built: their identifiers in installation order and the providers they contribute.
+     *
+     * @param config configuration to read
+     * @return the configuration's extension registry
+     */
+    public static ExtensionRegistry getExtensionRegistry(GeneratorConfig config) {
+        return installed().getExtensionRegistry(config);
     }
 
     private static Access installed() {

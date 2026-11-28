@@ -6,7 +6,6 @@
 package io.github.frikit.rdg.generator;
 
 import io.github.frikit.rdg.generator.extension.ExtensionModule;
-import io.github.frikit.rdg.generator.extension.ExtensionRegistry;
 import io.github.frikit.rdg.generator.failure.GenerationFailureListener;
 import io.github.frikit.rdg.generator.finance.BankingSafetyPolicy;
 import io.github.frikit.rdg.generator.finance.CryptoAddressSafetyPolicy;
@@ -21,6 +20,7 @@ import io.github.frikit.rdg.generator.report.GenerationReportListener;
 import io.github.frikit.rdg.generator.user.IdentityDocumentSafetyPolicy;
 import io.github.frikit.rdg.generator.user.nationalid.NationalIdSafetyPolicy;
 import io.github.frikit.rdg.internal.ConfigAccess;
+import io.github.frikit.rdg.internal.ExtensionRegistry;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.nio.charset.Charset;
@@ -135,6 +135,11 @@ public final class GeneratorConfig {
             @Override
             public boolean isObjectFieldNameExcluded(GeneratorConfig config, String name) {
                 return config.isObjectFieldNameExcluded(name);
+            }
+
+            @Override
+            public ExtensionRegistry getExtensionRegistry(GeneratorConfig config) {
+                return config.getExtensionRegistry();
             }
         });
     }
@@ -696,11 +701,12 @@ public final class GeneratorConfig {
     }
 
     /**
-     * Returns the immutable registry of explicitly installed extension contributions.
+     * Returns the immutable registry of explicitly installed extension contributions. {@link ConfigAccess} gives
+     * the library's other packages this read.
      *
      * @return configuration-scoped extension registry
      */
-    public ExtensionRegistry getExtensionRegistry() {
+    ExtensionRegistry getExtensionRegistry() {
         return extensionRegistry;
     }
 

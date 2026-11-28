@@ -14,6 +14,7 @@ import io.github.frikit.rdg.generator.ContextualGenerator;
 import io.github.frikit.rdg.generator.Generator;
 import io.github.frikit.rdg.generator.GeneratorConfig;
 import java.lang.reflect.Field;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -78,6 +79,11 @@ class ConfigAccessTest {
             @Override
             public boolean isObjectFieldNameExcluded(GeneratorConfig parent, String name) {
                 return false;
+            }
+
+            @Override
+            public ExtensionRegistry getExtensionRegistry(GeneratorConfig parent) {
+                return ExtensionRegistry.resolve(List.of());
             }
         };
 

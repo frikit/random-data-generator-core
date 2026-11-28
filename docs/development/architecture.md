@@ -70,7 +70,7 @@ says what is guaranteed. The machinery:
 | Recipes | `generator/GenerationRecipe.java` | The line-oriented `rdg-recipe/v3` format: every setting needed to replay a run. |
 | `internal.StreamSeeds` | `internal/StreamSeeds.java` | The same hash split into steps, so `Schema` derives per-cell seeds without building strings. |
 | `internal.Reseeding` | `internal/Reseeding.java` | A registry of package-private `reseedTo(long)` hooks, so `Schema` reuses one generator per column instead of building one per value. |
-| `internal.ConfigAccess` | `internal/ConfigAccess.java` | A cheap seed-replacing copy of a configuration, whether it replays a recipe, and the object engine's override and exclusion lookups, for other packages. |
+| `internal.ConfigAccess` | `internal/ConfigAccess.java` | A cheap seed-replacing copy of a configuration, whether it replays a recipe, the object engine's override and exclusion lookups, and the resolved modules, for other packages. |
 | `Seedable` | `generator/Seedable.java` | The public reseed contract. |
 
 FNV-1a is implemented in `GeneratorConfig`, `GenerationRecipe` and `internal/StreamSeeds.java`. They
@@ -116,7 +116,7 @@ A typical generator:
 
 | Feature | Where | Notes |
 | --- | --- | --- |
-| Modules | `generator/extension/ExtensionModule.java` | Installed per configuration with `GeneratorConfig.Builder.install`; never discovered from the classpath. `configure` can run again when a configuration is copied, so keep it free of side effects. |
+| Modules | `generator/extension/ExtensionModule.java` | Installed per configuration with `GeneratorConfig.Builder.install`; never discovered from the classpath. `internal.ExtensionRegistry` resolves them when the configuration is built and rejects name collisions. `configure` can run again when a configuration is copied, so keep it free of side effects. |
 | Provider hub | `generator/provider/` | `ProviderHub` maps names to generators. `ProviderCatalog` is the source of truth for built-ins and generates `docs/reference/provider-catalog.md`. |
 | Data packs | `generator/datapack/LocalDataPack.java` | Offline, checksum-verified local datasets; no network access. |
 | Schema | `generator/schema/` | `Schema` generates records with a child stream per record and column, and writes JSONL, JSON, CSV, XML, SQL, YAML and TOML; `SchemaParser` reads JSON Schema and OpenAPI. |

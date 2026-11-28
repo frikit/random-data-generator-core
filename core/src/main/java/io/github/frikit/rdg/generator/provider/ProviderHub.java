@@ -9,6 +9,7 @@ import io.github.frikit.rdg.generator.Generator;
 import io.github.frikit.rdg.generator.GeneratorConfig;
 import io.github.frikit.rdg.generator.GeneratorProfile;
 import io.github.frikit.rdg.generator.selection.UniqueGenerator;
+import io.github.frikit.rdg.internal.ConfigAccess;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
@@ -324,7 +325,8 @@ public final class ProviderHub {
     }
 
     private void registerExtensions() {
-        for (ProviderDescriptor<?> descriptor : config.getExtensionRegistry().getProviderDescriptors()) {
+        for (ProviderDescriptor<?> descriptor :
+                ConfigAccess.getExtensionRegistry(config).getProviderDescriptors()) {
             register(descriptor.getKey(), descriptor::create, ConflictPolicy.FAIL);
             for (String alias : descriptor.getAliases()) {
                 registerAlias(alias, descriptor.getKey(), ConflictPolicy.FAIL);

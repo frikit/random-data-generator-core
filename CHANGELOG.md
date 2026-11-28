@@ -12,9 +12,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   is in the [kRandom changelog](https://github.com/frikit/krandom/blob/main/CHANGELOG.md). It is published as
   `io.github.frikit:random-data-generator-core` and `io.github.frikit:random-data-generator-bom`, and its Java
   package and JPMS module are `io.github.frikit.rdg` instead of `io.github.frikit.krandom`.
-- Renamed types: `Krandom` is `RandomDataGenerator`, and the extension types `KRandomModule`,
-  `KRandomModuleContext` and `KRandomExtensionRegistry` are `ExtensionModule`, `ExtensionModuleContext` and
-  `ExtensionRegistry`.
+- Renamed types: `Krandom` is `RandomDataGenerator`, and the extension types `KRandomModule` and
+  `KRandomModuleContext` are `ExtensionModule` and `ExtensionModuleContext`. `KRandomExtensionRegistry` has no
+  public counterpart (see `GeneratorConfig.getExtensionRegistry` under Removed).
 - Renamed contracts: the built-in data resources are under `rdg/` instead of `krandom/`, a local data pack's
   manifest is `rdg-data-pack.properties`, a recipe's format is `rdg-recipe` (version `v3`, below), a schema export's
   safety extension is `x-rdg-safety`, and the system property that supplies a development build's library version
@@ -92,5 +92,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `getObjectContextualFieldPredicateOverride`, `shouldObjectExclude` and `isObjectFieldNameExcluded` are
   package-private. The `GeneratorConfig.Builder` methods that set the overrides and exclusions stay, and object
   generation applies them as before. Seeded output is unchanged.
+- **Breaking, before 1.0.0:** `GeneratorConfig.getExtensionRegistry()` is package-private, and the type it
+  returned, `extension.ExtensionRegistry` (kRandom's `KRandomExtensionRegistry`), moves to the unexported
+  `io.github.frikit.rdg.internal` package. Modules are still installed with `GeneratorConfig.Builder.install` and
+  resolved, with the same collision checks, when the configuration is built. Seeded output is unchanged.
 
 [Unreleased]: https://github.com/frikit/random-data-generator-core/commits/main
