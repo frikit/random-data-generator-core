@@ -126,7 +126,7 @@ public final class GenerationRecipe {
      *
      * @return recipe builder
      */
-    public static Builder builder() {
+    static Builder builder() {
         return new Builder();
     }
 
@@ -666,7 +666,7 @@ public final class GenerationRecipe {
     }
 
     /** Builder for a {@link GenerationRecipe}. */
-    public static final class Builder {
+    static final class Builder {
 
         private String libraryVersion = currentLibraryVersion();
         private String recipeVersion = RECIPE_VERSION;
@@ -683,7 +683,7 @@ public final class GenerationRecipe {
 
         private Builder() {}
 
-        public Builder libraryVersion(String libraryVersion) {
+        Builder libraryVersion(String libraryVersion) {
             this.libraryVersion = libraryVersion;
             return this;
         }
@@ -706,7 +706,7 @@ public final class GenerationRecipe {
             return this;
         }
 
-        public Builder seed(long seed) {
+        Builder seed(long seed) {
             this.seed = seed;
             return this;
         }
@@ -715,7 +715,7 @@ public final class GenerationRecipe {
          * Sets the text the seed derives from, any non-blank text, as {@link GeneratorConfig.Builder#seed(String)}
          * accepts it. The serialized form encodes it, line breaks too.
          */
-        public Builder seedText(String seedText) {
+        Builder seedText(String seedText) {
             Objects.requireNonNull(seedText, "seedText must not be null");
             if (seedText.isBlank()) {
                 throw new IllegalArgumentException("seedText must not be blank");
@@ -724,33 +724,33 @@ public final class GenerationRecipe {
             return this;
         }
 
-        public Builder locale(Locale locale) {
+        Builder locale(Locale locale) {
             this.locale = Objects.requireNonNull(locale, "locale must not be null");
             return this;
         }
 
-        public Builder clock(Instant clockInstant, ZoneId clockZone) {
+        Builder clock(Instant clockInstant, ZoneId clockZone) {
             this.clockInstant = Objects.requireNonNull(clockInstant, "clockInstant must not be null");
             this.clockZone = Objects.requireNonNull(clockZone, "clockZone must not be null");
             return this;
         }
 
-        public Builder profile(String profile) {
+        Builder profile(String profile) {
             this.profile = requireToken("profile", profile);
             return this;
         }
 
-        public Builder constructionPolicy(ObjectConstructionPolicy constructionPolicy) {
+        Builder constructionPolicy(ObjectConstructionPolicy constructionPolicy) {
             this.constructionPolicy = Objects.requireNonNull(constructionPolicy, "constructionPolicy must not be null");
             return this;
         }
 
-        public Builder providerDatasetVersion(String providerDatasetVersion) {
+        Builder providerDatasetVersion(String providerDatasetVersion) {
             this.providerDatasetVersion = requireToken("providerDatasetVersion", providerDatasetVersion);
             return this;
         }
 
-        public Builder setting(String name, String value) {
+        Builder setting(String name, String value) {
             String settingName = requireToken("setting name", name);
             if (!settingName.matches("[a-z][a-z0-9.-]*")) {
                 throw new IllegalArgumentException("setting name has an invalid format: " + settingName);
@@ -759,7 +759,7 @@ public final class GenerationRecipe {
             return this;
         }
 
-        public GenerationRecipe build() {
+        GenerationRecipe build() {
             return new GenerationRecipe(this);
         }
     }

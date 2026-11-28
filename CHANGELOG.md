@@ -74,8 +74,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `DataRegistryContext.globalDefault().provider(Vocabulary.NATIONAL_ID, locale)` returns the built-in provider.
   `finance.CurrencyDetails`, which no generator returned, is removed, and `user.LocaleTextResourceLoader` moves to
   the unexported `io.github.frikit.rdg.internal` package. Package-private: `GeneratorConfig.isRestoredFromRecipe`
-  (a generation report's `SeedSource.RECIPE` says the same), `GenerationRecipe.Builder.recipeVersion` and
-  `algorithm` (each accepted only its default), `FixtureRuleKind.isRegisteredOnObjectFaker`, and the constructors,
+  (a generation report's `SeedSource.RECIPE` says the same), `FixtureRuleKind.isRegisteredOnObjectFaker`, and the
+  constructors,
   the `random` field and the `validate` method of `AbstractBoundedGenerator`, which only the numeric generators in
   `io.github.frikit.rdg.generator.base` extend. `DataRegistryContext.Builder`, `CharGenerator.Builder` and
   `StringGenerator.Builder` have private constructors (their `builder()` methods create them), and the nested
@@ -83,5 +83,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Breaking, before 1.0.0:** the static `isRegistered(Locale)` of the 41 built-in registries (the 40
   `*DataRegistry` classes and `NationalIdRegistry`). The registries keep `forLocale` and `registeredKeys`, and
   `DataRegistryContext.globalDefault().isRegistered(Vocabulary.X, locale)` gives the same answer.
+- **Breaking, before 1.0.0:** `GenerationRecipe.builder()` and the whole `GenerationRecipe.Builder` are
+  package-private. A recipe comes from `GeneratorConfig.getGenerationRecipe()` or from its text with
+  `GenerationRecipe.parse`, and `toGeneratorConfig()` replays either. Seeded output is unchanged.
 
 [Unreleased]: https://github.com/frikit/random-data-generator-core/commits/main
