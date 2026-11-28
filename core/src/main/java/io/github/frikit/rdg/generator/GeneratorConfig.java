@@ -1228,7 +1228,9 @@ public final class GeneratorConfig {
          * Use a caller-owned random instance for generated values.
          *
          * <p>The instance is retained by reference, returned unchanged, and never reseeded.
-         * It cannot be combined with a seed, random factory, or secure mode.
+         * It cannot be combined with a seed, random factory, or secure mode. Object generation draws the
+         * seed of each reseedable {@code @Randomizer} generator from it, so the same sequence repeats
+         * every member of a generated object.
          */
         public Builder random(Random random) {
             this.random = Objects.requireNonNull(random, "random");
@@ -1239,7 +1241,9 @@ public final class GeneratorConfig {
          * Inject a caller-owned random factory for advanced use cases and tests.
          *
          * <p>The factory is invoked once per {@link GeneratorConfig#createRandom()} call.
-         * Its result is not reseeded. It cannot be combined with another source specification.
+         * Its result is not reseeded. It cannot be combined with another source specification. Object
+         * generation draws the seed of each reseedable {@code @Randomizer} generator from the source the
+         * object's other members draw from, so a factory whose sources repeat repeats those members too.
          */
         public Builder randomFactory(Supplier<? extends Random> randomFactory) {
             Objects.requireNonNull(randomFactory, "randomFactory");

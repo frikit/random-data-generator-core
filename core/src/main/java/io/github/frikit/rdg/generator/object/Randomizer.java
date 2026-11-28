@@ -30,6 +30,10 @@ import java.lang.annotation.Target;
  * {@code EmailGenerator} and {@code UuidGenerator}, are reseeded the same way. Other generators, such as
  * {@code MiddleNameGenerator}, {@code CompanyEmailGenerator} or a custom one that is not {@code Seedable},
  * control their own randomness, which seeded replay cannot reproduce.
+ *
+ * <p>A configuration with a caller-owned {@link java.util.Random} or a random factory and no seed reseeds
+ * the same generators for every object, with a seed drawn from the sequence the object's other members
+ * draw from, so the same caller sequence repeats them. An unseeded or secure configuration reseeds none.
  */
 @Target({ElementType.FIELD, ElementType.RECORD_COMPONENT})
 @Retention(RetentionPolicy.RUNTIME)

@@ -39,10 +39,15 @@ The repository development line is `1.0.0-SNAPSHOT`.
 ## Determinism
 
 Within a release, the same seed and configuration always produce the same output (see the `fnv1a64-v1` string-seed
-derivation contract). Within a major release line, minor and patch releases keep that output the same, with one
-exception: a release may change output that breaks a documented contract, such as a value that fails its own Bean
-Validation constraints or a string that does not match the format its schema names. The changelog lists every such
-change under Fixed, with the values it affects. A new generator, option, or setting leaves existing output
+derivation contract). A configuration with a caller-owned `Random` (`GeneratorConfig.Builder.random`), or with a
+`randomFactory` whose sources repeat, is covered too: the same caller sequence and configuration give the same
+values, including the `@Randomizer` members of generated objects whose generator a seed reseeds (see the
+`Randomizer` Javadoc). A randomizer that controls its own randomness, such as a custom one that is not `Seedable`,
+repeats with neither a seed nor a caller's sequence. An unseeded or `secureRandom()` configuration has no sequence
+to repeat. Within a major release line, minor and patch releases keep that output the same, with one exception:
+a release may change output that breaks a documented contract, such as a value that fails its own Bean Validation
+constraints or a string that does not match the format its schema names. The changelog lists every such change
+under Fixed, with the values it affects. A new generator, option, or setting leaves existing output
 unchanged unless you opt in. Tests that assert exact generated values should still pin both the library version and
 the seed.
 

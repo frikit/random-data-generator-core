@@ -13,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.github.frikit.rdg.generator.GenerationRecipe;
 import io.github.frikit.rdg.generator.Generator;
 import io.github.frikit.rdg.generator.GeneratorConfig;
+import io.github.frikit.rdg.generator.Seedable;
 import io.github.frikit.rdg.generator.base.ByteGenerator;
 import io.github.frikit.rdg.generator.identifier.UuidGenerator;
 import io.github.frikit.rdg.generator.user.EmailGenerator;
@@ -23,6 +24,7 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Random;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -142,6 +144,128 @@ class RandomizerReplayTest {
     void builtInRandomizersNeedASeed() {
         GeneratorConfig unseeded = GeneratorConfig.defaults();
         assertNotEquals(builtIns(unseeded, 3, true), builtIns(unseeded, 3, true));
+    }
+
+    private static GeneratorConfig callerOwned(long seed) {
+        return GeneratorConfig.builder().random(new Random(seed)).clock(FIXED).build();
+    }
+
+    @Test
+    @DisplayName("a caller-owned Random repeats every member, the randomizers included")
+    void callerOwnedRandomRepeatsRandomizers() {
+        List<String> original = builtIns(callerOwned(42L), 6, true);
+
+        assertEquals(original, builtIns(callerOwned(42L), 6, true));
+        assertNotEquals(original, builtIns(callerOwned(43L), 6, true));
+        assertTrue(new HashSet<>(original).size() > 1, "values should vary between objects: " + original);
+    }
+
+    @Test
+    @DisplayName("a caller-owned Random repeats a seedable randomizer in every object")
+    void callerOwnedRandomRepeatsSeedableRandomizer() {
+        List<Byte> original = values(callerOwned(42L), 12);
+
+        assertEquals(original, values(callerOwned(42L), 12));
+        assertNotEquals(original, values(callerOwned(43L), 12));
+        assertTrue(new HashSet<>(original).size() > 1, "values should vary between objects: " + original);
+    }
+
+    @Test
+    @DisplayName("a caller-owned Random repeats the built-in randomizers of collection elements")
+    void callerOwnedRandomRepeatsNestedRandomizers() {
+        List<List<UUID>> first = new ArrayList<>();
+        List<List<UUID>> second = new ArrayList<>();
+        ObjectGenerator<IdHolder> one = new ObjectGenerator<>(IdHolder.class, callerOwned(7L));
+        ObjectGenerator<IdHolder> two = new ObjectGenerator<>(IdHolder.class, callerOwned(7L));
+        for (int i = 0; i < 3; i++) {
+            first.add(one.generate().children.stream().map(child -> child.id).toList());
+            second.add(two.generate().children.stream().map(child -> child.id).toList());
+        }
+        assertEquals(first, second);
+        for (List<UUID> ids : first) {
+            assertEquals(ids.size(), new HashSet<>(ids).size(), ids::toString);
+        }
+    }
+
+    @Test
+    @DisplayName("a random factory whose sources repeat repeats the randomizers too")
+    void repeatingRandomFactoryRepeatsRandomizers() {
+        GeneratorConfig factory = GeneratorConfig.builder()
+                .randomFactory(() -> new Random(42L))
+                .clock(FIXED)
+                .build();
+
+        assertEquals(builtIns(factory, 4, true), builtIns(factory, 4, true));
+    }
+
+    /** A seedable randomizer that gives the number of reseeds it has had so far. */
+    public static class ReseedCount implements Generator<Integer>, Seedable {
+        private int reseeds;
+
+        @Override
+        public Integer generate() {
+            return reseeds;
+        }
+
+        @Override
+        public void reseed(long seed) {
+            reseeds++;
+        }
+    }
+
+    public static class Reseeded {
+        @Randomizer(ReseedCount.class)
+        public int reseeds;
+    }
+
+    private static List<Integer> reseeds(GeneratorConfig config) {
+        ObjectGenerator<Reseeded> generator = new ObjectGenerator<>(Reseeded.class, config);
+        List<Integer> values = new ArrayList<>();
+        for (int i = 0; i < 3; i++) {
+            values.add(generator.generate().reseeds);
+        }
+        return values;
+    }
+
+    @Test
+    @DisplayName("a caller-supplied source reseeds a randomizer for every object, a library-made one never")
+    void onlyCallerSuppliedSourcesReseedRandomizers() {
+        assertEquals(List.of(1, 2, 3), reseeds(callerOwned(42L)));
+        assertEquals(
+                List.of(1, 2, 3),
+                reseeds(GeneratorConfig.builder()
+                        .randomFactory(() -> new Random(42L))
+                        .build()));
+        assertEquals(List.of(0, 0, 0), reseeds(GeneratorConfig.defaults()));
+        assertEquals(
+                List.of(0, 0, 0),
+                reseeds(GeneratorConfig.builder().secureRandom().build()));
+    }
+
+    public static class PlainOnly {
+        public int plain;
+        public int other;
+    }
+
+    public static class PlainWithCounter {
+        @Randomizer(Counter.class)
+        public long sequence;
+
+        public int plain;
+        public int other;
+    }
+
+    @Test
+    @DisplayName("with a caller-owned Random a randomizer that cannot be reseeded draws nothing")
+    void nonReseedableRandomizerDrawsNothingFromTheCallerSequence() {
+        ObjectGenerator<PlainOnly> without = new ObjectGenerator<>(PlainOnly.class, callerOwned(42L));
+        ObjectGenerator<PlainWithCounter> with = new ObjectGenerator<>(PlainWithCounter.class, callerOwned(42L));
+        for (int i = 0; i < 4; i++) {
+            PlainOnly expected = without.generate();
+            PlainWithCounter actual = with.generate();
+            assertEquals(expected.plain + " " + expected.other, actual.plain + " " + actual.other);
+            assertEquals(i + 1L, actual.sequence);
+        }
     }
 
     private static GeneratorConfig seeded(long seed) {

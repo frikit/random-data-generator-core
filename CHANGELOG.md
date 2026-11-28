@@ -36,6 +36,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   but `v3`, `v2` included, is rejected as unsupported.
 - The Jackson, JUnit and Spring Boot modules move to `random-data-generator-java`, and the Kotlin DSL and Kotest
   modules to `random-data-generator-kotlin`.
+- **Breaking, before 1.0.0, changes generated objects:** with a caller-owned `Random`
+  (`GeneratorConfig.Builder.random`) or a `randomFactory` and no seed, object generation reseeds a `@Randomizer`
+  generator that a seed would reseed (a `Seedable` one, or a built-in such as `UuidGenerator`, `FirstNameGenerator`
+  or `EmailGenerator`) for every object, with a seed drawn from the sequence the object's other members draw from
+  when the member is resolved. Such a member kept the unseeded source of its own constructor and took other values
+  on every launch, while the other members repeated; now `random(new Random(42))` repeats them too. That draw
+  gives the members after it other values than before, in such a configuration only. A `@Randomizer` that cannot be
+  reseeded draws nothing, and seeded, unseeded and `secureRandom()` configurations keep their values.
 
 ### Removed
 

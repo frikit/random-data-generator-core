@@ -203,6 +203,9 @@ final class FieldGeneratorResolver {
     private final @Nullable Long generationSeed;
     private final boolean namedChildStreams;
     private final Random sequenceRandom;
+    /** Whether the caller supplies the random source, as a {@link Random} or a factory, rather than a seed. */
+    private final boolean callerSuppliedSource;
+
     private final Map<Class<?>, Generator<?>> builtins;
     private final SemanticStringGenerators semanticStringGenerators;
     private final Map<String, Map<Class<?>, Generator<?>>> semanticTypedGenerators;
@@ -229,6 +232,8 @@ final class FieldGeneratorResolver {
         this.generationSeed = generationSeed;
         this.namedChildStreams = ObjectFieldStreamPlanner.usesNamedChildStreams(generationSeed);
         this.sequenceRandom = generationSeed != null ? new Random(generationSeed) : this.generatorConfig.createRandom();
+        this.callerSuppliedSource = this.generatorConfig.getRandom().isPresent()
+                || this.generatorConfig.getRandomFactory().isPresent();
         this.builtins = buildBuiltins(config, this.generatorConfig, this.sequenceRandom);
         this.semanticRegistry = config.getSemanticRegistry();
         this.semanticMode = config.getSemanticMode();
@@ -1650,6 +1655,8 @@ final class FieldGeneratorResolver {
                 element, () -> constructRandomizer(element, generatorType, ownerType, path, depth));
         if (generationSeed != null) {
             reseedRandomizer(generator, GenerationRecipe.deriveChildSeed(generationSeed, "randomizer:" + path));
+        } else if (callerSuppliedSource) {
+            reseedRandomizerFromSequence(generator);
         }
         return () -> generateWithRandomizerContext(generator, generatorType, ownerType, path, depth);
     }
@@ -1667,6 +1674,17 @@ final class FieldGeneratorResolver {
         Reseeding.Reseeder<Generator<?>> reseeder = Reseeding.reseederOf(generator);
         if (reseeder != null) {
             reseeder.reseed(generator, seed);
+        }
+    }
+
+    /**
+     * Without a seed, but with a caller-owned {@link Random} or a random factory, a randomizer that the seeded
+     * path reseeds takes its seed from the sequence the other members draw from, when its member is resolved, so
+     * the same caller sequence repeats it. A randomizer that cannot be reseeded draws nothing from the sequence.
+     */
+    private void reseedRandomizerFromSequence(Generator<?> generator) {
+        if (generator instanceof Seedable || Reseeding.reseederOf(generator) != null) {
+            reseedRandomizer(generator, sequenceRandom.nextLong());
         }
     }
 
