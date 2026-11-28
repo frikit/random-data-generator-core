@@ -61,7 +61,8 @@ jobs:
           java-version: ${{ matrix.build-java }}
           distribution: 'temurin'
 
-      # Each job, and each matrix entry, restores the Gradle user home that main saved under its own key,
+      # Each job, and each matrix entry, restores the Gradle user home that main saved under its own key
+      # (raise the v1 in the key to start every job cold once),
       # so no job waits on a key another job reserved; an older entry of the same job serves when the
       # build inputs changed.
       - name: Restore the Gradle cache
@@ -72,8 +73,8 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ github.job }}-${{ matrix.java }}-${{ hashFiles('**/*.gradle.kts', 'gradle/libs.versions.toml', 'gradle/verification-metadata.xml', 'gradle/wrapper/gradle-wrapper.properties') }}
-          restore-keys: gradle-${{ runner.os }}-${{ github.job }}-${{ matrix.java }}-
+          key: gradle-v1-${{ runner.os }}-${{ github.job }}-${{ matrix.java }}-${{ hashFiles('**/*.gradle.kts', 'gradle/libs.versions.toml', 'gradle/verification-metadata.xml', 'gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-v1-${{ runner.os }}-${{ github.job }}-${{ matrix.java }}-
 
       - name: Make gradlew executable
         run: chmod +x gradlew
@@ -138,7 +139,8 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      # Each job, and each matrix entry, restores the Gradle user home that main saved under its own key,
+      # Each job, and each matrix entry, restores the Gradle user home that main saved under its own key
+      # (raise the v1 in the key to start every job cold once),
       # so no job waits on a key another job reserved; an older entry of the same job serves when the
       # build inputs changed.
       - name: Restore the Gradle cache
@@ -148,8 +150,8 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ github.job }}-${{ matrix.java }}-${{ hashFiles('**/*.gradle.kts', 'gradle/libs.versions.toml', 'gradle/verification-metadata.xml', 'gradle/wrapper/gradle-wrapper.properties') }}
-          restore-keys: gradle-${{ runner.os }}-${{ github.job }}-${{ matrix.java }}-
+          key: gradle-v1-${{ runner.os }}-${{ github.job }}-${{ matrix.java }}-${{ hashFiles('**/*.gradle.kts', 'gradle/libs.versions.toml', 'gradle/verification-metadata.xml', 'gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-v1-${{ runner.os }}-${{ github.job }}-${{ matrix.java }}-
 
       - name: Make gradlew executable
         run: chmod +x gradlew
@@ -185,7 +187,8 @@ jobs:
           distribution: graalvm
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      # Each job, and each matrix entry, restores the Gradle user home that main saved under its own key,
+      # Each job, and each matrix entry, restores the Gradle user home that main saved under its own key
+      # (raise the v1 in the key to start every job cold once),
       # so no job waits on a key another job reserved; an older entry of the same job serves when the
       # build inputs changed.
       - name: Restore the Gradle cache
@@ -195,8 +198,8 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ github.job }}-${{ matrix.java }}-${{ hashFiles('**/*.gradle.kts', 'gradle/libs.versions.toml', 'gradle/verification-metadata.xml', 'gradle/wrapper/gradle-wrapper.properties') }}
-          restore-keys: gradle-${{ runner.os }}-${{ github.job }}-${{ matrix.java }}-
+          key: gradle-v1-${{ runner.os }}-${{ github.job }}-${{ matrix.java }}-${{ hashFiles('**/*.gradle.kts', 'gradle/libs.versions.toml', 'gradle/verification-metadata.xml', 'gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-v1-${{ runner.os }}-${{ github.job }}-${{ matrix.java }}-
 
       - name: Make gradlew executable
         run: chmod +x gradlew
@@ -234,9 +237,12 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      # Each job, and each matrix entry, restores the Gradle user home that main saved under its own key,
+      # Each job, and each matrix entry, restores the Gradle user home that main saved under its own key
+      # (raise the v1 in the key to start every job cold once),
       # so no job waits on a key another job reserved; an older entry of the same job serves when the
       # build inputs changed.
+      # No fallback key here: when a build input changes, PIT's dependency graph, which only this job
+      # resolves, is verified from an empty Gradle home.
       - name: Restore the Gradle cache
         id: gradle-cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -244,8 +250,7 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ github.job }}-${{ matrix.java }}-${{ hashFiles('**/*.gradle.kts', 'gradle/libs.versions.toml', 'gradle/verification-metadata.xml', 'gradle/wrapper/gradle-wrapper.properties') }}
-          restore-keys: gradle-${{ runner.os }}-${{ github.job }}-${{ matrix.java }}-
+          key: gradle-v1-${{ runner.os }}-${{ github.job }}-${{ matrix.java }}-${{ hashFiles('**/*.gradle.kts', 'gradle/libs.versions.toml', 'gradle/verification-metadata.xml', 'gradle/wrapper/gradle-wrapper.properties') }}
 
       - name: Make gradlew executable
         run: chmod +x gradlew
@@ -287,7 +292,8 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      # Each job, and each matrix entry, restores the Gradle user home that main saved under its own key,
+      # Each job, and each matrix entry, restores the Gradle user home that main saved under its own key
+      # (raise the v1 in the key to start every job cold once),
       # so no job waits on a key another job reserved; an older entry of the same job serves when the
       # build inputs changed.
       - name: Restore the Gradle cache
@@ -297,8 +303,8 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ github.job }}-${{ matrix.java }}-${{ hashFiles('**/*.gradle.kts', 'gradle/libs.versions.toml', 'gradle/verification-metadata.xml', 'gradle/wrapper/gradle-wrapper.properties') }}
-          restore-keys: gradle-${{ runner.os }}-${{ github.job }}-${{ matrix.java }}-
+          key: gradle-v1-${{ runner.os }}-${{ github.job }}-${{ matrix.java }}-${{ hashFiles('**/*.gradle.kts', 'gradle/libs.versions.toml', 'gradle/verification-metadata.xml', 'gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-v1-${{ runner.os }}-${{ github.job }}-${{ matrix.java }}-
 
       - name: Make gradle wrappers executable
         run: chmod +x gradlew examples/java-gradle/gradlew
