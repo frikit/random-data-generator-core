@@ -84,13 +84,6 @@ public final class NationalIdRegistry {
     private NationalIdRegistry() {}
 
     /**
-     * Returns {@code true} if {@link #forLocale(Locale)} resolves a provider for the given locale.
-     */
-    public static boolean isRegistered(Locale locale) {
-        return forLocale(locale) != null;
-    }
-
-    /**
      * Returns the best-matching provider for the given locale, following the documented lookup
      * order.
      *

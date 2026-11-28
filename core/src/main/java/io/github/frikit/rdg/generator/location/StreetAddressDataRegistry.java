@@ -37,13 +37,6 @@ public final class StreetAddressDataRegistry {
     }
 
     /**
-     * Returns whether locale is registered.
-     */
-    public static boolean isRegistered(Locale locale) {
-        return RegistryLookup.containsWithFallback(providers, locale);
-    }
-
-    /**
      * Returns registered key set.
      */
     public static Set<String> registeredKeys() {

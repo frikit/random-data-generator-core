@@ -13,7 +13,9 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.github.frikit.rdg.generator.DataRegistryContext;
 import io.github.frikit.rdg.generator.GeneratorConfig;
+import io.github.frikit.rdg.generator.Vocabulary;
 import io.github.frikit.rdg.generator.locale.SupportedLocale;
 import java.util.HashSet;
 import java.util.List;
@@ -268,7 +270,7 @@ class TitleGeneratorTest {
     @Test
     @DisplayName("isRegistered returns false for null locale")
     void isRegisteredNullReturnsFalse() {
-        assertFalse(TitleDataRegistry.isRegistered(null));
+        assertFalse(DataRegistryContext.globalDefault().isRegistered(Vocabulary.TITLE, null));
     }
 
     @Test
@@ -280,7 +282,7 @@ class TitleGeneratorTest {
     @Test
     @DisplayName("isRegistered returns false for unregistered locale with country")
     void isRegisteredUnknownLocale() {
-        assertFalse(TitleDataRegistry.isRegistered(new Locale("xx", "YY")));
+        assertFalse(DataRegistryContext.globalDefault().isRegistered(Vocabulary.TITLE, new Locale("xx", "YY")));
     }
 
     @Test

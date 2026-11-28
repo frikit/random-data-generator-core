@@ -12,7 +12,9 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.github.frikit.rdg.generator.DataRegistryContext;
 import io.github.frikit.rdg.generator.GeneratorConfig;
+import io.github.frikit.rdg.generator.Vocabulary;
 import io.github.frikit.rdg.generator.locale.SupportedLocale;
 import io.github.frikit.rdg.internal.LocaleTextResourceLoader;
 import java.util.Collections;
@@ -267,7 +269,7 @@ class FirstNameGeneratorTest {
         @Test
         @DisplayName("isRegistered(null) returns false")
         void isRegisteredNullReturnsFalse() {
-            assertFalse(FirstNameDataRegistry.isRegistered(null));
+            assertFalse(DataRegistryContext.globalDefault().isRegistered(Vocabulary.FIRST_NAME, null));
         }
 
         @Test
@@ -279,7 +281,8 @@ class FirstNameGeneratorTest {
         @Test
         @DisplayName("isRegistered returns false for unknown locale")
         void isRegisteredUnknownLocale() {
-            assertFalse(FirstNameDataRegistry.isRegistered(new Locale("qq", "QQ")));
+            assertFalse(
+                    DataRegistryContext.globalDefault().isRegistered(Vocabulary.FIRST_NAME, new Locale("qq", "QQ")));
         }
 
         @Test
@@ -298,7 +301,7 @@ class FirstNameGeneratorTest {
         @Test
         @DisplayName("isRegistered with language-only locale checks language-level entry")
         void isRegisteredWithLanguageOnlyLocale() {
-            assertTrue(FirstNameDataRegistry.isRegistered(new Locale("en")));
+            assertTrue(DataRegistryContext.globalDefault().isRegistered(Vocabulary.FIRST_NAME, new Locale("en")));
         }
 
         @Test

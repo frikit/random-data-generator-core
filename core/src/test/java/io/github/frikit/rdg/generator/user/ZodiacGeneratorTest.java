@@ -12,8 +12,10 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.github.frikit.rdg.generator.DataRegistryContext;
 import io.github.frikit.rdg.generator.GeneratorConfig;
 import io.github.frikit.rdg.generator.Generators;
+import io.github.frikit.rdg.generator.Vocabulary;
 import java.time.LocalDate;
 import java.time.MonthDay;
 import java.util.HashSet;
@@ -163,10 +165,11 @@ class ZodiacGeneratorTest {
         @Test
         @DisplayName("isRegistered / forLocale honor built-ins and reject null/unknown")
         void registryLookups() {
-            assertTrue(ZodiacDataRegistry.isRegistered(RU));
-            assertTrue(ZodiacDataRegistry.isRegistered(new Locale("ru")));
-            assertFalse(ZodiacDataRegistry.isRegistered(new Locale("is", "IS"))); // Icelandic: no file
-            assertFalse(ZodiacDataRegistry.isRegistered(null));
+            assertTrue(DataRegistryContext.globalDefault().isRegistered(Vocabulary.ZODIAC, RU));
+            assertTrue(DataRegistryContext.globalDefault().isRegistered(Vocabulary.ZODIAC, new Locale("ru")));
+            assertFalse(DataRegistryContext.globalDefault()
+                    .isRegistered(Vocabulary.ZODIAC, new Locale("is", "IS"))); // Icelandic: no file
+            assertFalse(DataRegistryContext.globalDefault().isRegistered(Vocabulary.ZODIAC, null));
 
             assertNotNull(ZodiacDataRegistry.forLocale(RU));
             assertNotNull(ZodiacDataRegistry.forLocale(new Locale("ru", "XX"))); // language fallback

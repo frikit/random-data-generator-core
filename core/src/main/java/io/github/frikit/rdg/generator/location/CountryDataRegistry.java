@@ -45,14 +45,6 @@ public final class CountryDataRegistry {
     private CountryDataRegistry() {}
 
     /**
-     * Returns {@code true} if the registry contains an entry for the given locale (exact
-     * {@code language_COUNTRY} match or language-only match).
-     */
-    public static boolean isRegistered(Locale locale) {
-        return RegistryLookup.containsWithFallback(REGISTRY, locale);
-    }
-
-    /**
      * Returns the best-matching provider for the given locale.
      *
      * @return the provider, or {@code null} if none is registered for the locale or its language

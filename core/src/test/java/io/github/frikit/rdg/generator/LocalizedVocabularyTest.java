@@ -335,21 +335,21 @@ class LocalizedVocabularyTest {
     @DisplayName("display vocabularies are registered exactly for the translated locales")
     void translatedLocalesAreRegistered() {
         List<Function<Locale, Boolean>> registries = List.of(
-                IndustryDataRegistry::isRegistered,
-                JobFieldDataRegistry::isRegistered,
-                SeniorityDataRegistry::isRegistered,
-                PositionDataRegistry::isRegistered,
-                EducationalAttainmentDataRegistry::isRegistered,
-                MaritalStatusDataRegistry::isRegistered,
-                JobTypeDataRegistry::isRegistered,
-                CompanyNameDataRegistry::isRegistered,
-                CompanyBuzzwordDataRegistry::isRegistered,
-                CompanyCatchPhraseDataRegistry::isRegistered,
-                TextWordDataRegistry::isRegistered,
-                CommerceDataRegistry::isRegistered,
-                BankNameDataRegistry::isRegistered,
-                BankTypeDataRegistry::isRegistered,
-                BankAccountDataRegistry::isRegistered);
+                locale -> DataRegistryContext.globalDefault().isRegistered(Vocabulary.INDUSTRY, locale),
+                locale -> DataRegistryContext.globalDefault().isRegistered(Vocabulary.JOB_FIELD, locale),
+                locale -> DataRegistryContext.globalDefault().isRegistered(Vocabulary.SENIORITY, locale),
+                locale -> DataRegistryContext.globalDefault().isRegistered(Vocabulary.POSITION, locale),
+                locale -> DataRegistryContext.globalDefault().isRegistered(Vocabulary.EDUCATIONAL_ATTAINMENT, locale),
+                locale -> DataRegistryContext.globalDefault().isRegistered(Vocabulary.MARITAL_STATUS, locale),
+                locale -> DataRegistryContext.globalDefault().isRegistered(Vocabulary.JOB_TYPE, locale),
+                locale -> DataRegistryContext.globalDefault().isRegistered(Vocabulary.COMPANY_NAME, locale),
+                locale -> DataRegistryContext.globalDefault().isRegistered(Vocabulary.COMPANY_BUZZWORD, locale),
+                locale -> DataRegistryContext.globalDefault().isRegistered(Vocabulary.COMPANY_CATCH_PHRASE, locale),
+                locale -> DataRegistryContext.globalDefault().isRegistered(Vocabulary.TEXT_WORD, locale),
+                locale -> DataRegistryContext.globalDefault().isRegistered(Vocabulary.COMMERCE, locale),
+                locale -> DataRegistryContext.globalDefault().isRegistered(Vocabulary.BANK_NAME, locale),
+                locale -> DataRegistryContext.globalDefault().isRegistered(Vocabulary.BANK_TYPE, locale),
+                locale -> DataRegistryContext.globalDefault().isRegistered(Vocabulary.BANK_ACCOUNT, locale));
         allNonEnglishNativeLocales().forEach(supportedLocale -> {
             boolean translated = TRANSLATED_LOCALES.contains(supportedLocale);
             for (int i = 0; i < registries.size(); i++) {
@@ -589,7 +589,8 @@ class LocalizedVocabularyTest {
                         "databaseColumns",
                         locale -> DatabaseColumnDataRegistry.forLocale(locale).getColumns(),
                         config -> new DatabaseGenerator(config)::generateColumn,
-                        DatabaseColumnDataRegistry::isRegistered));
+                        locale ->
+                                DataRegistryContext.globalDefault().isRegistered(Vocabulary.DATABASE_COLUMN, locale)));
     }
 
     static Stream<Object[]> singleListsByLocale() {
@@ -671,7 +672,9 @@ class LocalizedVocabularyTest {
     }
 
     static Stream<SupportedLocale> directoryLocales() {
-        return allNonEnglishNativeLocales().filter(locale -> DirectoryNameDataRegistry.isRegistered(locale.locale()));
+        return allNonEnglishNativeLocales()
+                .filter(locale ->
+                        DataRegistryContext.globalDefault().isRegistered(Vocabulary.DIRECTORY_NAME, locale.locale()));
     }
 
     @ParameterizedTest(name = "{0}")
@@ -836,7 +839,7 @@ class LocalizedVocabularyTest {
             assertEquals(
                     CommerceDataRegistry.forLocale(Locale.FRANCE).getProducts(),
                     CommerceDataRegistry.forLocale(Locale.CANADA_FRENCH).getProducts());
-            assertTrue(IndustryDataRegistry.isRegistered(new Locale("pt", "PT")));
+            assertTrue(DataRegistryContext.globalDefault().isRegistered(Vocabulary.INDUSTRY, new Locale("pt", "PT")));
         }
 
         @Test

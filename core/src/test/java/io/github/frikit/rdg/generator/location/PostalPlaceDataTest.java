@@ -75,9 +75,9 @@ class PostalPlaceDataTest {
         assertNull(PostalPlaceDataRegistry.forLocale(new Locale("en", "IN")));
         assertNull(PostalPlaceDataRegistry.forLocale(Locale.ROOT));
         assertNull(PostalPlaceDataRegistry.forLocale(null));
-        assertTrue(PostalPlaceDataRegistry.isRegistered(Locale.US));
-        assertFalse(PostalPlaceDataRegistry.isRegistered(Locale.CANADA));
-        assertFalse(PostalPlaceDataRegistry.isRegistered(null));
+        assertTrue(DataRegistryContext.globalDefault().isRegistered(Vocabulary.POSTAL_PLACE, Locale.US));
+        assertFalse(DataRegistryContext.globalDefault().isRegistered(Vocabulary.POSTAL_PLACE, Locale.CANADA));
+        assertFalse(DataRegistryContext.globalDefault().isRegistered(Vocabulary.POSTAL_PLACE, null));
         assertEquals(
                 Set.of("en_US", "en", "en_GB", "de_DE", "de", "fr_FR", "fr"), PostalPlaceDataRegistry.registeredKeys());
         assertEquals(252, us.getPlaces().size());

@@ -49,16 +49,6 @@ public final class StateDataRegistry {
     }
 
     /**
-     * Returns {@code true} if a provider is registered for the given locale.
-     *
-     * @param locale the locale
-     * @return {@code true} if supported, {@code false} if not or if locale is null
-     */
-    public static boolean isRegistered(Locale locale) {
-        return RegistryLookup.containsWithFallback(providers, locale);
-    }
-
-    /**
      * Returns the set of all registered locale keys (for diagnostics).
      *
      * @return unmodifiable view of registered keys

@@ -45,16 +45,4 @@ final class RegistryLookup {
         }
         return registry.get(language);
     }
-
-    static boolean containsWithFallback(Map<String, ?> registry, Locale locale) {
-        if (locale == null) {
-            return false;
-        }
-        String language = locale.getLanguage();
-        String country = locale.getCountry();
-        if (!country.isEmpty() && registry.containsKey(language + "_" + country)) {
-            return true;
-        }
-        return registry.containsKey(language);
-    }
 }

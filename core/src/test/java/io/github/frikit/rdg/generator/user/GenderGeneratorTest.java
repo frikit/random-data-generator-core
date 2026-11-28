@@ -13,7 +13,9 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.github.frikit.rdg.generator.DataRegistryContext;
 import io.github.frikit.rdg.generator.GeneratorConfig;
+import io.github.frikit.rdg.generator.Vocabulary;
 import io.github.frikit.rdg.generator.locale.SupportedLocale;
 import java.util.HashSet;
 import java.util.List;
@@ -255,7 +257,7 @@ class GenderGeneratorTest {
     @Test
     @DisplayName("isRegistered returns false for null locale")
     void isRegisteredNullReturnsFalse() {
-        assertFalse(GenderDataRegistry.isRegistered(null));
+        assertFalse(DataRegistryContext.globalDefault().isRegistered(Vocabulary.GENDER, null));
     }
 
     @Test
@@ -267,7 +269,7 @@ class GenderGeneratorTest {
     @Test
     @DisplayName("isRegistered returns false for unregistered locale")
     void isRegisteredUnknownLocale() {
-        assertFalse(GenderDataRegistry.isRegistered(new Locale("xx", "YY")));
+        assertFalse(DataRegistryContext.globalDefault().isRegistered(Vocabulary.GENDER, new Locale("xx", "YY")));
     }
 
     @Test
@@ -287,7 +289,7 @@ class GenderGeneratorTest {
     @Test
     @DisplayName("isRegistered returns true for language-only locale")
     void isRegisteredLanguageOnly() {
-        assertTrue(GenderDataRegistry.isRegistered(new Locale("fr")));
+        assertTrue(DataRegistryContext.globalDefault().isRegistered(Vocabulary.GENDER, new Locale("fr")));
     }
 
     @Test

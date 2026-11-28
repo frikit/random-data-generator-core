@@ -80,5 +80,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `io.github.frikit.rdg.generator.base` extend. `DataRegistryContext.Builder`, `CharGenerator.Builder` and
   `StringGenerator.Builder` have private constructors (their `builder()` methods create them), and the nested
   `Builder` of the package-private `ObjectGeneratorConfig` is no longer declared public. Seeded output is unchanged.
+- **Breaking, before 1.0.0:** the static `isRegistered(Locale)` of the 41 built-in registries (the 40
+  `*DataRegistry` classes and `NationalIdRegistry`). The registries keep `forLocale` and `registeredKeys`, and
+  `DataRegistryContext.globalDefault().isRegistered(Vocabulary.X, locale)` gives the same answer.
 
 [Unreleased]: https://github.com/frikit/random-data-generator-core/commits/main

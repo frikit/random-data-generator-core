@@ -12,8 +12,10 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.github.frikit.rdg.generator.DataRegistryContext;
 import io.github.frikit.rdg.generator.GeneratorConfig;
 import io.github.frikit.rdg.generator.Generators;
+import io.github.frikit.rdg.generator.Vocabulary;
 import io.github.frikit.rdg.generator.locale.SupportedLocale;
 import java.util.HashSet;
 import java.util.Locale;
@@ -275,16 +277,17 @@ class ProfessionGeneratorTest {
         @Test
         @DisplayName("isRegistered and forLocale null behavior")
         void nullLookupBehavior() {
-            assertFalse(ProfessionDataRegistry.isRegistered(null));
+            assertFalse(DataRegistryContext.globalDefault().isRegistered(Vocabulary.PROFESSION, null));
             assertNull(ProfessionDataRegistry.forLocale(null));
         }
 
         @Test
         @DisplayName("isRegistered returns true and false for known and unknown locales")
         void isRegisteredKnownAndUnknown() {
-            assertTrue(ProfessionDataRegistry.isRegistered(Locale.US));
-            assertTrue(ProfessionDataRegistry.isRegistered(new Locale("en")));
-            assertFalse(ProfessionDataRegistry.isRegistered(new Locale("qq", "QQ")));
+            assertTrue(DataRegistryContext.globalDefault().isRegistered(Vocabulary.PROFESSION, Locale.US));
+            assertTrue(DataRegistryContext.globalDefault().isRegistered(Vocabulary.PROFESSION, new Locale("en")));
+            assertFalse(
+                    DataRegistryContext.globalDefault().isRegistered(Vocabulary.PROFESSION, new Locale("qq", "QQ")));
         }
 
         @Test

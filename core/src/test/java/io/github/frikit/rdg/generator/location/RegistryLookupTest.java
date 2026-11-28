@@ -6,7 +6,6 @@
 package io.github.frikit.rdg.generator.location;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -56,18 +55,6 @@ class RegistryLookupTest {
         assertSame("us", RegistryLookup.findWithFallback(registry, new Locale("en", "CA")));
         assertNull(RegistryLookup.findWithFallback(registry, new Locale("fr", "FR")));
         assertNull(RegistryLookup.findWithFallback(registry, null));
-    }
-
-    @Test
-    @DisplayName("containsWithFallback resolves exact, fallback, unknown and null cases")
-    void containsWithFallback() {
-        Map<String, String> registry = new HashMap<>();
-        RegistryLookup.putWithLanguageFallback(registry, new Locale("en", "US"), "us");
-
-        assertTrue(RegistryLookup.containsWithFallback(registry, new Locale("en", "US")));
-        assertTrue(RegistryLookup.containsWithFallback(registry, new Locale("en", "CA")));
-        assertFalse(RegistryLookup.containsWithFallback(registry, new Locale("fr", "FR")));
-        assertFalse(RegistryLookup.containsWithFallback(registry, null));
     }
 
     @Test

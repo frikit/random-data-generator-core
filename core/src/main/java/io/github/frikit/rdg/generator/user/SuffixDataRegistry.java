@@ -39,17 +39,6 @@ public final class SuffixDataRegistry {
     private SuffixDataRegistry() {}
 
     /**
-     * Returns {@code true} if the registry contains an entry for the given locale.
-     */
-    public static boolean isRegistered(Locale locale) {
-        if (locale == null) return false;
-        String lang = locale.getLanguage();
-        String country = locale.getCountry();
-        if (!country.isEmpty() && REGISTRY.containsKey(lang + "_" + country)) return true;
-        return REGISTRY.containsKey(lang);
-    }
-
-    /**
      * Returns the best-matching provider for the given locale.
      *
      * @return the provider, or {@code null} if none is registered

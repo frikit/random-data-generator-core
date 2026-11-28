@@ -75,8 +75,9 @@ Mirror the address types (`generator/location/AddressType*.java`) exactly. For a
 3. **Built-in provider.** `BuiltInXDataProvider` loads the file for a `SupportedLocale`'s
    `resourcePrefix()` with the shared `LocaleTextResourceLoader` (`internal`, not exported, used from
    every package with built-in data).
-4. **Registry.** `XDataRegistry` with `isRegistered`, `forLocale`, `registeredKeys` and a static
-   initializer. Pick the variant that matches your files:
+4. **Registry.** `XDataRegistry` with `forLocale`, `registeredKeys` and a static initializer. Code and
+   tests ask whether a locale has data through `DataRegistryContext` (`isRegistered(Vocabulary.X, locale)`),
+   not through the registry. Pick the variant that matches your files:
    - a file for **every** locale prefix, English included: register every `SupportedLocale`
      unconditionally, as `AddressTypeDataRegistry` and `TitleDataRegistry` do;
    - English from `default.txt` only: register only locales that have a file, guarded by a

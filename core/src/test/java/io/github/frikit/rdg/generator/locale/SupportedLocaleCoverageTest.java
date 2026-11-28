@@ -9,16 +9,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.frikit.rdg.generator.location.CityDataRegistry;
-import io.github.frikit.rdg.generator.location.CountryDataRegistry;
-import io.github.frikit.rdg.generator.location.StateDataRegistry;
-import io.github.frikit.rdg.generator.location.StreetAddressDataRegistry;
-import io.github.frikit.rdg.generator.user.FirstNameDataRegistry;
-import io.github.frikit.rdg.generator.user.GenderDataRegistry;
-import io.github.frikit.rdg.generator.user.LastNameDataRegistry;
-import io.github.frikit.rdg.generator.user.ProfessionDataRegistry;
-import io.github.frikit.rdg.generator.user.SuffixDataRegistry;
-import io.github.frikit.rdg.generator.user.TitleDataRegistry;
+import io.github.frikit.rdg.generator.DataRegistryContext;
+import io.github.frikit.rdg.generator.Vocabulary;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -144,12 +136,24 @@ class SupportedLocaleCoverageTest {
     void userRegistriesCoverAllSupportedLocales() {
         for (SupportedLocale supportedLocale : SupportedLocale.values()) {
             Locale locale = supportedLocale.locale();
-            assertTrue(FirstNameDataRegistry.isRegistered(locale), "FirstNameDataRegistry missing " + locale);
-            assertTrue(LastNameDataRegistry.isRegistered(locale), "LastNameDataRegistry missing " + locale);
-            assertTrue(GenderDataRegistry.isRegistered(locale), "GenderDataRegistry missing " + locale);
-            assertTrue(ProfessionDataRegistry.isRegistered(locale), "ProfessionDataRegistry missing " + locale);
-            assertTrue(TitleDataRegistry.isRegistered(locale), "TitleDataRegistry missing " + locale);
-            assertTrue(SuffixDataRegistry.isRegistered(locale), "SuffixDataRegistry missing " + locale);
+            assertTrue(
+                    DataRegistryContext.globalDefault().isRegistered(Vocabulary.FIRST_NAME, locale),
+                    "FirstNameDataRegistry missing " + locale);
+            assertTrue(
+                    DataRegistryContext.globalDefault().isRegistered(Vocabulary.LAST_NAME, locale),
+                    "LastNameDataRegistry missing " + locale);
+            assertTrue(
+                    DataRegistryContext.globalDefault().isRegistered(Vocabulary.GENDER, locale),
+                    "GenderDataRegistry missing " + locale);
+            assertTrue(
+                    DataRegistryContext.globalDefault().isRegistered(Vocabulary.PROFESSION, locale),
+                    "ProfessionDataRegistry missing " + locale);
+            assertTrue(
+                    DataRegistryContext.globalDefault().isRegistered(Vocabulary.TITLE, locale),
+                    "TitleDataRegistry missing " + locale);
+            assertTrue(
+                    DataRegistryContext.globalDefault().isRegistered(Vocabulary.SUFFIX, locale),
+                    "SuffixDataRegistry missing " + locale);
 
             Object firstNameProvider = builtInProvider(
                     "io.github.frikit.rdg.generator.user.BuiltInFirstNameDataProvider", supportedLocale);
@@ -199,10 +203,18 @@ class SupportedLocaleCoverageTest {
     void locationRegistriesCoverAllSupportedLocales() {
         for (SupportedLocale supportedLocale : SupportedLocale.values()) {
             Locale locale = supportedLocale.locale();
-            assertTrue(CityDataRegistry.isRegistered(locale), "CityDataRegistry missing " + locale);
-            assertTrue(StateDataRegistry.isRegistered(locale), "StateDataRegistry missing " + locale);
-            assertTrue(CountryDataRegistry.isRegistered(locale), "CountryDataRegistry missing " + locale);
-            assertTrue(StreetAddressDataRegistry.isRegistered(locale), "StreetAddressDataRegistry missing " + locale);
+            assertTrue(
+                    DataRegistryContext.globalDefault().isRegistered(Vocabulary.CITY, locale),
+                    "CityDataRegistry missing " + locale);
+            assertTrue(
+                    DataRegistryContext.globalDefault().isRegistered(Vocabulary.STATE, locale),
+                    "StateDataRegistry missing " + locale);
+            assertTrue(
+                    DataRegistryContext.globalDefault().isRegistered(Vocabulary.COUNTRY, locale),
+                    "CountryDataRegistry missing " + locale);
+            assertTrue(
+                    DataRegistryContext.globalDefault().isRegistered(Vocabulary.STREET_ADDRESS, locale),
+                    "StreetAddressDataRegistry missing " + locale);
 
             Object cityProvider =
                     builtInProvider("io.github.frikit.rdg.generator.location.BuiltInCityDataProvider", supportedLocale);

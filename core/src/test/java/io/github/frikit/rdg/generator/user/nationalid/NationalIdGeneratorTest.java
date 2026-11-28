@@ -41,7 +41,9 @@ class NationalIdGeneratorTest {
                 // NationalIdLocaleResolutionTest for the fail-fast contract.
                 continue;
             }
-            assertTrue(NationalIdRegistry.isRegistered(locale), supportedLocale.name());
+            assertTrue(
+                    DataRegistryContext.globalDefault().isRegistered(Vocabulary.NATIONAL_ID, locale),
+                    supportedLocale.name());
             String nationalId = new NationalIdGenerator(GeneratorConfig.builder()
                             .locale(locale)
                             .seed(123L)
@@ -879,7 +881,8 @@ class NationalIdGeneratorTest {
                     .nationalIdSafetyPolicy(NationalIdSafetyPolicy.REALISTIC_UNCLASSIFIED)
                     .build());
             assertNotNull(gen.generate());
-            assertFalse(NationalIdRegistry.isRegistered(new Locale("en", "ZZ")));
+            assertFalse(
+                    DataRegistryContext.globalDefault().isRegistered(Vocabulary.NATIONAL_ID, new Locale("en", "ZZ")));
         }
 
         @Test
@@ -897,7 +900,7 @@ class NationalIdGeneratorTest {
         @Test
         @DisplayName("isRegistered returns false for null locale")
         void isRegisteredNullReturnsFalse() {
-            assertFalse(NationalIdRegistry.isRegistered(null));
+            assertFalse(DataRegistryContext.globalDefault().isRegistered(Vocabulary.NATIONAL_ID, null));
         }
 
         @Test
@@ -916,13 +919,13 @@ class NationalIdGeneratorTest {
         @DisplayName("isRegistered with language-only locale checks language key")
         void isRegisteredLanguageOnlyLocale() {
             // "en" is registered as language fallback from UsNationalIdProvider
-            assertTrue(NationalIdRegistry.isRegistered(new Locale("en")));
+            assertTrue(DataRegistryContext.globalDefault().isRegistered(Vocabulary.NATIONAL_ID, new Locale("en")));
         }
 
         @Test
         @DisplayName("isRegistered returns true for exact built-in locale key")
         void isRegisteredExactLocale() {
-            assertTrue(NationalIdRegistry.isRegistered(Locale.US));
+            assertTrue(DataRegistryContext.globalDefault().isRegistered(Vocabulary.NATIONAL_ID, Locale.US));
         }
 
         @Test

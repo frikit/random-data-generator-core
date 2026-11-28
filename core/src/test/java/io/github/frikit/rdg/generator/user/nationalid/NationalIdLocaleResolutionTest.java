@@ -51,7 +51,9 @@ class NationalIdLocaleResolutionTest {
                 new Locale("es", "AR"),
                 new Locale("de", "LI"));
         for (Locale locale : locales) {
-            assertFalse(NationalIdRegistry.isRegistered(locale), locale.toString());
+            assertFalse(
+                    DataRegistryContext.globalDefault().isRegistered(Vocabulary.NATIONAL_ID, locale),
+                    locale.toString());
             assertNull(NationalIdRegistry.forLocale(locale), locale.toString());
             UnsupportedOperationException error =
                     assertThrows(UnsupportedOperationException.class, () -> new NationalIdGenerator(config(locale)));
@@ -66,7 +68,7 @@ class NationalIdLocaleResolutionTest {
         NationalIdProvider spain = NationalIdRegistry.forLocale(new Locale("es", "ES"));
 
         assertSame(india, NationalIdRegistry.forLocale(new Locale("en", "IN")));
-        assertTrue(NationalIdRegistry.isRegistered(new Locale("en", "IN")));
+        assertTrue(DataRegistryContext.globalDefault().isRegistered(Vocabulary.NATIONAL_ID, new Locale("en", "IN")));
         assertSame(spain, NationalIdRegistry.forLocale(new Locale("gl", "ES")));
         assertNotSame(spain, NationalIdRegistry.forLocale(new Locale("ca", "ES")));
         String indianId = new NationalIdGenerator(config(new Locale("en", "IN"))).generate();
@@ -81,10 +83,10 @@ class NationalIdLocaleResolutionTest {
         assertSame(NationalIdRegistry.forLocale(Locale.US), NationalIdRegistry.forLocale(Locale.ENGLISH));
         assertSame(
                 NationalIdRegistry.forLocale(new Locale("pt", "BR")), NationalIdRegistry.forLocale(new Locale("pt")));
-        assertTrue(NationalIdRegistry.isRegistered(Locale.ENGLISH));
+        assertTrue(DataRegistryContext.globalDefault().isRegistered(Vocabulary.NATIONAL_ID, Locale.ENGLISH));
         assertNull(NationalIdRegistry.forLocale(Locale.ROOT));
-        assertFalse(NationalIdRegistry.isRegistered(Locale.ROOT));
-        assertFalse(NationalIdRegistry.isRegistered(null));
+        assertFalse(DataRegistryContext.globalDefault().isRegistered(Vocabulary.NATIONAL_ID, Locale.ROOT));
+        assertFalse(DataRegistryContext.globalDefault().isRegistered(Vocabulary.NATIONAL_ID, null));
         assertNull(NationalIdRegistry.forLocale(null));
     }
 

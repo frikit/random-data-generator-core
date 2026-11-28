@@ -32,17 +32,6 @@ public final class ProfessionDataRegistry {
     private ProfessionDataRegistry() {}
 
     /**
-     * Returns {@code true} if registry has exact or language-level provider for locale.
-     */
-    public static boolean isRegistered(Locale locale) {
-        if (locale == null) return false;
-        String lang = locale.getLanguage();
-        String country = locale.getCountry();
-        if (!country.isEmpty() && REGISTRY.containsKey(lang + "_" + country)) return true;
-        return REGISTRY.containsKey(lang);
-    }
-
-    /**
      * Returns provider by exact match, then language fallback, else {@code null}.
      */
     public static @Nullable ProfessionDataProvider forLocale(@Nullable Locale locale) {
