@@ -46,8 +46,9 @@ values, including the `@Randomizer` members of generated objects whose generator
 repeats with neither a seed nor a caller's sequence. An unseeded or `secureRandom()` configuration has no sequence
 to repeat. Within a major release line, minor and patch releases keep that output the same, with one exception:
 a release may change output that breaks a documented contract, such as a value that fails its own Bean Validation
-constraints or a string that does not match the format its schema names. The changelog lists every such change
-under Fixed, with the values it affects. A new generator, option, or setting leaves existing output
+constraints or a string that does not match the format its schema names. With a caller-owned `Random` every value
+is drawn from the one sequence, so such a fix also changes the values drawn after the ones it fixes. The changelog
+lists every such change under Fixed, with the values it affects. A new generator, option, or setting leaves existing output
 unchanged unless you opt in. Tests that assert exact generated values should still pin both the library version and
 the seed.
 

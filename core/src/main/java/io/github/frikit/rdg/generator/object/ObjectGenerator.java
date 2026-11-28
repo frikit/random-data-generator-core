@@ -17,6 +17,7 @@ import io.github.frikit.rdg.generator.report.GenerationDecision;
 import io.github.frikit.rdg.generator.report.GenerationStep;
 import io.github.frikit.rdg.internal.ConfigAccess;
 import java.lang.reflect.AccessibleObject;
+import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -1052,6 +1053,8 @@ public final class ObjectGenerator<T> implements Generator<T> {
                     type,
                     depth,
                     parameter,
+                    null,
+                    randomizerSourceOf(parameter),
                     memberStreamIdentity(type, "constructor", memberName));
             // Only a requested name gets a replaced argument's value back. Any other name keeps it as used.
             if (uniqueFieldTracker.addedLast(UniqueFieldTracker.fieldKey(type, memberName), arguments[index])
@@ -1066,6 +1069,18 @@ public final class ObjectGenerator<T> implements Generator<T> {
             // An override or provider produced a value the constructor cannot accept.
             throw constructionFailure(argumentMismatch);
         }
+    }
+
+    /**
+     * The element whose {@link Randomizer} a constructor parameter uses: the field it initializes, as Bean
+     * Validation finds it, where that field carries one, since a {@code @Randomizer} cannot be put on a
+     * parameter; otherwise the parameter itself.
+     */
+    private static AnnotatedElement randomizerSourceOf(Parameter parameter) {
+        return BeanValidationSupport.findInitializedField(parameter)
+                .filter(field -> field.isAnnotationPresent(Randomizer.class))
+                .<AnnotatedElement>map(field -> field)
+                .orElse(parameter);
     }
 
     /**

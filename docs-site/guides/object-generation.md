@@ -71,9 +71,10 @@ property type of a `PropertySelector` or `PropertyPath`.
 Constructor parameters behave like the fields they initialize when the class is compiled with
 `-parameters`: by-name overrides, `objectExcludeField` on the parameter name (or `@Exclude` on the
 backing field), Bean Validation constraints, and semantic providers such as `firstName` or `email`
-all apply. Without compiled parameter names the engine addresses arguments by position, so
+all apply. A `@Randomizer` on the field that a parameter initializes, found as for Bean Validation below,
+gives the argument too. Without compiled parameter names the engine addresses arguments by position, so
 `objectOverride(Money.class, "constructorArg0", ...)` targets the first argument and exclusions by
-name have no effect.
+name, and a `@Randomizer` on a field that only the constructor fills, have no effect.
 
 An argument meets the Bean Validation constraints declared on its parameter and on the field it
 initializes: the nearest field with the parameter's name and declared type, on the class or a

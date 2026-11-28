@@ -1229,8 +1229,8 @@ public final class GeneratorConfig {
          *
          * <p>The instance is retained by reference, returned unchanged, and never reseeded.
          * It cannot be combined with a seed, random factory, or secure mode. Object generation draws the
-         * seed of each reseedable {@code @Randomizer} generator from it, so the same sequence repeats
-         * every member of a generated object.
+         * seed of each reseedable {@code @Randomizer} generator from it, so the same sequence repeats those
+         * members too; a randomizer that controls its own randomness does not repeat.
          */
         public Builder random(Random random) {
             this.random = Objects.requireNonNull(random, "random");

@@ -39,11 +39,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Breaking, before 1.0.0, changes generated objects:** with a caller-owned `Random`
   (`GeneratorConfig.Builder.random`) or a `randomFactory` and no seed, object generation reseeds a `@Randomizer`
   generator that a seed would reseed (a `Seedable` one, or a built-in such as `UuidGenerator`, `FirstNameGenerator`
-  or `EmailGenerator`) for every object, with a seed drawn from the sequence the object's other members draw from
-  when the member is resolved. Such a member kept the unseeded source of its own constructor and took other values
-  on every launch, while the other members repeated; now `random(new Random(42))` repeats them too. That draw
-  gives the members after it other values than before, in such a configuration only. A `@Randomizer` that cannot be
-  reseeded draws nothing, and seeded, unseeded and `secureRandom()` configurations keep their values.
+  or `EmailGenerator`) for every object, with a seed drawn from the sequence the object's other members draw from,
+  just before the generator first gives the member's value. Such a member kept the unseeded source of its own
+  constructor and took other values on every launch, while the other members repeated; now
+  `random(new Random(42))` repeats them too. That draw shifts the later values of the shared sequence: the members
+  generated after it and every later object take other values than before, in such a configuration only. A
+  `@Randomizer` that cannot be reseeded, or that is not used, as on an `Optional` member, draws nothing, and seeded,
+  unseeded and `secureRandom()` configurations keep their values.
+- **Breaking, before 1.0.0, changes generated objects:** a `@Randomizer` on a field that a constructor argument
+  fills now gives that argument, where the class is compiled with `-parameters` and the field is the one the
+  parameter initializes (the nearest field with its name and declared type, as for Bean Validation). It was
+  ignored, and the argument was generated as an unannotated one. Only objects with such a field change: with a seed
+  their other members keep their values, and with a caller-owned `Random` the later values of the sequence shift.
 
 ### Removed
 

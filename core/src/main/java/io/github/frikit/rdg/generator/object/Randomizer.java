@@ -15,6 +15,11 @@ import java.lang.annotation.Target;
 /**
  * Declares a generator class to use for a specific field or record component.
  *
+ * <p>On a field that a constructor argument fills, the argument uses it: the field that a constructor
+ * parameter initializes is the nearest field with the parameter's name and declared type, on the class or a
+ * superclass, so the class must be compiled with {@code -parameters}. Without parameter names the
+ * annotation applies only where the field is set after construction.
+ *
  * <p>The referenced generator must have either:
  * <ul>
  *   <li>a no-arg constructor, or</li>
@@ -33,7 +38,9 @@ import java.lang.annotation.Target;
  *
  * <p>A configuration with a caller-owned {@link java.util.Random} or a random factory and no seed reseeds
  * the same generators for every object, with a seed drawn from the sequence the object's other members
- * draw from, so the same caller sequence repeats them. An unseeded or secure configuration reseeds none.
+ * draw from, just before the generator first gives the member's value, so the same caller sequence repeats
+ * them. A member whose generator is not used, such as an {@code Optional} member, draws no seed. An unseeded
+ * or secure configuration reseeds none.
  */
 @Target({ElementType.FIELD, ElementType.RECORD_COMPONENT})
 @Retention(RetentionPolicy.RUNTIME)

@@ -1278,7 +1278,11 @@ final class BeanValidationSupport {
         return named != null && named.parameter().equals(parameter) ? named : null;
     }
 
-    private static Optional<Field> findInitializedField(Parameter parameter) {
+    /**
+     * The field that a named constructor parameter initializes: the nearest instance field with its name and
+     * declared type, on the constructor's class or a superclass.
+     */
+    static Optional<Field> findInitializedField(Parameter parameter) {
         return parameter.isNamePresent()
                 ? findInitializedField(parameter, parameter.getName(), Type::equals)
                 : Optional.empty();
