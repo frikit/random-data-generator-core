@@ -1097,7 +1097,7 @@ class ObjectFakerTest {
     }
 
     @Test
-    @DisplayName("a field path of dots only fails with NoSuchElementException, as in 3.0.3")
+    @DisplayName("a field path of dots only fails with NoSuchElementException, as in kRandom 3.0.3")
     void dotOnlyFieldPathFailsWithNoSuchElement() {
         for (String path : List.of(".", "..")) {
             assertThrows(

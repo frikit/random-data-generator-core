@@ -166,7 +166,7 @@ pitest {
             // The seeded values of the child streams, the German street layout, randomizers and Gaussian draws.
             "io.github.frikit.rdg.generator.SeededDefaultsPinsTest",
             "io.github.frikit.rdg.generator.color.ColorGeneratorTest",
-            "io.github.frikit.rdg.generator.finance.Phase3FinanceGeneratorsTest",
+            "io.github.frikit.rdg.generator.finance.BankAccountAndCryptoAddressGeneratorTest",
             "io.github.frikit.rdg.generator.identifier.UuidGeneratorTest",
             "io.github.frikit.rdg.generator.schema.*",
             "io.github.frikit.rdg.generator.location.RegistryLookupTest",

@@ -237,7 +237,7 @@ class NormalDistributionGeneratorTest {
         @Test
         @DisplayName("should handle negative mean")
         void shouldHandleNegativeMean() {
-            NormalDistributionGenerator generator = new NormalDistributionGenerator(-10.0, 2.0);
+            NormalDistributionGenerator generator = new NormalDistributionGenerator(-10.0, 2.0, seeded(42L));
             List<Double> values = new ArrayList<>();
 
             for (int i = 0; i < 1000; i++) {
@@ -290,7 +290,7 @@ class NormalDistributionGeneratorTest {
         @Test
         @DisplayName("generated list should follow normal distribution")
         void generatedListShouldFollowNormalDistribution() {
-            NormalDistributionGenerator generator = new NormalDistributionGenerator(50.0, 5.0);
+            NormalDistributionGenerator generator = new NormalDistributionGenerator(50.0, 5.0, seeded(42L));
             List<Double> list = generator.generateList(1000);
 
             double mean =

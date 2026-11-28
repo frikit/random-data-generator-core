@@ -31,7 +31,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * Read-only contract of the global registries after the v2 removal of process-wide mutation:
+ * Read-only contract of the global registries after the kRandom v2 removal of process-wide mutation:
  * built-ins are pre-seeded at class load, lookups fall back from exact locale to language, and
  * unknown or null locales resolve to nothing. Assertions derive from each registry's own seeded
  * keys because the built-in locale sets differ per data family.

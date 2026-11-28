@@ -17,8 +17,8 @@ import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-@DisplayName("Phase 3 finance generators")
-class Phase3FinanceGeneratorsTest {
+@DisplayName("bank account and crypto address generators")
+class BankAccountAndCryptoAddressGeneratorTest {
 
     @Test
     @DisplayName("bank account supports account number/name/transaction type")
@@ -214,7 +214,7 @@ class Phase3FinanceGeneratorsTest {
     }
 
     @Test
-    @DisplayName("generators factory exposes phase 3 finance generators")
+    @DisplayName("generators factory exposes the bank account and crypto address generators")
     void financeFactories() {
         assertThrows(
                 IllegalStateException.class, () -> Generators.ofBankAccount().generate());
