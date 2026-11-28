@@ -16,6 +16,7 @@ import io.github.frikit.rdg.generator.GeneratorConfig;
 import io.github.frikit.rdg.generator.Generators;
 import io.github.frikit.rdg.generator.provider.ConflictPolicy;
 import io.github.frikit.rdg.generator.provider.ProviderHub;
+import io.github.frikit.rdg.internal.ConfigAccess;
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 import java.util.Locale;
@@ -302,8 +303,10 @@ class ObjectGeneratorExtensionModelTest {
 
         GeneratorConfig rootConfig = GeneratorConfig.defaults();
         ObjectGeneratorConfig objectConfig = ObjectGeneratorConfig.builder().build();
-        assertThrows(NullPointerException.class, () -> rootConfig.getObjectFieldPredicateOverride(null));
-        assertThrows(NullPointerException.class, () -> rootConfig.getObjectContextualFieldPredicateOverride(null));
+        assertThrows(NullPointerException.class, () -> ConfigAccess.getObjectFieldPredicateOverride(rootConfig, null));
+        assertThrows(
+                NullPointerException.class,
+                () -> ConfigAccess.getObjectContextualFieldPredicateOverride(rootConfig, null));
         assertThrows(NullPointerException.class, () -> objectConfig.getFieldPredicateOverride(null));
         assertThrows(NullPointerException.class, () -> objectConfig.getContextualFieldPredicateOverride(null));
     }

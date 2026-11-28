@@ -22,6 +22,8 @@ import io.github.frikit.rdg.generator.provider.ProviderTestSafety;
 import io.github.frikit.rdg.generator.provider.ProviderValidity;
 import io.github.frikit.rdg.generator.schema.FieldLookup;
 import io.github.frikit.rdg.generator.schema.SchemaContext;
+import io.github.frikit.rdg.internal.ConfigAccess;
+import io.github.frikit.rdg.internal.ExtensionRegistry;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -53,7 +55,9 @@ class ExtensionModuleTest {
                 "NON_ROUTABLE",
                 ((Map<?, ?>) fields.resolve("tracking_code").jsonSchema().get("x-rdg-safety")).get("testSafety"));
         assertEquals("TRK-GB", fixture.trackingCode);
-        assertEquals(List.of("example.shipping"), config.getExtensionRegistry().getModuleIds());
+        assertEquals(
+                List.of("example.shipping"),
+                ConfigAccess.getExtensionRegistry(config).getModuleIds());
     }
 
     @Test
@@ -76,12 +80,14 @@ class ExtensionModuleTest {
                 GeneratorConfig.builder().install(new TrackingModule()).build();
         GeneratorConfig copy = original.toBuilder().locale(Locale.CANADA_FRENCH).build();
 
-        assertEquals(List.of("example.shipping"), copy.getExtensionRegistry().getModuleIds());
+        assertEquals(
+                List.of("example.shipping"),
+                ConfigAccess.getExtensionRegistry(copy).getModuleIds());
         assertEquals(
                 "TRK-CA", new ProviderHub(copy).get("tracking", Generator.class).generate());
         assertThrows(
                 UnsupportedOperationException.class,
-                () -> copy.getExtensionRegistry().getModuleIds().add("other"));
+                () -> ConfigAccess.getExtensionRegistry(copy).getModuleIds().add("other"));
     }
 
     @Test

@@ -12,9 +12,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   is in the [kRandom changelog](https://github.com/frikit/krandom/blob/main/CHANGELOG.md). It is published as
   `io.github.frikit:random-data-generator-core` and `io.github.frikit:random-data-generator-bom`, and its Java
   package and JPMS module are `io.github.frikit.rdg` instead of `io.github.frikit.krandom`.
-- Renamed types: `Krandom` is `RandomDataGenerator`, and the extension types `KRandomModule`,
-  `KRandomModuleContext` and `KRandomExtensionRegistry` are `ExtensionModule`, `ExtensionModuleContext` and
-  `ExtensionRegistry`.
+- Renamed types: `Krandom` is `RandomDataGenerator`, and the extension types `KRandomModule` and
+  `KRandomModuleContext` are `ExtensionModule` and `ExtensionModuleContext`. `KRandomExtensionRegistry` has no
+  public counterpart (see `GeneratorConfig.getExtensionRegistry` under Removed).
 - Renamed contracts: the built-in data resources are under `rdg/` instead of `krandom/`, a local data pack's
   manifest is `rdg-data-pack.properties`, a recipe's format is `rdg-recipe` (version `v3`, below), a schema export's
   safety extension is `x-rdg-safety`, and the system property that supplies a development build's library version
@@ -74,8 +74,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `DataRegistryContext.globalDefault().provider(Vocabulary.NATIONAL_ID, locale)` returns the built-in provider.
   `finance.CurrencyDetails`, which no generator returned, is removed, and `user.LocaleTextResourceLoader` moves to
   the unexported `io.github.frikit.rdg.internal` package. Package-private: `GeneratorConfig.isRestoredFromRecipe`
-  (a generation report's `SeedSource.RECIPE` says the same), `GenerationRecipe.Builder.recipeVersion` and
-  `algorithm` (each accepted only its default), `FixtureRuleKind.isRegisteredOnObjectFaker`, and the constructors,
+  (a generation report's `SeedSource.RECIPE` says the same), `FixtureRuleKind.isRegisteredOnObjectFaker`, and the
+  constructors,
   the `random` field and the `validate` method of `AbstractBoundedGenerator`, which only the numeric generators in
   `io.github.frikit.rdg.generator.base` extend. `DataRegistryContext.Builder`, `CharGenerator.Builder` and
   `StringGenerator.Builder` have private constructors (their `builder()` methods create them), and the nested
@@ -83,5 +83,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Breaking, before 1.0.0:** the static `isRegistered(Locale)` of the 41 built-in registries (the 40
   `*DataRegistry` classes and `NationalIdRegistry`). The registries keep `forLocale` and `registeredKeys`, and
   `DataRegistryContext.globalDefault().isRegistered(Vocabulary.X, locale)` gives the same answer.
+- **Breaking, before 1.0.0:** `GenerationRecipe.builder()` and the whole `GenerationRecipe.Builder` are
+  package-private. A recipe comes from `GeneratorConfig.getGenerationRecipe()` or from its text with
+  `GenerationRecipe.parse`, and `toGeneratorConfig()` replays either. Seeded output is unchanged.
+- **Breaking, before 1.0.0:** the object engine's lookups on `GeneratorConfig`, which take a type, a field or a
+  name and apply the engine's rules: `getObjectTypeOverride`, `getObjectFieldOverride`,
+  `getObjectContextualTypeOverride`, `getObjectContextualFieldOverride`, `getObjectFieldPredicateOverride`,
+  `getObjectContextualFieldPredicateOverride`, `shouldObjectExclude` and `isObjectFieldNameExcluded` are
+  package-private. The `GeneratorConfig.Builder` methods that set the overrides and exclusions stay, and object
+  generation applies them as before. Seeded output is unchanged.
+- **Breaking, before 1.0.0:** `GeneratorConfig.getExtensionRegistry()` is package-private, and the type it
+  returned, `extension.ExtensionRegistry` (kRandom's `KRandomExtensionRegistry`), moves to the unexported
+  `io.github.frikit.rdg.internal` package. Modules are still installed with `GeneratorConfig.Builder.install` and
+  resolved, with the same collision checks, when the configuration is built. Seeded output is unchanged.
 
 [Unreleased]: https://github.com/frikit/random-data-generator-core/commits/main
