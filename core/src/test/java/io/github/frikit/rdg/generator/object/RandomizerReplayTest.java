@@ -13,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.github.frikit.rdg.generator.GenerationRecipe;
 import io.github.frikit.rdg.generator.Generator;
 import io.github.frikit.rdg.generator.GeneratorConfig;
+import io.github.frikit.rdg.generator.Seedable;
 import io.github.frikit.rdg.generator.base.ByteGenerator;
 import io.github.frikit.rdg.generator.identifier.UuidGenerator;
 import io.github.frikit.rdg.generator.user.EmailGenerator;
@@ -23,6 +24,8 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
+import java.util.Random;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -142,6 +145,307 @@ class RandomizerReplayTest {
     void builtInRandomizersNeedASeed() {
         GeneratorConfig unseeded = GeneratorConfig.defaults();
         assertNotEquals(builtIns(unseeded, 3, true), builtIns(unseeded, 3, true));
+    }
+
+    private static GeneratorConfig callerOwned(long seed) {
+        return GeneratorConfig.builder().random(new Random(seed)).clock(FIXED).build();
+    }
+
+    @Test
+    @DisplayName("a caller-owned Random repeats every member, the randomizers included")
+    void callerOwnedRandomRepeatsRandomizers() {
+        List<String> original = builtIns(callerOwned(42L), 6, true);
+
+        assertEquals(original, builtIns(callerOwned(42L), 6, true));
+        assertNotEquals(original, builtIns(callerOwned(43L), 6, true));
+        assertTrue(new HashSet<>(original).size() > 1, "values should vary between objects: " + original);
+    }
+
+    @Test
+    @DisplayName("a caller-owned Random repeats a seedable randomizer in every object")
+    void callerOwnedRandomRepeatsSeedableRandomizer() {
+        List<Byte> original = values(callerOwned(42L), 12);
+
+        assertEquals(original, values(callerOwned(42L), 12));
+        assertNotEquals(original, values(callerOwned(43L), 12));
+        assertTrue(new HashSet<>(original).size() > 1, "values should vary between objects: " + original);
+    }
+
+    @Test
+    @DisplayName("a caller-owned Random repeats the built-in randomizers of collection elements")
+    void callerOwnedRandomRepeatsNestedRandomizers() {
+        List<List<UUID>> first = new ArrayList<>();
+        List<List<UUID>> second = new ArrayList<>();
+        ObjectGenerator<IdHolder> one = new ObjectGenerator<>(IdHolder.class, callerOwned(7L));
+        ObjectGenerator<IdHolder> two = new ObjectGenerator<>(IdHolder.class, callerOwned(7L));
+        for (int i = 0; i < 3; i++) {
+            first.add(one.generate().children.stream().map(child -> child.id).toList());
+            second.add(two.generate().children.stream().map(child -> child.id).toList());
+        }
+        assertEquals(first, second);
+        for (List<UUID> ids : first) {
+            assertEquals(ids.size(), new HashSet<>(ids).size(), ids::toString);
+        }
+    }
+
+    @Test
+    @DisplayName("a random factory whose sources repeat repeats the randomizers too")
+    void repeatingRandomFactoryRepeatsRandomizers() {
+        GeneratorConfig factory = GeneratorConfig.builder()
+                .randomFactory(() -> new Random(42L))
+                .clock(FIXED)
+                .build();
+
+        assertEquals(builtIns(factory, 4, true), builtIns(factory, 4, true));
+    }
+
+    /** A seedable randomizer that gives the number of reseeds it has had so far. */
+    public static class ReseedCount implements Generator<Integer>, Seedable {
+        private int reseeds;
+
+        @Override
+        public Integer generate() {
+            return reseeds;
+        }
+
+        @Override
+        public void reseed(long seed) {
+            reseeds++;
+        }
+    }
+
+    public static class Reseeded {
+        @Randomizer(ReseedCount.class)
+        public int reseeds;
+    }
+
+    private static List<Integer> reseeds(GeneratorConfig config) {
+        ObjectGenerator<Reseeded> generator = new ObjectGenerator<>(Reseeded.class, config);
+        List<Integer> values = new ArrayList<>();
+        for (int i = 0; i < 3; i++) {
+            values.add(generator.generate().reseeds);
+        }
+        return values;
+    }
+
+    @Test
+    @DisplayName("a caller-supplied source reseeds a randomizer for every object, a library-made one never")
+    void onlyCallerSuppliedSourcesReseedRandomizers() {
+        assertEquals(List.of(1, 2, 3), reseeds(callerOwned(42L)));
+        assertEquals(
+                List.of(1, 2, 3),
+                reseeds(GeneratorConfig.builder()
+                        .randomFactory(() -> new Random(42L))
+                        .build()));
+        assertEquals(List.of(0, 0, 0), reseeds(GeneratorConfig.defaults()));
+        assertEquals(
+                List.of(0, 0, 0),
+                reseeds(GeneratorConfig.builder().secureRandom().build()));
+    }
+
+    public static class PlainOnly {
+        public int plain;
+        public int other;
+    }
+
+    public static class PlainWithCounter {
+        @Randomizer(Counter.class)
+        public long sequence;
+
+        public int plain;
+        public int other;
+    }
+
+    @Test
+    @DisplayName("with a caller-owned Random a randomizer that cannot be reseeded draws nothing")
+    void nonReseedableRandomizerDrawsNothingFromTheCallerSequence() {
+        ObjectGenerator<PlainOnly> without = new ObjectGenerator<>(PlainOnly.class, callerOwned(42L));
+        ObjectGenerator<PlainWithCounter> with = new ObjectGenerator<>(PlainWithCounter.class, callerOwned(42L));
+        for (int i = 0; i < 4; i++) {
+            PlainOnly expected = without.generate();
+            PlainWithCounter actual = with.generate();
+            assertEquals(expected.plain + " " + expected.other, actual.plain + " " + actual.other);
+            assertEquals(i + 1L, actual.sequence);
+        }
+    }
+
+    /** Fields in name order: before, maybe, zLast. */
+    public static class PlainOptional {
+        public int before;
+        public Optional<Integer> maybe;
+        public int zLast;
+    }
+
+    public static class RandomizedOptional {
+        public int before;
+
+        @Randomizer(ReseedCount.class)
+        public Optional<Integer> maybe;
+
+        public int zLast;
+    }
+
+    @Test
+    @DisplayName("with a caller-owned Random a randomizer that is not applied, as on an Optional, draws nothing")
+    void unappliedRandomizerDrawsNothingFromTheCallerSequence() {
+        ObjectGenerator<PlainOptional> without = new ObjectGenerator<>(PlainOptional.class, callerOwned(42L));
+        ObjectGenerator<RandomizedOptional> with = new ObjectGenerator<>(RandomizedOptional.class, callerOwned(42L));
+        for (int i = 0; i < 4; i++) {
+            PlainOptional expected = without.generate();
+            RandomizedOptional actual = with.generate();
+            assertEquals(
+                    expected.before + " " + expected.maybe + " " + expected.zLast,
+                    actual.before + " " + actual.maybe + " " + actual.zLast);
+        }
+    }
+
+    /** A seedable randomizer that counts up from zero after every reseed. */
+    public static class FromZero implements Generator<Integer>, Seedable {
+        private int next;
+
+        @Override
+        public Integer generate() {
+            return next++;
+        }
+
+        @Override
+        public void reseed(long seed) {
+            next = 0;
+        }
+    }
+
+    public static class UniqueFromZero {
+        @Randomizer(FromZero.class)
+        public int code;
+    }
+
+    @Test
+    @DisplayName("with a caller-owned Random a uniqueness retry continues the randomizer, reseeded once per value")
+    void uniquenessRetryDoesNotReseedAgain() {
+        GeneratorConfig config = GeneratorConfig.builder()
+                .random(new Random(42L))
+                .objectUniqueField("code")
+                .build();
+        ObjectGenerator<UniqueFromZero> generator = new ObjectGenerator<>(UniqueFromZero.class, config);
+        List<Integer> codes = new ArrayList<>();
+        for (int i = 0; i < 3; i++) {
+            codes.add(generator.generate().code);
+        }
+        assertEquals(List.of(0, 1, 2), codes);
+    }
+
+    /** A class whose annotated fields only its constructor fills. */
+    public static final class ConstructedWithRandomizers {
+        public final int before;
+
+        @Randomizer(Counter.class)
+        public final long sequence;
+
+        @Randomizer(UuidGenerator.class)
+        public final UUID id;
+
+        public final int after;
+
+        public ConstructedWithRandomizers(int before, long sequence, UUID id, int after) {
+            this.before = before;
+            this.sequence = sequence;
+            this.id = id;
+            this.after = after;
+        }
+    }
+
+    private static List<String> constructed(GeneratorConfig config) {
+        ObjectGenerator<ConstructedWithRandomizers> generator =
+                new ObjectGenerator<>(ConstructedWithRandomizers.class, config);
+        List<String> values = new ArrayList<>();
+        for (int i = 0; i < 3; i++) {
+            ConstructedWithRandomizers value = generator.generate();
+            values.add(value.before + " " + value.sequence + " " + value.id + " " + value.after);
+        }
+        return values;
+    }
+
+    @Test
+    @DisplayName("a constructor argument uses the @Randomizer of the field it fills, and replays")
+    void constructorArgumentUsesTheFieldRandomizer() {
+        List<String> seeded = constructed(seeded(42L));
+        assertEquals(seeded, constructed(seeded(42L)));
+        assertNotEquals(seeded, constructed(seeded(43L)));
+        List<String> callerOwned = constructed(callerOwned(42L));
+        assertEquals(callerOwned, constructed(callerOwned(42L)));
+        for (int i = 0; i < 3; i++) {
+            assertEquals(String.valueOf(i + 1L), seeded.get(i).split(" ")[1]);
+            assertEquals(String.valueOf(i + 1L), callerOwned.get(i).split(" ")[1]);
+        }
+        assertEquals(
+                3, new HashSet<>(seeded.stream().map(line -> line.split(" ")[2]).toList()).size());
+    }
+
+    /** The field and the parameter share a name but not a type, so the field's randomizer does not apply. */
+    public static final class MismatchedRandomizerField {
+        @Randomizer(Counter.class)
+        public final long code;
+
+        public MismatchedRandomizerField(int code) {
+            this.code = code;
+        }
+    }
+
+    @Test
+    @DisplayName("a constructor argument ignores the @Randomizer of a same-named field of another type")
+    void constructorArgumentIgnoresARandomizerOfAnotherType() {
+        ObjectGenerator<MismatchedRandomizerField> generator =
+                new ObjectGenerator<>(MismatchedRandomizerField.class, seeded(42L));
+        List<Long> codes = new ArrayList<>();
+        for (int i = 0; i < 3; i++) {
+            codes.add(generator.generate().code);
+        }
+        assertNotEquals(List.of(1L, 2L, 3L), codes);
+    }
+
+    /** Built by {@link TestObjectConstructionAdapter}, which passes each constructor parameter as the element. */
+    public static final class AdapterRandomized {
+        public final int before;
+
+        @Randomizer(Counter.class)
+        public final long sequence;
+
+        @Randomizer(UuidGenerator.class)
+        public final UUID id;
+
+        public AdapterRandomized(int before, long sequence, UUID id) {
+            this.before = before;
+            this.sequence = sequence;
+            this.id = id;
+        }
+    }
+
+    private static List<String> adapted(GeneratorConfig config) {
+        ObjectGenerator<AdapterRandomized> generator = new ObjectGenerator<>(AdapterRandomized.class, config);
+        List<String> values = new ArrayList<>();
+        for (int i = 0; i < 3; i++) {
+            AdapterRandomized value = generator.generate();
+            values.add(value.before + " " + value.sequence + " " + value.id);
+        }
+        return values;
+    }
+
+    @Test
+    @DisplayName("an adapter's constructor argument uses the @Randomizer of the field it fills, and replays")
+    void adapterArgumentUsesTheFieldRandomizer() {
+        int adapterCalls = TestObjectConstructionAdapter.calls;
+        List<String> seeded = adapted(seeded(42L));
+        assertTrue(TestObjectConstructionAdapter.calls >= adapterCalls + 3, "the adapter builds the fixture");
+        assertEquals(seeded, adapted(seeded(42L)));
+        assertNotEquals(seeded, adapted(seeded(43L)));
+        List<String> callerOwned = adapted(callerOwned(42L));
+        assertEquals(callerOwned, adapted(callerOwned(42L)));
+        for (int i = 0; i < 3; i++) {
+            assertEquals(String.valueOf(i + 1L), seeded.get(i).split(" ")[1]);
+            assertEquals(String.valueOf(i + 1L), callerOwned.get(i).split(" ")[1]);
+        }
+        assertEquals(
+                3, new HashSet<>(seeded.stream().map(line -> line.split(" ")[2]).toList()).size());
     }
 
     private static GeneratorConfig seeded(long seed) {

@@ -101,7 +101,9 @@ public final class ObjectConstructionContext<T> {
      * read with the field that {@code memberName} names, as a parameter compiled with its name is read with the
      * field of that name and declared type, whose type arguments may also be the wildcards that Kotlin's
      * declaration-site variance writes into the parameter: the argument meets the constraints of both, and of
-     * the field's getter, and the parameter's own win where both declare one of a type.
+     * the field's getter, and the parameter's own win where both declare one of a type. The argument also uses
+     * a {@link Randomizer} on that field. Any other {@code element}, such as a backing field, is read as it is,
+     * its {@code @Randomizer} included.
      *
      * @param genericType parameter generic type
      * @param rawType parameter runtime type

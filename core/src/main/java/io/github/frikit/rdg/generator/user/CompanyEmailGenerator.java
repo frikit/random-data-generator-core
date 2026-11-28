@@ -86,8 +86,9 @@ public final class CompanyEmailGenerator implements Generator<String> {
         } else if (domainLabel.length() > MAX_LABEL_LENGTH) {
             domainLabel = domainLabel.substring(0, MAX_LABEL_LENGTH);
         }
-        String tld =
-                emailDomainPolicy == EmailDomainPolicy.REALISTIC_UNCLASSIFIED ? domainGenerator.getTLD() : RESERVED_TLD;
+        String tld = emailDomainPolicy == EmailDomainPolicy.REALISTIC_UNCLASSIFIED
+                ? domainGenerator.generateTld()
+                : RESERVED_TLD;
         return localPart + "@" + domainLabel + "." + tld;
     }
 

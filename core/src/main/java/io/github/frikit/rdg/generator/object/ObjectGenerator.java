@@ -17,6 +17,7 @@ import io.github.frikit.rdg.generator.report.GenerationDecision;
 import io.github.frikit.rdg.generator.report.GenerationStep;
 import io.github.frikit.rdg.internal.ConfigAccess;
 import java.lang.reflect.AccessibleObject;
+import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -744,6 +745,7 @@ public final class ObjectGenerator<T> implements Generator<T> {
                                 depth,
                                 element,
                                 predicateField(memberName, rawType),
+                                randomizerSourceOf(element),
                                 memberStreamIdentity(type, "constructor", memberName));
                         // The adapter names the type's own parameters, as Kotlin metadata does where no name was
                         // compiled, so the argument meets the constraints of the field it fills too.
@@ -1052,6 +1054,8 @@ public final class ObjectGenerator<T> implements Generator<T> {
                     type,
                     depth,
                     parameter,
+                    null,
+                    randomizerSourceOf(parameter),
                     memberStreamIdentity(type, "constructor", memberName));
             // Only a requested name gets a replaced argument's value back. Any other name keeps it as used.
             if (uniqueFieldTracker.addedLast(UniqueFieldTracker.fieldKey(type, memberName), arguments[index])
@@ -1066,6 +1070,20 @@ public final class ObjectGenerator<T> implements Generator<T> {
             // An override or provider produced a value the constructor cannot accept.
             throw constructionFailure(argumentMismatch);
         }
+    }
+
+    /**
+     * The element whose {@link Randomizer} a constructor argument uses. A {@code @Randomizer} cannot be put on a
+     * parameter, so for a {@link Parameter} it is the field the parameter initializes, as Bean Validation finds
+     * it (the field a construction adapter names, or else the one of the compiled name and declared type), where
+     * that field carries one. Any other element, such as the backing field an adapter passes, is used as it is.
+     */
+    private static @Nullable AnnotatedElement randomizerSourceOf(@Nullable AnnotatedElement element) {
+        if (element instanceof Parameter parameter) {
+            Field field = BeanValidationSupport.initializedField(parameter);
+            return field != null && field.isAnnotationPresent(Randomizer.class) ? field : parameter;
+        }
+        return element;
     }
 
     /**

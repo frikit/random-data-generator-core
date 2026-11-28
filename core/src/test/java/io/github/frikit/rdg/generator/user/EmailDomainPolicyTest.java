@@ -94,8 +94,7 @@ class EmailDomainPolicyTest {
     void freeProviderMethodsFailClosedByDefault() {
         EmailGenerator generator =
                 new EmailGenerator(GeneratorConfig.builder().seed(3L).build());
-        List<Executable> calls = List.of(
-                generator::generateFreeEmail, generator::getFreeEmailProvider, generator::generateFreeEmailDomain);
+        List<Executable> calls = List.of(generator::generateFreeEmail, generator::generateFreeEmailDomain);
 
         for (Executable call : calls) {
             IllegalStateException error = assertThrows(IllegalStateException.class, call);
@@ -116,7 +115,8 @@ class EmailDomainPolicyTest {
 
         assertTrue(List.of("gmx.de", "web.de", "gmail.com", "outlook.com")
                 .contains(domainOf(generator.generateFreeEmail())));
-        assertTrue(List.of("gmx.de", "web.de", "gmail.com", "outlook.com").contains(generator.getFreeEmailProvider()));
+        assertTrue(
+                List.of("gmx.de", "web.de", "gmail.com", "outlook.com").contains(generator.generateFreeEmailDomain()));
         assertTrue(
                 List.of("gmx.de", "web.de", "gmail.com", "outlook.com").contains(generator.generateFreeEmailDomain()));
     }

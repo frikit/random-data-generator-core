@@ -110,7 +110,7 @@ again.
 
 `EmailDomainPolicy.REALISTIC_UNCLASSIFIED` restores the popular mailbox-provider domains
 (`gmail.com`, `yahoo.com`, …) and realistic company top-level domains for isolated fixtures that
-never send mail. The free-provider methods (`generateFreeEmail`, `getFreeEmailProvider`,
+never send mail. The free-provider methods (`generateFreeEmail` and
 `generateFreeEmailDomain`) require that opt-in and fail closed otherwise. A domain passed
 explicitly, such as `generate("corp.test")`, is always used verbatim. The selected policy is
 recorded in portable generation recipes as `email.domain-policy`.
@@ -149,7 +149,7 @@ end the host, such as `real.com/`, fails with `IllegalArgumentException`. A comp
 name, as `CompanyUrlGenerator.generateFromCompanyName(String)` builds it, keeps the name's ASCII letters and
 digits as its label, cut to the 63 characters a label may hold. Values from your own overrides,
 rules, and randomizers are used as written. A top-level domain or a label alone is vocabulary rather than
-a destination, so `getTLD()`, `generateTld()`, `getPopularTLD()`, and `generateName()` draw as usual.
+a destination, so `generateTld()`, `generatePopularTld()`, and `generateName()` draw as usual.
 `generatePublic()` and `generatePrivate()` return addresses that can identify real hosts and internal
 services, so they require `REALISTIC_UNCLASSIFIED` and otherwise fail with `IllegalStateException`.
 

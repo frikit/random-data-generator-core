@@ -121,7 +121,7 @@ class UrlGeneratorTest {
     @Test
     void testGetProtocol() {
         UrlGenerator generator = new UrlGenerator();
-        String protocol = generator.getProtocol();
+        String protocol = generator.generateProtocol();
         assertNotNull(protocol);
         assertTrue(Set.of("http", "https", "ftp", "ws", "wss").contains(protocol));
     }
@@ -129,7 +129,7 @@ class UrlGeneratorTest {
     @Test
     void testGetPath() {
         UrlGenerator generator = new UrlGenerator();
-        String path = generator.getPath();
+        String path = generator.generatePath();
         assertNotNull(path);
         assertTrue(path.startsWith("/"), "Path should start with slash");
     }
@@ -137,7 +137,7 @@ class UrlGeneratorTest {
     @Test
     void testGetQueryString() {
         UrlGenerator generator = new UrlGenerator();
-        String query = generator.getQueryString();
+        String query = generator.generateQuery();
         assertNotNull(query);
         assertFalse(query.startsWith("?"), "Query string should not start with ?");
         assertTrue(query.contains("="), "Query string should contain =");
@@ -199,7 +199,7 @@ class UrlGeneratorTest {
         UrlGenerator generator = new UrlGenerator();
         Set<String> protocols = new HashSet<>();
         for (int i = 0; i < 100; i++) {
-            protocols.add(generator.getProtocol());
+            protocols.add(generator.generateProtocol());
         }
         assertTrue(protocols.size() >= 3, "Should generate multiple protocols");
     }
@@ -210,7 +210,7 @@ class UrlGeneratorTest {
                 new UrlGenerator(GeneratorConfig.builder().seed(123L).build());
         Set<Integer> segmentCounts = new HashSet<>();
         for (int i = 0; i < 50; i++) {
-            String path = generator.getPath();
+            String path = generator.generatePath();
             int segments = path.split("/").length - 1; // -1 for leading slash
             segmentCounts.add(segments);
         }
@@ -223,7 +223,7 @@ class UrlGeneratorTest {
                 new UrlGenerator(GeneratorConfig.builder().seed(456L).build());
         Set<Integer> paramCounts = new HashSet<>();
         for (int i = 0; i < 50; i++) {
-            String query = generator.getQueryString();
+            String query = generator.generateQuery();
             int params = query.split("&").length;
             paramCounts.add(params);
         }
@@ -303,7 +303,7 @@ class UrlGeneratorTest {
     @Test
     void testQueryParametersHaveValues() {
         UrlGenerator generator = new UrlGenerator();
-        String query = generator.getQueryString();
+        String query = generator.generateQuery();
         String[] params = query.split("&");
         for (String param : params) {
             assertTrue(param.contains("="), "Each parameter should have a value");
@@ -316,7 +316,7 @@ class UrlGeneratorTest {
     void testPathSegmentsAreAlphabetic() {
         UrlGenerator generator = new UrlGenerator();
         for (int i = 0; i < 20; i++) {
-            String path = generator.getPath();
+            String path = generator.generatePath();
             String[] segments = path.substring(1).split("/"); // Remove leading slash
             for (String segment : segments) {
                 assertTrue(segment.matches("[a-z0-9]+"), "Path segment should be alphanumeric: " + segment);
@@ -331,7 +331,7 @@ class UrlGeneratorTest {
         Set<Integer> segmentCounts = new HashSet<>();
 
         for (int i = 0; i < 50; i++) {
-            String path = generator.getPath();
+            String path = generator.generatePath();
             int segments = path.split("/").length - 1; // -1 for leading slash
             segmentCounts.add(segments);
         }
@@ -346,7 +346,7 @@ class UrlGeneratorTest {
         Set<Integer> paramCounts = new HashSet<>();
 
         for (int i = 0; i < 50; i++) {
-            String query = generator.getQueryString();
+            String query = generator.generateQuery();
             int params = query.split("&").length;
             paramCounts.add(params);
         }
@@ -362,7 +362,7 @@ class UrlGeneratorTest {
                 new UrlGenerator(GeneratorConfig.builder().seed(666L).build());
 
         for (int i = 0; i < 10; i++) {
-            assertEquals(gen1.getProtocol(), gen2.getProtocol());
+            assertEquals(gen1.generateProtocol(), gen2.generateProtocol());
         }
     }
 
@@ -374,7 +374,7 @@ class UrlGeneratorTest {
                 new UrlGenerator(GeneratorConfig.builder().seed(777L).build());
 
         for (int i = 0; i < 10; i++) {
-            assertEquals(gen1.getPath(), gen2.getPath());
+            assertEquals(gen1.generatePath(), gen2.generatePath());
         }
     }
 
@@ -386,7 +386,7 @@ class UrlGeneratorTest {
                 new UrlGenerator(GeneratorConfig.builder().seed(888L).build());
 
         for (int i = 0; i < 10; i++) {
-            assertEquals(gen1.getQueryString(), gen2.getQueryString());
+            assertEquals(gen1.generateQuery(), gen2.generateQuery());
         }
     }
 
@@ -562,7 +562,7 @@ class UrlGeneratorTest {
         Set<String> protocols = new HashSet<>();
 
         for (int i = 0; i < 200; i++) {
-            String protocol = generator.getProtocol();
+            String protocol = generator.generateProtocol();
             protocols.add(protocol);
         }
 
@@ -572,7 +572,7 @@ class UrlGeneratorTest {
     @Test
     void testQueryValuesAreNumeric() {
         UrlGenerator generator = new UrlGenerator();
-        String query = generator.getQueryString();
+        String query = generator.generateQuery();
         String[] params = query.split("&");
 
         for (String param : params) {
@@ -588,7 +588,7 @@ class UrlGeneratorTest {
 
         boolean foundSingleSegment = false;
         for (int i = 0; i < 100; i++) {
-            String path = gen.getPath();
+            String path = gen.generatePath();
             int segments = path.split("/").length - 1;
             if (segments == 1) {
                 foundSingleSegment = true;
@@ -605,7 +605,7 @@ class UrlGeneratorTest {
 
         boolean foundMultipleSegments = false;
         for (int i = 0; i < 100; i++) {
-            String path = gen.getPath();
+            String path = gen.generatePath();
             int segments = path.split("/").length - 1;
             if (segments > 1) {
                 foundMultipleSegments = true;
@@ -622,7 +622,7 @@ class UrlGeneratorTest {
 
         boolean foundSingleParam = false;
         for (int i = 0; i < 100; i++) {
-            String query = gen.getQueryString();
+            String query = gen.generateQuery();
             int params = query.split("&").length;
             if (params == 1) {
                 foundSingleParam = true;
@@ -639,7 +639,7 @@ class UrlGeneratorTest {
 
         boolean foundMultipleParams = false;
         for (int i = 0; i < 100; i++) {
-            String query = gen.getQueryString();
+            String query = gen.generateQuery();
             int params = query.split("&").length;
             if (params > 1) {
                 foundMultipleParams = true;
@@ -657,7 +657,7 @@ class UrlGeneratorTest {
 
         // Generate many queries to ensure loop iterations cover all branches
         for (int i = 0; i < 50; i++) {
-            String query = gen.getQueryString();
+            String query = gen.generateQuery();
             assertFalse(query.isEmpty());
 
             String[] parts = query.split("&");
@@ -672,7 +672,7 @@ class UrlGeneratorTest {
 
         // Generate many paths to ensure loop iterations cover all branches
         for (int i = 0; i < 50; i++) {
-            String path = gen.getPath();
+            String path = gen.generatePath();
             assertTrue(path.startsWith("/"));
 
             int segments = path.split("/").length - 1;

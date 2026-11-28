@@ -203,6 +203,9 @@ final class FieldGeneratorResolver {
     private final @Nullable Long generationSeed;
     private final boolean namedChildStreams;
     private final Random sequenceRandom;
+    /** Whether the caller supplies the random source, as a {@link Random} or a factory, rather than a seed. */
+    private final boolean callerSuppliedSource;
+
     private final Map<Class<?>, Generator<?>> builtins;
     private final SemanticStringGenerators semanticStringGenerators;
     private final Map<String, Map<Class<?>, Generator<?>>> semanticTypedGenerators;
@@ -229,6 +232,8 @@ final class FieldGeneratorResolver {
         this.generationSeed = generationSeed;
         this.namedChildStreams = ObjectFieldStreamPlanner.usesNamedChildStreams(generationSeed);
         this.sequenceRandom = generationSeed != null ? new Random(generationSeed) : this.generatorConfig.createRandom();
+        this.callerSuppliedSource = this.generatorConfig.getRandom().isPresent()
+                || this.generatorConfig.getRandomFactory().isPresent();
         this.builtins = buildBuiltins(config, this.generatorConfig, this.sequenceRandom);
         this.semanticRegistry = config.getSemanticRegistry();
         this.semanticMode = config.getSemanticMode();
@@ -1650,6 +1655,8 @@ final class FieldGeneratorResolver {
                 element, () -> constructRandomizer(element, generatorType, ownerType, path, depth));
         if (generationSeed != null) {
             reseedRandomizer(generator, GenerationRecipe.deriveChildSeed(generationSeed, "randomizer:" + path));
+        } else if (callerSuppliedSource && isReseedable(generator)) {
+            return reseededOnFirstUse(generator, generatorType, ownerType, path, depth);
         }
         return () -> generateWithRandomizerContext(generator, generatorType, ownerType, path, depth);
     }
@@ -1668,6 +1675,33 @@ final class FieldGeneratorResolver {
         if (reseeder != null) {
             reseeder.reseed(generator, seed);
         }
+    }
+
+    private static boolean isReseedable(Generator<?> generator) {
+        return generator instanceof Seedable || Reseeding.reseederOf(generator) != null;
+    }
+
+    /**
+     * Without a seed, but with a caller-owned {@link Random} or a random factory, a randomizer that the seeded
+     * path reseeds takes its seed from the sequence the other members draw from, so the same caller sequence
+     * repeats it. The seed is drawn once per member value, just before the randomizer first generates it, so a
+     * member whose randomizer is not used, such as an {@code Optional} or a {@code null} one, draws nothing. A
+     * randomizer that cannot be reseeded never draws from the sequence.
+     */
+    private Generator<?> reseededOnFirstUse(
+            Generator<?> generator,
+            Class<? extends Generator<?>> generatorType,
+            Class<?> ownerType,
+            String path,
+            int depth) {
+        boolean[] reseeded = {false};
+        return () -> {
+            if (!reseeded[0]) {
+                reseeded[0] = true;
+                reseedRandomizer(generator, sequenceRandom.nextLong());
+            }
+            return generateWithRandomizerContext(generator, generatorType, ownerType, path, depth);
+        };
     }
 
     private static Generator<?> constructRandomizer(
@@ -1810,6 +1844,32 @@ final class FieldGeneratorResolver {
             @Nullable AnnotatedElement element,
             @Nullable AnnotatedElement constraintSource,
             java.lang.reflect.@Nullable Field overrideField) {
+        return resolveAndGenerate(
+                genericType,
+                rawType,
+                fieldName,
+                ownerType,
+                currentDepth,
+                element,
+                constraintSource,
+                overrideField,
+                element);
+    }
+
+    /**
+     * Resolves a value as above, taking its {@link Randomizer} from {@code randomizerSource}: the element itself,
+     * or the field that a constructor parameter fills.
+     */
+    private @Nullable Object resolveAndGenerate(
+            Type genericType,
+            Class<?> rawType,
+            String fieldName,
+            Class<?> ownerType,
+            int currentDepth,
+            @Nullable AnnotatedElement element,
+            @Nullable AnnotatedElement constraintSource,
+            java.lang.reflect.@Nullable Field overrideField,
+            @Nullable AnnotatedElement randomizerSource) {
         GenerationReporter active = reporter;
         if (active == null) {
             return resolveValue(
@@ -1821,6 +1881,7 @@ final class FieldGeneratorResolver {
                     element,
                     constraintSource,
                     overrideField,
+                    randomizerSource,
                     null);
         }
         GenerationReporter.Trace trace = active.trace(memberPath(fieldName));
@@ -1837,6 +1898,7 @@ final class FieldGeneratorResolver {
                     element,
                     constraintSource,
                     overrideField,
+                    randomizerSource,
                     trace);
         } finally {
             currentTrace = enclosing;
@@ -1857,6 +1919,7 @@ final class FieldGeneratorResolver {
             @Nullable AnnotatedElement element,
             @Nullable AnnotatedElement constraintSource,
             java.lang.reflect.@Nullable Field overrideField,
+            @Nullable AnnotatedElement randomizerSource,
             GenerationReporter.@Nullable Trace trace) {
 
         ResolvedType resolvedType = ResolvedType.resolve(genericType, typeBindings);
@@ -1876,8 +1939,9 @@ final class FieldGeneratorResolver {
             return generateIfRequestedUnique(override, rawType, genericType, ownerType, fieldName, currentDepth);
         }
 
-        Generator<?> annotationGenerator =
-                element != null ? annotationRandomizerFor(element, ownerType, fieldName, currentDepth) : null;
+        Generator<?> annotationGenerator = randomizerSource != null
+                ? annotationRandomizerFor(randomizerSource, ownerType, fieldName, currentDepth)
+                : null;
         Generator<?> fakeAnnotationGenerator = element != null ? fakeAnnotationGeneratorFor(element, rawType) : null;
         Generator<?> fakeRangeGenerator = element != null ? fakeRangeGeneratorFor(element, rawType) : null;
         BeanValidationSupport.ConstraintModel bvConstraints;
@@ -1948,7 +2012,7 @@ final class FieldGeneratorResolver {
             GenerationReporter.step(
                     trace,
                     GenerationStep.RANDOMIZER,
-                    Objects.requireNonNull(element, "an annotated element")
+                    Objects.requireNonNull(randomizerSource, "an annotated element")
                             .getAnnotation(Randomizer.class)
                             .value());
             return generateIfRequestedUnique(
@@ -2396,6 +2460,32 @@ final class FieldGeneratorResolver {
             @Nullable AnnotatedElement element,
             java.lang.reflect.@Nullable Field overrideField,
             String streamIdentity) {
+        return resolveAndGenerateMember(
+                genericType,
+                rawType,
+                fieldName,
+                ownerType,
+                currentDepth,
+                element,
+                overrideField,
+                element,
+                streamIdentity);
+    }
+
+    /**
+     * Resolves a member as above, taking its {@link Randomizer} from {@code randomizerSource}, such as the field
+     * that a constructor parameter fills, rather than from {@code element}.
+     */
+    @Nullable Object resolveAndGenerateMember(
+            Type genericType,
+            Class<?> rawType,
+            String fieldName,
+            Class<?> ownerType,
+            int currentDepth,
+            @Nullable AnnotatedElement element,
+            java.lang.reflect.@Nullable Field overrideField,
+            @Nullable AnnotatedElement randomizerSource,
+            String streamIdentity) {
         FieldGeneratorResolver memberResolver = namedChildStreams
                 ? new FieldGeneratorResolver(
                         config,
@@ -2406,7 +2496,15 @@ final class FieldGeneratorResolver {
                         objectPath)
                 : this;
         return memberResolver.resolveAndGenerate(
-                genericType, rawType, fieldName, ownerType, currentDepth, element, element, overrideField);
+                genericType,
+                rawType,
+                fieldName,
+                ownerType,
+                currentDepth,
+                element,
+                element,
+                overrideField,
+                randomizerSource);
     }
 
     private GenerationContext generationContext(

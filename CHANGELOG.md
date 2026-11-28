@@ -36,6 +36,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   but `v3`, `v2` included, is rejected as unsupported.
 - The Jackson, JUnit and Spring Boot modules move to `random-data-generator-java`, and the Kotlin DSL and Kotest
   modules to `random-data-generator-kotlin`.
+- **Breaking, before 1.0.0, changes generated objects:** with a caller-owned `Random`
+  (`GeneratorConfig.Builder.random`) or a `randomFactory` and no seed, object generation reseeds a `@Randomizer`
+  generator that a seed would reseed (a `Seedable` one, or a built-in such as `UuidGenerator`, `FirstNameGenerator`
+  or `EmailGenerator`) for every object, with a seed drawn from the sequence the object's other members draw from,
+  just before the generator first gives the member's value. Such a member kept the unseeded source of its own
+  constructor and took other values on every launch, while the other members repeated; now
+  `random(new Random(42))` repeats them too. That draw shifts the later values of the shared sequence: the members
+  generated after it and every later object take other values than before, in such a configuration only. A
+  `@Randomizer` that cannot be reseeded, or that is not used, as on an `Optional` member, draws nothing, and seeded,
+  unseeded and `secureRandom()` configurations keep their values.
+- **Breaking, before 1.0.0, changes generated objects:** a `@Randomizer` on a field that a constructor argument
+  fills now gives that argument, where the class is compiled with `-parameters` or a construction adapter names
+  the parameter, and the field is the one the parameter initializes (the nearest field with its name and declared
+  type, as for Bean Validation). It was
+  ignored, and the argument was generated as an unannotated one. Only objects with such a field change: with a seed
+  their other members keep their values, and with a caller-owned `Random` the later values of the sequence shift.
 
 ### Removed
 
@@ -102,5 +118,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   returned, `extension.ExtensionRegistry` (kRandom's `KRandomExtensionRegistry`), moves to the unexported
   `io.github.frikit.rdg.internal` package. Modules are still installed with `GeneratorConfig.Builder.install` and
   resolved, with the same collision checks, when the configuration is built. Seeded output is unchanged.
+- **Breaking, before 1.0.0:** the `get…()` methods that drew a new random value on every call, as if they were
+  properties. Removed, use the `generate…()` method that gave the same value: `DomainGenerator.getTLD`
+  (`generateTld`), `CreditCardGenerator.getCvv` (`generateCvv`) and `getExpirationDate` (`generateExpiration`),
+  `CurrencyGenerator.getName`, `getSymbol` and `getNumericCode`, with or without a `Locale`
+  (`generateCurrencyName`, `generateCurrencySymbol` and `generateCurrencyNumericCode`, with the same parameters),
+  `EmailGenerator.getFreeEmailProvider` (`generateFreeEmailDomain`), and `UrlGenerator.getProtocol`
+  (`generateProtocol`) and `getQueryString` (`generateQuery`). Renamed, as they had no such twin:
+  `DomainGenerator.getPopularTLD` is `generatePopularTld`, `CardExpirationGenerator.getMonth` and `getYear`, with
+  all their overloads, are `generateMonth` and `generateYear` with the same parameters, and `UrlGenerator.getPath` is
+  `generatePath`. `DomainGenerator.getLocaleTLD`, which returns the locale's TLD without drawing, is
+  `getLocaleTld`. Every remaining method draws as before, so seeded output is unchanged.
 
 [Unreleased]: https://github.com/frikit/random-data-generator-core/commits/main

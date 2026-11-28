@@ -332,7 +332,7 @@ class CreditCardGeneratorTest {
     @DisplayName("Amex CVV is 4 digits")
     void amexCvvLength() {
         CreditCardGenerator gen = new CreditCardGenerator(CardType.AMEX);
-        String cvv = gen.getCvv();
+        String cvv = gen.generateCvv();
 
         assertNotNull(cvv);
         assertEquals(4, cvv.length(), "Amex CVV should be 4 digits");
@@ -563,7 +563,7 @@ class CreditCardGeneratorTest {
 
         for (CardType type : types) {
             CreditCardGenerator gen = new CreditCardGenerator(type);
-            String cvv = gen.getCvv();
+            String cvv = gen.generateCvv();
 
             assertNotNull(cvv);
             assertEquals(3, cvv.length(), type + " CVV should be 3 digits");
@@ -579,7 +579,7 @@ class CreditCardGeneratorTest {
 
         Set<String> cvvs = new HashSet<>();
         for (int i = 0; i < 1000; i++) {
-            cvvs.add(gen.getCvv());
+            cvvs.add(gen.generateCvv());
         }
 
         // Should have some CVVs with leading zeros
@@ -593,7 +593,7 @@ class CreditCardGeneratorTest {
     @DisplayName("expiration date is in MM/YY format")
     void expirationDateFormat() {
         CreditCardGenerator gen = new CreditCardGenerator();
-        String expiry = gen.getExpirationDate();
+        String expiry = gen.generateExpiration();
 
         assertNotNull(expiry);
         assertTrue(expiry.matches("\\d{2}/\\d{2}"), "Expected MM/YY format, got: " + expiry);
@@ -606,7 +606,7 @@ class CreditCardGeneratorTest {
         LocalDate now = LocalDate.now();
 
         for (int i = 0; i < 100; i++) {
-            String expiry = gen.getExpirationDate();
+            String expiry = gen.generateExpiration();
             LocalDate expiryDate = LocalDate.parse("01/" + expiry, DateTimeFormatter.ofPattern("dd/MM/yy"));
 
             assertTrue(
@@ -623,7 +623,7 @@ class CreditCardGeneratorTest {
         LocalDate fiveYearsLater = now.plusYears(5).plusMonths(1);
 
         for (int i = 0; i < 100; i++) {
-            String expiry = gen.getExpirationDate();
+            String expiry = gen.generateExpiration();
             LocalDate expiryDate = LocalDate.parse("01/" + expiry, DateTimeFormatter.ofPattern("dd/MM/yy"));
 
             assertTrue(expiryDate.isBefore(fiveYearsLater), "Expiration date should be within 5 years: " + expiry);
@@ -638,7 +638,7 @@ class CreditCardGeneratorTest {
         CreditCardGenerator gen = new CreditCardGenerator(config, CardType.VISA);
 
         LocalDate expiryDate =
-                LocalDate.parse("01/" + gen.getExpirationDate(), DateTimeFormatter.ofPattern("dd/MM/yy"));
+                LocalDate.parse("01/" + gen.generateExpiration(), DateTimeFormatter.ofPattern("dd/MM/yy"));
         LocalDate firstAllowed = LocalDate.now(clock).plusMonths(1).withDayOfMonth(1);
         LocalDate lastAllowed = LocalDate.now(clock).plusMonths(60).withDayOfMonth(1);
 

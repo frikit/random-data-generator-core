@@ -12,6 +12,16 @@ alter it. The user-facing policy is [VERSIONING.md](../../VERSIONING.md); this g
   documented contract (a value that fails its own Bean Validation constraint, a string that does not
   match its declared format). Such a fix is listed under `Fixed` in the changelog with the values it
   affects. A new generator, option or setting leaves existing output unchanged unless the user opts in.
+- **Caller-sequence output.** The same promise covers a configuration with a caller-owned `Random`
+  (`GeneratorConfig.Builder.random`) or a `randomFactory` whose sources repeat: the same caller sequence
+  and configuration give the same values, `@Randomizer` members of generated objects included, in every
+  release of a major line. There is no seed to derive streams from. With a caller-owned `Random`, every
+  member, and every generator built from the configuration, draws in turn from that one sequence: one more
+  or one fewer draw, or a draw moved, changes every value drawn after it, later members and later objects
+  included. A `randomFactory` gives each call of `createRandom()`, such as each generated object's members
+  and each generator built from the configuration, a source of its own, so such a change moves the values
+  drawn after it from the same source. Either is a change of output, under the same rules as a seeded one,
+  and a contract fix lists those later values too.
 - **Recipes.** A release replays a `rdg-recipe/v3` recipe that an earlier release of its major line
   wrote. `GenerationRecipe` is the format; `GeneratorConfig.getGenerationRecipe()` writes it.
 - **String seeds.** `fnv1a64-v1`, the derivation of a seed from text, never changes.
@@ -23,8 +33,10 @@ Anything in `io.github.frikit.rdg.internal`, or otherwise not exported, can chan
 
 ## How seeded output changes by accident
 
-A seeded generator is a sequence of draws from a `java.util.Random`. Anything that changes the number,
-order or meaning of those draws changes every value after it. The usual causes:
+A seeded generator is a sequence of draws from a `java.util.Random`, and so is everything a caller-owned
+`Random` feeds. Anything that changes the number, order or meaning of those draws changes every value after
+it. With a caller-owned `Random` that is every later value of the configuration, since nothing has a stream
+of its own. The usual causes:
 
 - **One more or one fewer draw.** A new branch that draws, a validation retry, a `filter` that now
   rejects a value, an early return that skips a draw.
@@ -48,9 +60,10 @@ Some values depend on the Java runtime rather than on random-data-generator: tim
 ## How to check that you changed nothing
 
 1. **Before you edit,** find the tests that pin exact values for the code you are touching. Search
-   for the generator's name together with a fixed seed (`seed(`, `seeded(`) in `core/src/test/`.
-   Typical pin tests are `StreetAddressPinsTest`, `GenerationRecipeGoldenStreamTest`,
-   `SeededDefaultsPinsTest` and `ChildStreamsTest`.
+   for the generator's name together with a fixed seed (`seed(`, `seeded(`) or a caller-owned source
+   (`random(new Random(`, `randomFactory(`) in `core/src/test/`. Typical pin tests are
+   `StreetAddressPinsTest`, `GenerationRecipeGoldenStreamTest`, `SeededDefaultsPinsTest`,
+   `ChildStreamsTest` and, for objects from a caller-owned `Random` or factory, `CallerOwnedRandomPinsTest`.
 2. **If nothing pins it,** add a pin test first, on the unchanged code: generate a handful of values
    for two or three seeds (and two locales for locale data) and assert them exactly. See it pass on the
    unchanged code before you make the change; it then shows that the values held. For values that also

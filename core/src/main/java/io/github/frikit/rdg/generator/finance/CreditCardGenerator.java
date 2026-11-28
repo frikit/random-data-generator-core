@@ -238,7 +238,7 @@ public final class CreditCardGenerator implements Generator<String> {
         String cardNumber = generateCardNumber(type);
         String formattedNumber = formatCardNumber(cardNumber, type);
         String cvv = getCvv(type);
-        String expirationDate = getExpirationDate();
+        String expirationDate = generateExpiration();
 
         return new CardInfo(formattedNumber, type, cvv, expirationDate);
     }
@@ -260,7 +260,7 @@ public final class CreditCardGenerator implements Generator<String> {
      * @return expiration date in MM/YY format
      */
     public String generateExpiry() {
-        return getExpirationDate();
+        return generateExpiration();
     }
 
     /**
@@ -270,7 +270,7 @@ public final class CreditCardGenerator implements Generator<String> {
      * @return security code digits
      */
     public String generateSecurityCode() {
-        return getCvv();
+        return generateCvv();
     }
 
     /**
@@ -342,18 +342,8 @@ public final class CreditCardGenerator implements Generator<String> {
      *
      * @return a CVV string (3 or 4 digits); never {@code null}
      */
-    public String getCvv() {
-        return getCvv(selectCardType());
-    }
-
-    /**
-     * Generates a card security code.
-     * Alias for {@link #getCvv()}.
-     *
-     * @return CVV/CVC digits
-     */
     public String generateCvv() {
-        return getCvv();
+        return getCvv(selectCardType());
     }
 
     /**
@@ -363,21 +353,11 @@ public final class CreditCardGenerator implements Generator<String> {
      *
      * @return an expiration date string in MM/YY format; never {@code null}
      */
-    public String getExpirationDate() {
+    public String generateExpiration() {
         LocalDate now = LocalDate.now(clock);
         int monthsToAdd = 1 + random.nextInt(60); // 1-60 months (up to 5 years)
         LocalDate expiryDate = now.plusMonths(monthsToAdd);
         return expiryDate.format(EXPIRY_FORMATTER);
-    }
-
-    /**
-     * Generates a card expiration date string.
-     * Alias for {@link #getExpirationDate()}.
-     *
-     * @return expiration in MM/YY format
-     */
-    public String generateExpiration() {
-        return getExpirationDate();
     }
 
     // ── Private helper methods ────────────────────────────────────────────────

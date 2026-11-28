@@ -39,9 +39,9 @@ import java.util.Random;
  * // Random currency from any supported currency
  * CurrencyGenerator gen = new CurrencyGenerator();
  * String code = gen.generate();              // "JPY"
- * String name = gen.getName();               // "Japanese Yen"
- * String symbol = gen.getSymbol();           // "¥"
- * String numeric = gen.getNumericCode();     // "392"
+ * String name = gen.generateCurrencyName();          // "Japanese Yen"
+ * String symbol = gen.generateCurrencySymbol();      // "¥"
+ * String numeric = gen.generateCurrencyNumericCode(); // "392"
  *
  * // Get complete currency information
  * CurrencyInfo info = gen.generateWithInfo();
@@ -211,90 +211,6 @@ public final class CurrencyGenerator implements Generator<String> {
     }
 
     /**
-     * Generates a random currency name.
-     *
-     * <p>Returns the full official name of a randomly selected currency.
-     *
-     * @return a random currency name (e.g., "United States Dollar", "Euro")
-     */
-    public String getName() {
-        return getRandomCurrency().getName();
-    }
-
-    /**
-     * Generates a currency name for the given locale.
-     *
-     * <p>Returns the name of the locale's primary currency.
-     * If the locale is null or not recognized, returns a random currency name.
-     *
-     * @param locale the locale to generate currency name for
-     * @return the currency name for the locale, or a random name if locale is not recognized
-     */
-    public String getName(Locale locale) {
-        Currency currency = Currency.forLocale(locale);
-        if (currency == null) {
-            return getName();
-        }
-        return currency.getName();
-    }
-
-    /**
-     * Generates a random currency symbol.
-     *
-     * <p>Returns the symbol of a randomly selected currency.
-     *
-     * @return a random currency symbol (e.g., "$", "€", "£", "¥")
-     */
-    public String getSymbol() {
-        return getRandomCurrency().getSymbol();
-    }
-
-    /**
-     * Generates a currency symbol for the given locale.
-     *
-     * <p>Returns the symbol of the locale's primary currency.
-     * If the locale is null or not recognized, returns a random currency symbol.
-     *
-     * @param locale the locale to generate currency symbol for
-     * @return the currency symbol for the locale, or a random symbol if locale is not recognized
-     */
-    public String getSymbol(Locale locale) {
-        Currency currency = Currency.forLocale(locale);
-        if (currency == null) {
-            return getSymbol();
-        }
-        return currency.getSymbol();
-    }
-
-    /**
-     * Generates a random ISO 4217 numeric code.
-     *
-     * <p>Returns the 3-digit numeric code of a randomly selected currency.
-     *
-     * @return a random currency numeric code (e.g., "840", "978", "392")
-     */
-    public String getNumericCode() {
-        return getRandomCurrency().getNumericCode();
-    }
-
-    /**
-     * Generates a currency numeric code for the given locale.
-     *
-     * <p>Returns the numeric code of the locale's primary currency.
-     * If the locale is null or not recognized, returns a random currency numeric code.
-     *
-     * @param locale the locale to generate currency numeric code for
-     * @return the currency numeric code for the locale, or a random code if locale is not recognized
-     */
-    public String getNumericCode(Locale locale) {
-        Currency currency = Currency.forLocale(locale);
-        if (currency == null) {
-            return getNumericCode();
-        }
-        return currency.getNumericCode();
-    }
-
-    /**
      * Faker-style alias for {@link #generateAsMap()}.
      *
      * @return map with keys: {@code code}, {@code name}, {@code symbol}, {@code numeric_code}
@@ -352,60 +268,87 @@ public final class CurrencyGenerator implements Generator<String> {
     }
 
     /**
-     * Faker-style alias for {@link #getName()}.
+     * Generates a random currency name.
      *
-     * @return currency name
+     * <p>Returns the full official name of a randomly selected currency.
+     *
+     * @return a random currency name (e.g., "United States Dollar", "Euro")
      */
     public String generateCurrencyName() {
-        return getName();
+        return getRandomCurrency().getName();
     }
 
     /**
-     * Faker-style locale-aware alias for {@link #getName(Locale)}.
+     * Generates a currency name for the given locale.
+     *
+     * <p>Returns the name of the locale's primary currency.
+     * If the locale is null or not recognized, returns a random currency name.
      *
      * @param locale locale used to select primary currency
-     * @return currency name
+     * @return the currency name for the locale, or a random name if locale is not recognized
      */
     public String generateCurrencyName(Locale locale) {
-        return getName(locale);
+        Currency currency = Currency.forLocale(locale);
+        if (currency == null) {
+            return generateCurrencyName();
+        }
+        return currency.getName();
     }
 
     /**
-     * Faker-style alias for {@link #getSymbol()}.
+     * Generates a random currency symbol.
      *
-     * @return currency symbol
+     * <p>Returns the symbol of a randomly selected currency.
+     *
+     * @return a random currency symbol (e.g., "$", "€", "£", "¥")
      */
     public String generateCurrencySymbol() {
-        return getSymbol();
+        return getRandomCurrency().getSymbol();
     }
 
     /**
-     * Faker-style locale-aware alias for {@link #getSymbol(Locale)}.
+     * Generates a currency symbol for the given locale.
+     *
+     * <p>Returns the symbol of the locale's primary currency.
+     * If the locale is null or not recognized, returns a random currency symbol.
      *
      * @param locale locale used to select primary currency
-     * @return currency symbol
+     * @return the currency symbol for the locale, or a random symbol if locale is not recognized
      */
     public String generateCurrencySymbol(Locale locale) {
-        return getSymbol(locale);
+        Currency currency = Currency.forLocale(locale);
+        if (currency == null) {
+            return generateCurrencySymbol();
+        }
+        return currency.getSymbol();
     }
 
     /**
-     * Generates ISO numeric currency code.
+     * Generates a random ISO 4217 numeric code.
      *
-     * @return 3-digit numeric code
+     * <p>Returns the 3-digit numeric code of a randomly selected currency.
+     *
+     * @return a random currency numeric code (e.g., "840", "978", "392")
      */
     public String generateCurrencyNumericCode() {
-        return getNumericCode();
+        return getRandomCurrency().getNumericCode();
     }
 
     /**
-     * Locale-aware ISO numeric currency code.
+     * Generates a currency numeric code for the given locale.
+     *
+     * <p>Returns the numeric code of the locale's primary currency.
+     * If the locale is null or not recognized, returns a random currency numeric code.
      *
      * @param locale locale used to select primary currency
-     * @return 3-digit numeric code
+     * @return the currency numeric code for the locale, or a random code if locale is not recognized
      */
     public String generateCurrencyNumericCode(Locale locale) {
-        return getNumericCode(locale);
+        Currency currency = Currency.forLocale(locale);
+        if (currency == null) {
+            return generateCurrencyNumericCode();
+        }
+        return currency.getNumericCode();
     }
 
     /**

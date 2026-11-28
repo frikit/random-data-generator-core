@@ -89,7 +89,10 @@ related values, such as an email derived from a name; arbitrary callbacks remain
 state. A configuration with rules, exclusions or modules still returns no portable recipe.
 
 An unseeded configuration, or one with a caller-owned `Random`, has no seed to derive from, so its members
-draw from one shared sequence.
+draw from one shared sequence. With a caller-owned `Random` or a `randomFactory(...)`, a `@Randomizer` that a
+seed would reseed (see below) is reseeded for every object from that sequence, so the same caller sequence
+gives the same objects, randomizer members included. An unseeded or `secureRandom()` configuration reseeds
+no randomizer.
 
 An `ObjectFaker` root rule is such a customization: `ruleFor(path, generator)` on a root member installs a
 field override, so the faker generates without a recipe, but the other seeded members keep their values.
@@ -155,7 +158,8 @@ method's name.
   `CityGenerator`, `StateGenerator`, `PostalCodeGenerator`, `CountryGenerator`, `CurrencyGenerator`,
   `MoneyGenerator`, `UuidGenerator`, `WordGenerator`, `SentenceGenerator` and `ParagraphGenerator`.
   Other built-ins that are not `Seedable`, such as `MiddleNameGenerator` or `CompanyEmailGenerator`,
-  and your own generators that are not `Seedable`, keep their own source.
+  and your own generators that are not `Seedable`, keep their own source. A caller-owned `Random` or a
+  random factory reseeds the same generators, from the sequence the object's members draw from.
 
 A recipe is `rdg-recipe/v3`. It records none of these, because none of them can be turned off. A
 recipe that carries a setting this release does not read, such as `setting.child-stream-policy`, is

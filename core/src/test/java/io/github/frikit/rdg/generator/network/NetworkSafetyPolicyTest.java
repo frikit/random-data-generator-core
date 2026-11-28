@@ -188,7 +188,7 @@ class NetworkSafetyPolicyTest {
                 Map.entry("domain", new DomainGenerator(realistic(Locale.US))::generate),
                 Map.entry("domain de", new DomainGenerator(realistic(Locale.GERMANY))::generate),
                 Map.entry("domain ar", new DomainGenerator(realistic(Locale.forLanguageTag("ar-SA")))::generate),
-                Map.entry("domain tld", new DomainGenerator(realistic(Locale.US))::getTLD),
+                Map.entry("domain tld", new DomainGenerator(realistic(Locale.US))::generateTld),
                 Map.entry("company url", new CompanyUrlGenerator(realistic(Locale.US))::generate),
                 Map.entry(
                         "company url from name",
@@ -400,10 +400,10 @@ class NetworkSafetyPolicyTest {
         DomainGenerator reserved = new DomainGenerator(reserved(6L));
         DomainGenerator realistic = new DomainGenerator(realistic(Locale.US));
 
-        assertEquals("us", reserved.getLocaleTLD());
-        assertFalse(reserved.getPopularTLD().isBlank());
-        assertFalse(reserved.getTLD().equals("test"));
-        assertEquals(realistic.getLocaleTLD(), reserved.getLocaleTLD());
+        assertEquals("us", reserved.getLocaleTld());
+        assertFalse(reserved.generatePopularTld().isBlank());
+        assertFalse(reserved.generateTld().equals("test"));
+        assertEquals(realistic.getLocaleTld(), reserved.getLocaleTld());
         assertFalse(reserved.generateName().contains("."));
     }
 
