@@ -13,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.frikit.rdg.generator.GeneratorConfig;
+import io.github.frikit.rdg.internal.ConfigAccess;
 import java.time.LocalDate;
 import java.util.Locale;
 import java.util.Set;
@@ -249,17 +250,21 @@ class ObjectGeneratorConfigTest {
         assertEquals(LocalDate.of(2021, 12, 31), migrated.getObjectDateMax());
         assertEquals(
                 "local-type",
-                migrated.getObjectTypeOverride(String.class).orElseThrow().generate());
-        assertEquals(
-                "local-field",
-                migrated.getObjectFieldOverride(RootInheritedFixture.class, "name")
+                ConfigAccess.getObjectTypeOverride(migrated, String.class)
                         .orElseThrow()
                         .generate());
-        assertTrue(migrated.getObjectContextualTypeOverride(Integer.class).isPresent());
-        assertTrue(migrated.getObjectContextualFieldOverride(RootInheritedFixture.class, "score")
+        assertEquals(
+                "local-field",
+                ConfigAccess.getObjectFieldOverride(migrated, RootInheritedFixture.class, "name")
+                        .orElseThrow()
+                        .generate());
+        assertTrue(ConfigAccess.getObjectContextualTypeOverride(migrated, Integer.class)
                 .isPresent());
-        assertTrue(migrated.shouldObjectExclude(RootInheritedFixture.class.getDeclaredField("password")));
-        assertTrue(migrated.shouldObjectExclude(RootInheritedFixture.class.getDeclaredField("createdAt")));
+        assertTrue(ConfigAccess.getObjectContextualFieldOverride(migrated, RootInheritedFixture.class, "score")
+                .isPresent());
+        assertTrue(ConfigAccess.shouldObjectExclude(migrated, RootInheritedFixture.class.getDeclaredField("password")));
+        assertTrue(
+                ConfigAccess.shouldObjectExclude(migrated, RootInheritedFixture.class.getDeclaredField("createdAt")));
     }
 
     @Test

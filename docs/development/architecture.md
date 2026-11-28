@@ -70,7 +70,7 @@ says what is guaranteed. The machinery:
 | Recipes | `generator/GenerationRecipe.java` | The line-oriented `rdg-recipe/v3` format: every setting needed to replay a run. |
 | `internal.StreamSeeds` | `internal/StreamSeeds.java` | The same hash split into steps, so `Schema` derives per-cell seeds without building strings. |
 | `internal.Reseeding` | `internal/Reseeding.java` | A registry of package-private `reseedTo(long)` hooks, so `Schema` reuses one generator per column instead of building one per value. |
-| `internal.ConfigAccess` | `internal/ConfigAccess.java` | A cheap seed-replacing copy of a configuration, and whether it replays a recipe, for other packages. |
+| `internal.ConfigAccess` | `internal/ConfigAccess.java` | A cheap seed-replacing copy of a configuration, whether it replays a recipe, and the object engine's override and exclusion lookups, for other packages. |
 | `Seedable` | `generator/Seedable.java` | The public reseed contract. |
 
 FNV-1a is implemented in `GeneratorConfig`, `GenerationRecipe` and `internal/StreamSeeds.java`. They

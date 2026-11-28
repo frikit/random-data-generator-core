@@ -9,6 +9,7 @@ import io.github.frikit.rdg.generator.object.FixtureRuleProblem.Category;
 import io.github.frikit.rdg.generator.object.ObjectFaker.RulePath;
 import io.github.frikit.rdg.generator.object.ObjectFaker.RuleTarget;
 import io.github.frikit.rdg.generator.object.exception.FixtureRuleException;
+import io.github.frikit.rdg.internal.ConfigAccess;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -992,7 +993,8 @@ final class FixtureRuleAnalysis {
         }
 
         private boolean isGenerated(Member member) {
-            if (member.parameter() && config.getGeneratorConfig().isObjectFieldNameExcluded(member.name())) {
+            if (member.parameter()
+                    && ConfigAccess.isObjectFieldNameExcluded(config.getGeneratorConfig(), member.name())) {
                 return false;
             }
             Field field = member.field();

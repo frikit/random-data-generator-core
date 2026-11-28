@@ -15,6 +15,7 @@ import io.github.frikit.rdg.generator.failure.GenerationOperation;
 import io.github.frikit.rdg.generator.object.exception.ObjectGenerationException;
 import io.github.frikit.rdg.generator.report.GenerationDecision;
 import io.github.frikit.rdg.generator.report.GenerationStep;
+import io.github.frikit.rdg.internal.ConfigAccess;
 import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -780,7 +781,7 @@ public final class ObjectGenerator<T> implements Generator<T> {
      */
     private boolean isExcludedConstructionMember(String memberName) {
         // A name exclusion applies to the member itself, whether or not a field backs it.
-        if (config.getGeneratorConfig().isObjectFieldNameExcluded(memberName)) {
+        if (ConfigAccess.isObjectFieldNameExcluded(config.getGeneratorConfig(), memberName)) {
             return true;
         }
         Field property = constructionField(memberName);

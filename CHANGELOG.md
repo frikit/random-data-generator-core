@@ -86,5 +86,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Breaking, before 1.0.0:** `GenerationRecipe.builder()` and the whole `GenerationRecipe.Builder` are
   package-private. A recipe comes from `GeneratorConfig.getGenerationRecipe()` or from its text with
   `GenerationRecipe.parse`, and `toGeneratorConfig()` replays either. Seeded output is unchanged.
+- **Breaking, before 1.0.0:** the object engine's lookups on `GeneratorConfig`, which take a type, a field or a
+  name and apply the engine's rules: `getObjectTypeOverride`, `getObjectFieldOverride`,
+  `getObjectContextualTypeOverride`, `getObjectContextualFieldOverride`, `getObjectFieldPredicateOverride`,
+  `getObjectContextualFieldPredicateOverride`, `shouldObjectExclude` and `isObjectFieldNameExcluded` are
+  package-private. The `GeneratorConfig.Builder` methods that set the overrides and exclusions stay, and object
+  generation applies them as before. Seeded output is unchanged.
 
 [Unreleased]: https://github.com/frikit/random-data-generator-core/commits/main
