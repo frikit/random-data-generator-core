@@ -403,6 +403,51 @@ class RandomizerReplayTest {
         assertNotEquals(List.of(1L, 2L, 3L), codes);
     }
 
+    /** Built by {@link TestObjectConstructionAdapter}, which passes each constructor parameter as the element. */
+    public static final class AdapterRandomized {
+        public final int before;
+
+        @Randomizer(Counter.class)
+        public final long sequence;
+
+        @Randomizer(UuidGenerator.class)
+        public final UUID id;
+
+        public AdapterRandomized(int before, long sequence, UUID id) {
+            this.before = before;
+            this.sequence = sequence;
+            this.id = id;
+        }
+    }
+
+    private static List<String> adapted(GeneratorConfig config) {
+        ObjectGenerator<AdapterRandomized> generator = new ObjectGenerator<>(AdapterRandomized.class, config);
+        List<String> values = new ArrayList<>();
+        for (int i = 0; i < 3; i++) {
+            AdapterRandomized value = generator.generate();
+            values.add(value.before + " " + value.sequence + " " + value.id);
+        }
+        return values;
+    }
+
+    @Test
+    @DisplayName("an adapter's constructor argument uses the @Randomizer of the field it fills, and replays")
+    void adapterArgumentUsesTheFieldRandomizer() {
+        int adapterCalls = TestObjectConstructionAdapter.calls;
+        List<String> seeded = adapted(seeded(42L));
+        assertTrue(TestObjectConstructionAdapter.calls >= adapterCalls + 3, "the adapter builds the fixture");
+        assertEquals(seeded, adapted(seeded(42L)));
+        assertNotEquals(seeded, adapted(seeded(43L)));
+        List<String> callerOwned = adapted(callerOwned(42L));
+        assertEquals(callerOwned, adapted(callerOwned(42L)));
+        for (int i = 0; i < 3; i++) {
+            assertEquals(String.valueOf(i + 1L), seeded.get(i).split(" ")[1]);
+            assertEquals(String.valueOf(i + 1L), callerOwned.get(i).split(" ")[1]);
+        }
+        assertEquals(
+                3, new HashSet<>(seeded.stream().map(line -> line.split(" ")[2]).toList()).size());
+    }
+
     private static GeneratorConfig seeded(long seed) {
         return GeneratorConfig.builder().seed(seed).clock(FIXED).build();
     }

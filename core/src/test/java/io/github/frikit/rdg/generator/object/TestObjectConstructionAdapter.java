@@ -46,6 +46,7 @@ public final class TestObjectConstructionAdapter implements ObjectConstructionAd
                 || type == ObjectConstructionPolicyTest.StructuredFailingAdapterFixture.class
                 || SEALED_SUBCLASSES.containsKey(type)
                 || type == ObjectGeneratorSealedTypeTest.AdapterJvmSealed.class
+                || type == RandomizerReplayTest.AdapterRandomized.class
                 || type.getName().equals("NamelessCode");
     }
 
@@ -75,6 +76,9 @@ public final class TestObjectConstructionAdapter implements ObjectConstructionAd
         }
         if (context.getType().getName().equals("NamelessCode")) {
             return constructNameless(context);
+        }
+        if (context.getType() == RandomizerReplayTest.AdapterRandomized.class) {
+            return constructRandomized(context);
         }
         if (context.getType() == ObjectConstructionPolicyTest.AdapterDefaultFixture.class) {
             return constructWithDefault(context);
@@ -144,6 +148,16 @@ public final class TestObjectConstructionAdapter implements ObjectConstructionAd
                 constructor.getParameters()[2]);
         return new ObjectConstructionPolicyTest.AdapterDefaultFixture(
                 name, unbackedOverridden, (ObjectConstructionPolicyTest.AdapterInner) inner);
+    }
+
+    /** Generates each argument with its constructor parameter as the element, whose field carries a randomizer. */
+    private static Object constructRandomized(ObjectConstructionContext<?> context) {
+        java.lang.reflect.Parameter[] parameters =
+                RandomizerReplayTest.AdapterRandomized.class.getDeclaredConstructors()[0].getParameters();
+        return new RandomizerReplayTest.AdapterRandomized(
+                (Integer) context.generate(int.class, int.class, "before", parameters[0]),
+                (Long) context.generate(long.class, long.class, "sequence", parameters[1]),
+                (java.util.UUID) context.generate(java.util.UUID.class, java.util.UUID.class, "id", parameters[2]));
     }
 
     /**

@@ -47,8 +47,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `@Randomizer` that cannot be reseeded, or that is not used, as on an `Optional` member, draws nothing, and seeded,
   unseeded and `secureRandom()` configurations keep their values.
 - **Breaking, before 1.0.0, changes generated objects:** a `@Randomizer` on a field that a constructor argument
-  fills now gives that argument, where the class is compiled with `-parameters` and the field is the one the
-  parameter initializes (the nearest field with its name and declared type, as for Bean Validation). It was
+  fills now gives that argument, where the class is compiled with `-parameters` or a construction adapter names
+  the parameter, and the field is the one the parameter initializes (the nearest field with its name and declared
+  type, as for Bean Validation). It was
   ignored, and the argument was generated as an unannotated one. Only objects with such a field change: with a seed
   their other members keep their values, and with a caller-owned `Random` the later values of the sequence shift.
 

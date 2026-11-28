@@ -745,6 +745,7 @@ public final class ObjectGenerator<T> implements Generator<T> {
                                 depth,
                                 element,
                                 predicateField(memberName, rawType),
+                                randomizerSourceOf(element),
                                 memberStreamIdentity(type, "constructor", memberName));
                         // The adapter names the type's own parameters, as Kotlin metadata does where no name was
                         // compiled, so the argument meets the constraints of the field it fills too.
@@ -1072,15 +1073,17 @@ public final class ObjectGenerator<T> implements Generator<T> {
     }
 
     /**
-     * The element whose {@link Randomizer} a constructor parameter uses: the field it initializes, as Bean
-     * Validation finds it, where that field carries one, since a {@code @Randomizer} cannot be put on a
-     * parameter; otherwise the parameter itself.
+     * The element whose {@link Randomizer} a constructor argument uses. A {@code @Randomizer} cannot be put on a
+     * parameter, so for a {@link Parameter} it is the field the parameter initializes, as Bean Validation finds
+     * it (the field a construction adapter names, or else the one of the compiled name and declared type), where
+     * that field carries one. Any other element, such as the backing field an adapter passes, is used as it is.
      */
-    private static AnnotatedElement randomizerSourceOf(Parameter parameter) {
-        return BeanValidationSupport.findInitializedField(parameter)
-                .filter(field -> field.isAnnotationPresent(Randomizer.class))
-                .<AnnotatedElement>map(field -> field)
-                .orElse(parameter);
+    private static @Nullable AnnotatedElement randomizerSourceOf(@Nullable AnnotatedElement element) {
+        if (element instanceof Parameter parameter) {
+            Field field = BeanValidationSupport.initializedField(parameter);
+            return field != null && field.isAnnotationPresent(Randomizer.class) ? field : parameter;
+        }
+        return element;
     }
 
     /**

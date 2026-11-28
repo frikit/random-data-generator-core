@@ -17,8 +17,9 @@ import java.lang.annotation.Target;
  *
  * <p>On a field that a constructor argument fills, the argument uses it: the field that a constructor
  * parameter initializes is the nearest field with the parameter's name and declared type, on the class or a
- * superclass, so the class must be compiled with {@code -parameters}. Without parameter names the
- * annotation applies only where the field is set after construction.
+ * superclass, so the class must be compiled with {@code -parameters}, unless an
+ * {@link ObjectConstructionAdapter} names the parameter, as the Kotlin adapter does. Without parameter names
+ * the annotation applies only where the field is set after construction.
  *
  * <p>The referenced generator must have either:
  * <ul>

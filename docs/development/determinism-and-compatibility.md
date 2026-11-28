@@ -15,10 +15,13 @@ alter it. The user-facing policy is [VERSIONING.md](../../VERSIONING.md); this g
 - **Caller-sequence output.** The same promise covers a configuration with a caller-owned `Random`
   (`GeneratorConfig.Builder.random`) or a `randomFactory` whose sources repeat: the same caller sequence
   and configuration give the same values, `@Randomizer` members of generated objects included, in every
-  release of a major line. There is no seed to derive streams from, so every member, and every generator
-  built from the configuration, draws in turn from the one sequence: one more or one fewer draw, or a draw
-  moved, changes every value drawn after it, later members and later objects included. Such a change is a
-  change of output, under the same rules as a seeded one, and a contract fix lists those later values too.
+  release of a major line. There is no seed to derive streams from. With a caller-owned `Random`, every
+  member, and every generator built from the configuration, draws in turn from that one sequence: one more
+  or one fewer draw, or a draw moved, changes every value drawn after it, later members and later objects
+  included. A `randomFactory` gives each call of `createRandom()`, such as each generated object's members
+  and each generator built from the configuration, a source of its own, so such a change moves the values
+  drawn after it from the same source. Either is a change of output, under the same rules as a seeded one,
+  and a contract fix lists those later values too.
 - **Recipes.** A release replays a `rdg-recipe/v3` recipe that an earlier release of its major line
   wrote. `GenerationRecipe` is the format; `GeneratorConfig.getGenerationRecipe()` writes it.
 - **String seeds.** `fnv1a64-v1`, the derivation of a seed from text, never changes.
