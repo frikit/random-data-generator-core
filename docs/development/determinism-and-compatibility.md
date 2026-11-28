@@ -63,8 +63,8 @@ Some values depend on the Java runtime rather than on random-data-generator: tim
    sweeps the factories of `GeneratorCatalogEnvironmentTest` (every `Generators` factory that takes one
    `GeneratorConfig`, in six locales, seed 42 and a fixed clock) and draws the first three values of each
    `generate*()` method from a fresh generator. It compares one digest per factory, method and locale
-   with `core/src/test/resources/rdg-baseline/catalog-fingerprints.txt` and fails with every `changed:`,
-   `missing:` and `new:` line, each naming the `factory.method locale`. It leaves out the values that follow the runtime's TZDB or CLDR
+   with `core/src/test/resources/rdg-baseline/catalog-fingerprints.txt` and fails with a count of
+   the `changed:`, `missing:` and `new:` lines and the first 50 of them, each naming the `factory.method locale`. It leaves out the values that follow the runtime's TZDB or CLDR
    data, each listed in the test with its reason, and compares floating-point values by their bits.
    Regenerate the file only as [regenerating the catalog baseline](#regenerating-the-catalog-baseline)
    describes.
